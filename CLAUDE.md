@@ -1,0 +1,262 @@
+# HelpMeClean.ro - AI Development Guide
+
+## Project Overview
+
+**HelpMeClean.ro** is Romania's first "Uber for cleaning" marketplace MVP.
+
+- **Purpose:** Functional prototype for investor demonstration
+- **Core Value:** Formalize Romania's informal cleaning sector through compliance
+- **Architecture:** Go monolith backend + multiple frontend clients
+
+## Technology Stack
+
+| Component | Technology | Port/Notes |
+|-----------|-----------|------------|
+| Backend | Go 1.22+, gqlgen, sqlc, PostgreSQL (Neon) | :8080 |
+| Client Web | React + TypeScript + Shadcn/ui | :3000 |
+| Company Dashboard | React + TypeScript + Shadcn/ui | :3001 |
+| Admin Dashboard | React + TypeScript + Shadcn/ui | :3002 |
+| Cleaner Mobile | React Native (Expo) + NativeWind | - |
+| Company Mobile | React Native (Expo) + NativeWind | - |
+| Client iOS | SwiftUI native + Apollo iOS | - |
+
+---
+
+## Agent Assignments
+
+Use specialized agents for different parts of the codebase:
+
+### Backend Development
+- **Agent:** `voltagent-lang:golang-pro`
+- **Use for:** All `backend/` directory work
+- **Responsibilities:** GraphQL resolvers, business logic, database queries, auth, WebSocket
+
+### Web Frontends
+- **Agent:** `voltagent-lang:typescript-pro`
+- **Use for:** All `web/` directory work
+- **Responsibilities:** React components, Apollo Client, Shadcn/ui integration, TailwindCSS
+
+### React Native Mobile Apps
+- **Agent:** `voltagent-lang:react-specialist`
+- **Use for:** All `mobile/` directory work
+- **Responsibilities:** Expo apps, NativeWind styling, navigation, Apollo Client
+
+### iOS Native App
+- **Agent:** `voltagent-lang:swift-expert`
+- **Use for:** All `ios/` directory work
+- **Responsibilities:** SwiftUI views, Apollo iOS, Liquid Glass design, native iOS features
+
+### Database & Migrations
+- **Agent:** `voltagent-lang:golang-pro` or `voltagent-lang:sql-pro`
+- **Use for:** SQL migrations, sqlc queries
+- **Responsibilities:** Schema design, query optimization, indexes
+
+---
+
+## Code Conventions
+
+### General Rules
+
+1. **Language:** Code and comments in English, UI strings in Romanian (primary) + English
+2. **Formatting:** Use language-native formatters (gofmt, prettier, swift-format)
+3. **Naming:**
+   - Go: PascalCase for exports, camelCase for internal
+   - TypeScript/JavaScript: camelCase for variables/functions, PascalCase for components/classes
+   - Swift: camelCase for properties/methods, PascalCase for types
+4. **Error Handling:** Always handle errors explicitly, never silently ignore
+5. **Type Safety:** Leverage type systems (Go generics, TypeScript strict mode, Swift strong typing)
+
+### Backend (Go)
+
+- Use `context.Context` everywhere for cancellation
+- Return `error` explicitly, never panic in production code
+- Use `sqlc` for all database queries (type-safe)
+- Follow [Effective Go](https://go.dev/doc/effective_go)
+- Keep packages focused and cohesive
+- Package structure: `internal/<domain>/<file>.go`
+
+### Web (React + TypeScript)
+
+- **Always** use Shadcn/ui components, never custom CSS files
+- TailwindCSS for all styling
+- Functional components with TypeScript interfaces
+- Use Apollo Client hooks for data fetching
+- Keep components small and focused (< 200 lines)
+- Component structure: `src/features/<domain>/<Component>.tsx`
+
+### Mobile (React Native + Expo)
+
+- Use NativeWind (TailwindCSS for RN) for styling
+- Platform-adaptive components where needed
+- Keep screens focused, extract reusable components
+- Use Expo SDK features when available
+- Screen structure: `src/screens/<Screen>.tsx`
+
+### iOS (SwiftUI)
+
+- Use iOS 16+ Liquid Glass material effects
+- SwiftUI declarative syntax
+- Apollo GraphQL iOS for data fetching
+- Follow Apple Human Interface Guidelines
+- View structure: `Features/<Domain>/<View>.swift`
+
+---
+
+## Design System
+
+### Colors
+
+| Name | Hex | Tailwind | Use |
+|------|-----|----------|-----|
+| Primary | #2563EB | blue-600 | Trust, cleanliness, CTAs |
+| Secondary | #10B981 | emerald-500 | Freshness, success states |
+| Accent | #F59E0B | amber-500 | Ratings, highlights |
+| Danger | #EF4444 | red-500 | Errors, cancellations |
+| Background | #FAFBFC | - | Clean, bright base |
+| Text Primary | #111827 | gray-900 | Main text |
+| Text Secondary | #6B7280 | gray-500 | Supporting text |
+
+### Typography
+
+- **Web:** Inter font family
+- **iOS:** SF Pro (system default)
+- **Mobile:** System fonts with fallbacks
+
+### Spacing & Radius
+
+- Base spacing: 4px scale → [4, 8, 12, 16, 20, 24, 32, 48, 64]
+- Use Tailwind classes: `p-4`, `m-8`, `gap-6`
+- Standard border radius: `12px` (rounded-xl)
+
+---
+
+## GraphQL Schema Guidelines
+
+**Location:** `backend/internal/graph/schema/`
+
+- Types: PascalCase (`Booking`, `User`)
+- Fields: camelCase (`firstName`, `scheduledDate`)
+- Mutations: verb + noun (`createBooking`, `assignCleaner`)
+- Queries: noun or get + noun (`booking`, `myBookings`)
+- Split schemas by domain (one file per domain)
+
+---
+
+## Database Conventions
+
+**Location:** `backend/internal/db/`
+
+### Migrations
+- Format: `NNNNNN_description.up.sql` / `.down.sql`
+- Always include both up and down
+- Use parameterized queries ($1, $2)
+
+### sqlc Queries
+- Location: `backend/internal/db/queries/<domain>.sql`
+- One file per domain/table
+- Use descriptive names with return types (`:one`, `:many`, `:exec`)
+
+---
+
+## Development Commands
+
+### Backend
+```bash
+cd backend
+make install       # Install dependencies
+make generate      # Generate sqlc + gqlgen code
+make migrate-up    # Run migrations
+make run           # Start server on :8080
+make test          # Run tests
+```
+
+### Web
+```bash
+cd web
+npm install
+npm run dev              # All apps in parallel
+npm run dev:client       # Client web only (:3000)
+npm run dev:company      # Company dashboard (:3001)
+npm run dev:admin        # Admin dashboard (:3002)
+npm run build            # Build all apps
+npm run lint             # ESLint
+npm run type-check       # TypeScript check
+```
+
+### Mobile
+```bash
+cd mobile
+npm install
+npm start                # Expo dev server
+npm run ios              # iOS simulator
+npm run android          # Android emulator
+```
+
+### Database
+```bash
+docker-compose up -d postgres   # Start PostgreSQL
+cd backend && make migrate-up   # Apply migrations
+```
+
+---
+
+## Git Workflow
+
+### Commit Messages
+
+Format: `<type>(<scope>): <subject>`
+
+Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `style`
+
+Examples:
+```
+feat(booking): add guest booking flow
+fix(auth): handle expired JWT tokens
+refactor(db): migrate to sqlc from raw SQL
+```
+
+---
+
+## Environment Variables
+
+Each service has a `.env.example` file. Copy to `.env` and fill in values:
+
+- `backend/.env.example` - Server, DB, auth, Stripe, storage
+- `web/packages/client-web/.env.example` - GraphQL endpoint, Google client ID
+- `mobile/packages/cleaner-app/.env.example` - GraphQL endpoint, mobile client IDs
+
+---
+
+## MVP Scope
+
+**IN SCOPE:**
+- Guest booking flow (no auth required)
+- Google OAuth authentication
+- Company application & approval
+- Cleaner invitation & management
+- Job lifecycle (create → assign → start → complete → review)
+- Real-time chat (client ↔ cleaner)
+- Push notifications (basic)
+- Admin dashboard with basic stats
+
+**OUT OF SCOPE (Post-MVP):**
+- E-factura integration
+- ANAF API company verification
+- Advanced matching algorithm
+- In-app maps
+- Rich analytics/reporting
+- Multi-payment methods
+- Automated invoicing
+
+---
+
+## Final Notes
+
+1. **Always check existing code** before creating new files
+2. **Follow the monorepo structure** exactly as specified
+3. **Use the assigned voltagent** for each technology domain
+4. **Test locally** before marking tasks complete
+5. **Ask for clarification** if requirements are ambiguous
+6. **Keep it simple** - this is an MVP for investor demo
+
+The non-technical investor partner cares about **visual quality and smooth UX**. Polished design is paramount.

@@ -1,0 +1,78 @@
+-- name: GetCompanyByID :one
+SELECT * FROM companies WHERE id = $1;
+
+-- name: GetCompanyByAdminUserID :one
+SELECT * FROM companies WHERE admin_user_id = $1;
+
+-- name: GetCompanyByCUI :one
+SELECT * FROM companies WHERE cui = $1;
+
+-- name: CreateCompany :one
+INSERT INTO companies (
+    admin_user_id, company_name, cui, company_type, legal_representative,
+    contact_email, contact_phone, address, city, county, description, claim_token
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING *;
+
+-- name: UpdateCompanyStatus :one
+UPDATE companies SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *;
+
+-- name: ApproveCompany :one
+UPDATE companies SET status = 'approved', approved_at = NOW(), updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: RejectCompany :one
+UPDATE companies SET status = 'rejected', rejection_reason = $2, updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: ListCompaniesByStatus :many
+SELECT * FROM companies WHERE status = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3;
+
+-- name: ListAllCompanies :many
+SELECT * FROM companies ORDER BY created_at DESC LIMIT $1 OFFSET $2;
+
+-- name: CountCompaniesByStatus :one
+SELECT COUNT(*) FROM companies WHERE status = $1;
+
+-- name: GetUnclaimedCompanyByContactEmail :one
+SELECT * FROM companies
+WHERE contact_email = $1 AND admin_user_id IS NULL
+LIMIT 1;
+
+-- name: SetCompanyAdminUser :one
+UPDATE companies SET admin_user_id = $1, updated_at = NOW()
+WHERE id = $2
+RETURNING *;
+
+-- name: GetCompanyByClaimToken :one
+SELECT * FROM companies
+WHERE claim_token = $1 AND admin_user_id IS NULL;
+
+-- name: ClaimCompanyByToken :one
+UPDATE companies
+SET admin_user_id = $1, claim_token = NULL, updated_at = NOW()
+WHERE claim_token = $2 AND admin_user_id IS NULL
+RETURNING *;
+
+-- name: AdminUpdateCompanyProfile :one
+UPDATE companies SET company_name = $2, cui = $3, address = $4, contact_phone = $5, contact_email = $6, updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: SearchCompanies :many
+SELECT * FROM companies WHERE
+    (company_name ILIKE '%' || @query::text || '%' OR cui ILIKE '%' || @query::text || '%')
+    AND (@status_filter::text = '' OR status::text = @status_filter::text)
+ORDER BY created_at DESC LIMIT $1 OFFSET $2;
+
+-- name: CountSearchCompanies :one
+SELECT COUNT(*) FROM companies WHERE
+    (company_name ILIKE '%' || @query::text || '%' OR cui ILIKE '%' || @query::text || '%')
+    AND (@status_filter::text = '' OR status::text = @status_filter::text);
+
+-- name: GetCompanyFinancialSummary :one
+SELECT
+    COUNT(*) FILTER (WHERE status = 'completed')::bigint AS completed_bookings,
+    COALESCE(SUM(COALESCE(final_total, estimated_total)) FILTER (WHERE status = 'completed'), 0)::numeric AS total_revenue,
+    COALESCE(SUM(platform_commission_amount) FILTER (WHERE status = 'completed'), 0)::numeric AS total_commission,
+    COALESCE(SUM(COALESCE(final_total, estimated_total) - COALESCE(platform_commission_amount, 0)) FILTER (WHERE status = 'completed'), 0)::numeric AS net_payout
+FROM bookings WHERE company_id = $1;

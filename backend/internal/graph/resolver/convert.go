@@ -1,0 +1,468 @@
+package resolver
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
+
+	db "helpmeclean-backend/internal/db/generated"
+	"helpmeclean-backend/internal/graph/model"
+)
+
+// UUID helpers
+
+func uuidToString(u pgtype.UUID) string {
+	if !u.Valid {
+		return ""
+	}
+	b := u.Bytes
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+func stringToUUID(s string) pgtype.UUID {
+	s = strings.ReplaceAll(s, "-", "")
+	if len(s) != 32 {
+		return pgtype.UUID{}
+	}
+	var b [16]byte
+	for i := 0; i < 16; i++ {
+		_, err := fmt.Sscanf(s[i*2:i*2+2], "%02x", &b[i])
+		if err != nil {
+			return pgtype.UUID{}
+		}
+	}
+	return pgtype.UUID{Bytes: b, Valid: true}
+}
+
+// Nullable helpers
+
+func textPtr(t pgtype.Text) *string {
+	if !t.Valid {
+		return nil
+	}
+	return &t.String
+}
+
+func textVal(t pgtype.Text) string {
+	if !t.Valid {
+		return ""
+	}
+	return t.String
+}
+
+func int4Ptr(i pgtype.Int4) *int {
+	if !i.Valid {
+		return nil
+	}
+	v := int(i.Int32)
+	return &v
+}
+
+func int4Val(i pgtype.Int4) int {
+	if !i.Valid {
+		return 0
+	}
+	return int(i.Int32)
+}
+
+func boolPtr(b pgtype.Bool) *bool {
+	if !b.Valid {
+		return nil
+	}
+	return &b.Bool
+}
+
+func boolVal(b pgtype.Bool) bool {
+	if !b.Valid {
+		return false
+	}
+	return b.Bool
+}
+
+func float8Ptr(f pgtype.Float8) *float64 {
+	if !f.Valid {
+		return nil
+	}
+	return &f.Float64
+}
+
+func numericToFloat(n pgtype.Numeric) float64 {
+	if !n.Valid {
+		return 0
+	}
+	f, _ := n.Float64Value()
+	return f.Float64
+}
+
+func timestamptzToTime(t pgtype.Timestamptz) time.Time {
+	if !t.Valid {
+		return time.Time{}
+	}
+	return t.Time
+}
+
+func timestamptzToTimePtr(t pgtype.Timestamptz) *time.Time {
+	if !t.Valid {
+		return nil
+	}
+	return &t.Time
+}
+
+func dateToString(d pgtype.Date) string {
+	if !d.Valid {
+		return ""
+	}
+	return d.Time.Format("2006-01-02")
+}
+
+func timeToString(t pgtype.Time) string {
+	if !t.Valid {
+		return ""
+	}
+	hours := t.Microseconds / 3_600_000_000
+	mins := (t.Microseconds % 3_600_000_000) / 60_000_000
+	return fmt.Sprintf("%02d:%02d", hours, mins)
+}
+
+func pgTextEmpty() pgtype.Text {
+	return pgtype.Text{}
+}
+
+func stringToText(s *string) pgtype.Text {
+	if s == nil {
+		return pgtype.Text{}
+	}
+	return pgtype.Text{String: *s, Valid: true}
+}
+
+func stringToTextVal(s string) pgtype.Text {
+	return pgtype.Text{String: s, Valid: true}
+}
+
+func intToInt4(i *int) pgtype.Int4 {
+	if i == nil {
+		return pgtype.Int4{}
+	}
+	return pgtype.Int4{Int32: int32(*i), Valid: true}
+}
+
+func intToInt4Val(i int) pgtype.Int4 {
+	return pgtype.Int4{Int32: int32(i), Valid: true}
+}
+
+func boolToPgBool(b *bool) pgtype.Bool {
+	if b == nil {
+		return pgtype.Bool{}
+	}
+	return pgtype.Bool{Bool: *b, Valid: true}
+}
+
+func float64ToNumeric(f float64) pgtype.Numeric {
+	var n pgtype.Numeric
+	n.Scan(fmt.Sprintf("%f", f))
+	return n
+}
+
+func float64PtrToFloat8(f *float64) pgtype.Float8 {
+	if f == nil {
+		return pgtype.Float8{}
+	}
+	return pgtype.Float8{Float64: *f, Valid: true}
+}
+
+// Enum conversions (DB uses lowercase, GQL uses UPPERCASE)
+
+func dbUserRoleToGQL(r db.UserRole) model.UserRole {
+	return model.UserRole(strings.ToUpper(string(r)))
+}
+
+func gqlUserRoleToDb(r model.UserRole) db.UserRole {
+	return db.UserRole(strings.ToLower(string(r)))
+}
+
+func dbUserStatusToGQL(s db.UserStatus) model.UserStatus {
+	return model.UserStatus(strings.ToUpper(string(s)))
+}
+
+func dbBookingStatusToGQL(s db.BookingStatus) model.BookingStatus {
+	return model.BookingStatus(strings.ToUpper(string(s)))
+}
+
+func gqlBookingStatusToDb(s model.BookingStatus) db.BookingStatus {
+	return db.BookingStatus(strings.ToLower(string(s)))
+}
+
+func dbServiceTypeToGQL(s db.ServiceType) model.ServiceType {
+	return model.ServiceType(strings.ToUpper(string(s)))
+}
+
+func gqlServiceTypeToDb(s model.ServiceType) db.ServiceType {
+	return db.ServiceType(strings.ToLower(string(s)))
+}
+
+func dbCompanyStatusToGQL(s db.CompanyStatus) model.CompanyStatus {
+	return model.CompanyStatus(strings.ToUpper(string(s)))
+}
+
+func gqlCompanyStatusToDb(s model.CompanyStatus) db.CompanyStatus {
+	return db.CompanyStatus(strings.ToLower(string(s)))
+}
+
+func dbCompanyTypeToGQL(t db.CompanyType) model.CompanyType {
+	return model.CompanyType(strings.ToUpper(string(t)))
+}
+
+func gqlCompanyTypeToDb(t model.CompanyType) db.CompanyType {
+	return db.CompanyType(strings.ToLower(string(t)))
+}
+
+func dbCleanerStatusToGQL(s db.CleanerStatus) model.CleanerStatus {
+	return model.CleanerStatus(strings.ToUpper(string(s)))
+}
+
+func gqlCleanerStatusToDb(s model.CleanerStatus) db.CleanerStatus {
+	return db.CleanerStatus(strings.ToLower(string(s)))
+}
+
+// Model converters
+
+func dbUserToGQL(u db.User) *model.User {
+	return &model.User{
+		ID:                uuidToString(u.ID),
+		Email:             u.Email,
+		FullName:          u.FullName,
+		Phone:             textPtr(u.Phone),
+		AvatarURL:         textPtr(u.AvatarUrl),
+		Role:              dbUserRoleToGQL(u.Role),
+		Status:            dbUserStatusToGQL(u.Status),
+		PreferredLanguage: textVal(u.PreferredLanguage),
+		CreatedAt:         timestamptzToTime(u.CreatedAt),
+	}
+}
+
+func dbServiceDefToGQL(s db.ServiceDefinition) *model.ServiceDefinition {
+	return &model.ServiceDefinition{
+		ID:               uuidToString(s.ID),
+		ServiceType:      dbServiceTypeToGQL(s.ServiceType),
+		NameRo:           s.NameRo,
+		NameEn:           s.NameEn,
+		DescriptionRo:    textPtr(s.DescriptionRo),
+		DescriptionEn:    textPtr(s.DescriptionEn),
+		BasePricePerHour: numericToFloat(s.BasePricePerHour),
+		MinHours:         numericToFloat(s.MinHours),
+		Icon:             textPtr(s.Icon),
+		IsActive:         boolVal(s.IsActive),
+	}
+}
+
+func dbServiceExtraToGQL(e db.ServiceExtra) *model.ServiceExtra {
+	return &model.ServiceExtra{
+		ID:       uuidToString(e.ID),
+		NameRo:   e.NameRo,
+		NameEn:   e.NameEn,
+		Price:    numericToFloat(e.Price),
+		Icon:     textPtr(e.Icon),
+		IsActive: boolVal(e.IsActive),
+	}
+}
+
+func dbBookingToGQL(b db.Booking) *model.Booking {
+	paymentStatus := textVal(b.PaymentStatus)
+	if paymentStatus == "" {
+		paymentStatus = "pending"
+	}
+	return &model.Booking{
+		ID:                     uuidToString(b.ID),
+		ReferenceCode:          b.ReferenceCode,
+		ServiceType:            dbServiceTypeToGQL(b.ServiceType),
+		ScheduledDate:          dateToString(b.ScheduledDate),
+		ScheduledStartTime:     timeToString(b.ScheduledStartTime),
+		EstimatedDurationHours: numericToFloat(b.EstimatedDurationHours),
+		PropertyType:           textPtr(b.PropertyType),
+		NumRooms:               int4Ptr(b.NumRooms),
+		NumBathrooms:           int4Ptr(b.NumBathrooms),
+		AreaSqm:                int4Ptr(b.AreaSqm),
+		HasPets:                boolPtr(b.HasPets),
+		SpecialInstructions:    textPtr(b.SpecialInstructions),
+		HourlyRate:             numericToFloat(b.HourlyRate),
+		EstimatedTotal:         numericToFloat(b.EstimatedTotal),
+		FinalTotal: func() *float64 {
+			if !b.FinalTotal.Valid {
+				return nil
+			}
+			v := numericToFloat(b.FinalTotal)
+			return &v
+		}(),
+		PlatformCommissionPct: numericToFloat(b.PlatformCommissionPct),
+		Status:                dbBookingStatusToGQL(b.Status),
+		StartedAt:             timestamptzToTimePtr(b.StartedAt),
+		CompletedAt:           timestamptzToTimePtr(b.CompletedAt),
+		CancelledAt:           timestamptzToTimePtr(b.CancelledAt),
+		CancellationReason:    textPtr(b.CancellationReason),
+		PaymentStatus:         paymentStatus,
+		PaidAt:                timestamptzToTimePtr(b.PaidAt),
+		CreatedAt:             timestamptzToTime(b.CreatedAt),
+	}
+}
+
+func dbCompanyToGQL(c db.Company) *model.Company {
+	return &model.Company{
+		ID:                  uuidToString(c.ID),
+		CompanyName:         c.CompanyName,
+		Cui:                 c.Cui,
+		CompanyType:         dbCompanyTypeToGQL(c.CompanyType),
+		LegalRepresentative: c.LegalRepresentative,
+		ContactEmail:        c.ContactEmail,
+		ContactPhone:        c.ContactPhone,
+		Address:             c.Address,
+		City:                c.City,
+		County:              c.County,
+		Description:         textPtr(c.Description),
+		LogoURL:             textPtr(c.LogoUrl),
+		Status:              dbCompanyStatusToGQL(c.Status),
+		RejectionReason:     textPtr(c.RejectionReason),
+		MaxServiceRadiusKm:  int4Val(c.MaxServiceRadiusKm),
+		RatingAvg:           numericToFloat(c.RatingAvg),
+		TotalJobsCompleted:  int4Val(c.TotalJobsCompleted),
+		CreatedAt:           timestamptzToTime(c.CreatedAt),
+	}
+}
+
+func dbCleanerToGQL(c db.Cleaner) *model.CleanerProfile {
+	var userID *string
+	if c.UserID.Valid {
+		s := uuidToString(c.UserID)
+		userID = &s
+	}
+	return &model.CleanerProfile{
+		ID:                 uuidToString(c.ID),
+		UserID:             userID,
+		FullName:           c.FullName,
+		Phone:              textPtr(c.Phone),
+		Email:              textPtr(c.Email),
+		AvatarURL:          textPtr(c.AvatarUrl),
+		Status:             dbCleanerStatusToGQL(c.Status),
+		IsCompanyAdmin:     boolVal(c.IsCompanyAdmin),
+		InviteToken:        textPtr(c.InviteToken),
+		RatingAvg:          numericToFloat(c.RatingAvg),
+		TotalJobsCompleted: int4Val(c.TotalJobsCompleted),
+		CreatedAt:          timestamptzToTime(c.CreatedAt),
+	}
+}
+
+func dbAddressToGQL(a db.ClientAddress) *model.Address {
+	addr := &model.Address{
+		ID:            uuidToString(a.ID),
+		Label:         textPtr(a.Label),
+		StreetAddress: a.StreetAddress,
+		City:          a.City,
+		County:        a.County,
+		PostalCode:    textPtr(a.PostalCode),
+		Floor:         textPtr(a.Floor),
+		Apartment:     textPtr(a.Apartment),
+		EntryCode:     textPtr(a.EntryCode),
+		Notes:         textPtr(a.Notes),
+		IsDefault:     boolVal(a.IsDefault),
+	}
+	if a.Latitude.Valid && a.Longitude.Valid {
+		addr.Coordinates = &model.Coordinates{
+			Latitude:  a.Latitude.Float64,
+			Longitude: a.Longitude.Float64,
+		}
+	}
+	return addr
+}
+
+func dbPaymentMethodToGQL(p db.ClientPaymentMethod) *model.PaymentMethod {
+	return &model.PaymentMethod{
+		ID:           uuidToString(p.ID),
+		CardLastFour: textVal(p.CardLastFour),
+		CardBrand:    textVal(p.CardBrand),
+		IsDefault:    boolVal(p.IsDefault),
+	}
+}
+
+func dbNotificationToGQL(n db.Notification) *model.Notification {
+	return &model.Notification{
+		ID:        uuidToString(n.ID),
+		Type:      string(n.Type),
+		Title:     n.Title,
+		Body:      n.Body,
+		IsRead:    boolVal(n.IsRead),
+		CreatedAt: timestamptzToTime(n.CreatedAt),
+	}
+}
+
+func dbChatRoomToGQL(r db.ChatRoom) *model.ChatRoom {
+	return &model.ChatRoom{
+		ID:        uuidToString(r.ID),
+		RoomType:  r.RoomType,
+		CreatedAt: timestamptzToTime(r.CreatedAt),
+	}
+}
+
+func dbChatMessageToGQL(m db.ChatMessage) *model.ChatMessage {
+	return &model.ChatMessage{
+		ID:          uuidToString(m.ID),
+		Content:     m.Content,
+		MessageType: textVal(m.MessageType),
+		IsRead:      boolVal(m.IsRead),
+		CreatedAt:   timestamptzToTime(m.CreatedAt),
+	}
+}
+
+func dbReviewToGQL(r db.Review) *model.Review {
+	return &model.Review{
+		ID:         uuidToString(r.ID),
+		Rating:     int(r.Rating),
+		Comment:    textPtr(r.Comment),
+		ReviewType: r.ReviewType,
+		CreatedAt:  timestamptzToTime(r.CreatedAt),
+	}
+}
+
+func dbCompanyDocToGQL(d db.CompanyDocument) *model.CompanyDocument {
+	return &model.CompanyDocument{
+		ID:           uuidToString(d.ID),
+		DocumentType: d.DocumentType,
+		FileURL:      d.FileUrl,
+		FileName:     d.FileName,
+		UploadedAt:   timestamptzToTime(d.UploadedAt),
+	}
+}
+
+// validateStatusTransition checks whether a booking status transition is allowed.
+func validateStatusTransition(current db.BookingStatus, target db.BookingStatus) error {
+	// Cancellation is allowed from any non-terminal state.
+	isCancelTarget := target == db.BookingStatusCancelledByClient ||
+		target == db.BookingStatusCancelledByCompany ||
+		target == db.BookingStatusCancelledByAdmin
+	isCancelledCurrent := current == db.BookingStatusCancelledByClient ||
+		current == db.BookingStatusCancelledByCompany ||
+		current == db.BookingStatusCancelledByAdmin
+
+	if isCancelledCurrent || current == db.BookingStatusCompleted {
+		return fmt.Errorf("cannot change status of a %s booking", current)
+	}
+	if isCancelTarget {
+		return nil // cancellation allowed from any active state
+	}
+
+	allowed := map[db.BookingStatus][]db.BookingStatus{
+		db.BookingStatusPending:    {db.BookingStatusAssigned},
+		db.BookingStatusAssigned:   {db.BookingStatusConfirmed},
+		db.BookingStatusConfirmed:  {db.BookingStatusInProgress},
+		db.BookingStatusInProgress: {db.BookingStatusCompleted},
+	}
+
+	for _, a := range allowed[current] {
+		if a == target {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("cannot transition booking from %s to %s", current, target)
+}

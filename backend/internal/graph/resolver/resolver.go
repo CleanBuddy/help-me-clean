@@ -1,0 +1,131 @@
+package resolver
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	db "helpmeclean-backend/internal/db/generated"
+	"helpmeclean-backend/internal/graph/model"
+	"helpmeclean-backend/internal/pubsub"
+)
+
+// Resolver is the root resolver struct.
+type Resolver struct {
+	Pool    *pgxpool.Pool
+	Queries *db.Queries
+	PubSub  *pubsub.PubSub
+}
+
+// cleanerWithCompany loads a cleaner's company and returns the full CleanerProfile.
+func (r *Resolver) cleanerWithCompany(ctx context.Context, c db.Cleaner) (*model.CleanerProfile, error) {
+	profile := dbCleanerToGQL(c)
+	company, err := r.Queries.GetCompanyByID(ctx, c.CompanyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load company: %w", err)
+	}
+	profile.Company = dbCompanyToGQL(company)
+	return profile, nil
+}
+
+// createBookingChat creates a chat room for a confirmed booking and sends a system welcome message.
+// Called asynchronously from ConfirmBooking — errors are logged, not propagated.
+func (r *Resolver) createBookingChat(ctx context.Context, booking db.Booking, confirmerUserID string) {
+	bookingUUID := booking.ID
+
+	// Check if a chat room already exists for this booking.
+	if _, err := r.Queries.GetChatRoomByBookingID(ctx, bookingUUID); err == nil {
+		return // Room already exists.
+	}
+
+	// Create a new chat room linked to this booking.
+	room, err := r.Queries.CreateChatRoom(ctx, db.CreateChatRoomParams{
+		BookingID: pgtype.UUID{Bytes: bookingUUID.Bytes, Valid: true},
+		RoomType:  "booking",
+	})
+	if err != nil {
+		log.Printf("createBookingChat: failed to create room for booking %s: %v", bookingUUID, err)
+		return
+	}
+
+	// Add client as participant.
+	if booking.ClientUserID.Valid {
+		_, _ = r.Queries.AddChatParticipant(ctx, db.AddChatParticipantParams{
+			RoomID: room.ID,
+			UserID: booking.ClientUserID,
+		})
+	}
+
+	// Add cleaner's user as participant.
+	var senderID pgtype.UUID
+	if booking.CleanerID.Valid {
+		cleaner, err := r.Queries.GetCleanerByID(ctx, booking.CleanerID)
+		if err == nil && cleaner.UserID.Valid {
+			_, _ = r.Queries.AddChatParticipant(ctx, db.AddChatParticipantParams{
+				RoomID: room.ID,
+				UserID: cleaner.UserID,
+			})
+			senderID = cleaner.UserID
+		}
+	}
+
+	// Fallback sender: use the confirmer's user ID if cleaner user not available.
+	if !senderID.Valid {
+		senderID = stringToUUID(confirmerUserID)
+	}
+
+	// Send system welcome message.
+	msg, err := r.Queries.CreateChatMessage(ctx, db.CreateChatMessageParams{
+		RoomID:      room.ID,
+		SenderID:    senderID,
+		Content:     "Bun venit! Curatorul a confirmat comanda. Puteti comunica aici pentru orice detalii legate de curatenie.",
+		MessageType: stringToTextVal("system"),
+	})
+	if err != nil {
+		log.Printf("createBookingChat: failed to send system message for booking %s: %v", bookingUUID, err)
+		return
+	}
+
+	// Publish the system message to any active subscribers.
+	gqlMsg := dbChatMessageToGQL(msg)
+	r.PubSub.Publish(room.ID.String(), gqlMsg)
+}
+
+// enrichBooking populates related entities (client, address, serviceName, company, cleaner)
+// on a GQL booking from the DB booking's foreign keys.
+func (r *Resolver) enrichBooking(ctx context.Context, dbB db.Booking, gqlB *model.Booking) {
+	if dbB.AddressID.Valid {
+		if addr, err := r.Queries.GetAddressByID(ctx, dbB.AddressID); err == nil {
+			gqlB.Address = dbAddressToGQL(addr)
+		}
+	}
+	if dbB.ClientUserID.Valid {
+		if user, err := r.Queries.GetUserByID(ctx, dbB.ClientUserID); err == nil {
+			gqlB.Client = dbUserToGQL(user)
+		}
+	}
+	if svc, err := r.Queries.GetServiceByType(ctx, dbB.ServiceType); err == nil {
+		gqlB.ServiceName = svc.NameRo
+	} else {
+		gqlB.ServiceName = string(dbB.ServiceType)
+	}
+	if dbB.CompanyID.Valid {
+		if company, err := r.Queries.GetCompanyByID(ctx, dbB.CompanyID); err == nil {
+			gqlB.Company = dbCompanyToGQL(company)
+		}
+	}
+	if dbB.CleanerID.Valid {
+		if cleaner, err := r.Queries.GetCleanerByID(ctx, dbB.CleanerID); err == nil {
+			if profile, err := r.cleanerWithCompany(ctx, cleaner); err == nil {
+				gqlB.Cleaner = profile
+			}
+		}
+	}
+	// Load review if one exists for this booking.
+	if review, err := r.Queries.GetReviewByBookingID(ctx, dbB.ID); err == nil {
+		gqlB.Review = dbReviewToGQL(review)
+	}
+}

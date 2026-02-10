@@ -1,0 +1,13 @@
+mutation SignInWithGoogle($idToken: String!, $role: UserRole!) {
+  signInWithGoogle(idToken: $idToken, role: $role) {
+    token
+    user {
+      id
+      email
+      fullName
+      role
+      status
+    }
+    isNewUser
+  }
+}

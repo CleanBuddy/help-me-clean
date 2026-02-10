@@ -1,0 +1,108 @@
+enum BookingStatus {
+  PENDING
+  ASSIGNED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_COMPANY
+  CANCELLED_BY_ADMIN
+}
+
+enum ServiceType {
+  STANDARD_CLEANING
+  DEEP_CLEANING
+  MOVE_IN_OUT_CLEANING
+  POST_CONSTRUCTION
+  OFFICE_CLEANING
+  WINDOW_CLEANING
+}
+
+type Booking {
+  id: ID!
+  referenceCode: String!
+  client: User
+  company: Company
+  cleaner: CleanerProfile
+  address: Address
+  serviceType: ServiceType!
+  serviceName: String!
+  scheduledDate: String!
+  scheduledStartTime: String!
+  estimatedDurationHours: Float!
+  propertyType: String
+  numRooms: Int
+  numBathrooms: Int
+  areaSqm: Int
+  hasPets: Boolean
+  specialInstructions: String
+  hourlyRate: Float!
+  estimatedTotal: Float!
+  finalTotal: Float
+  platformCommissionPct: Float!
+  extras: [BookingExtra!]!
+  status: BookingStatus!
+  startedAt: DateTime
+  completedAt: DateTime
+  cancelledAt: DateTime
+  cancellationReason: String
+  paymentStatus: String!
+  paidAt: DateTime
+  review: Review
+  chatRoom: ChatRoom
+  createdAt: DateTime!
+}
+
+type BookingExtra {
+  extra: ServiceExtra!
+  price: Float!
+  quantity: Int!
+}
+
+type BookingConnection {
+  edges: [Booking!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+extend type Query {
+  myBookings(status: BookingStatus, first: Int, after: String): BookingConnection!
+  booking(id: ID!): Booking!
+  companyBookings(status: BookingStatus, first: Int, after: String): BookingConnection!
+  myAssignedJobs(status: BookingStatus): [Booking!]!
+  todaysJobs: [Booking!]!
+  allBookings(status: BookingStatus, companyId: ID, dateFrom: String, dateTo: String, first: Int, after: String): BookingConnection!
+}
+
+extend type Mutation {
+  createBookingRequest(input: CreateBookingInput!): Booking!
+  cancelBooking(id: ID!, reason: String): Booking!
+  payForBooking(id: ID!, paymentMethodId: ID): Booking!
+  assignCleanerToBooking(bookingId: ID!, cleanerId: ID!): Booking!
+  confirmBooking(id: ID!): Booking!
+  startJob(id: ID!): Booking!
+  completeJob(id: ID!): Booking!
+}
+
+input CreateBookingInput {
+  addressId: ID
+  address: AddAddressInput
+  serviceType: ServiceType!
+  scheduledDate: String!
+  scheduledStartTime: String!
+  propertyType: String
+  numRooms: Int!
+  numBathrooms: Int!
+  areaSqm: Int
+  hasPets: Boolean
+  specialInstructions: String
+  extras: [ExtraInput!]
+  guestEmail: String
+  guestName: String
+  guestPhone: String
+}
+
+input ExtraInput {
+  extraId: ID!
+  quantity: Int!
+}

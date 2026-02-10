@@ -1,0 +1,623 @@
+import { useState } from 'react';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
+import { useQuery, useMutation } from '@apollo/client';
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  MapPin,
+  Hash,
+  Home,
+  Bath,
+  Ruler,
+  PawPrint,
+  Building2,
+  Phone,
+  User,
+  FileText,
+  MessageCircle,
+  CreditCard,
+  Star,
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/ClientBadge';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Modal from '@/components/ui/Modal';
+import { CLIENT_BOOKING_DETAIL, CANCEL_BOOKING, MY_BOOKINGS, OPEN_BOOKING_CHAT, PAY_FOR_BOOKING, SUBMIT_REVIEW } from '@/graphql/operations';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface BookingAddress {
+  streetAddress: string;
+  city: string;
+  county: string;
+  floor?: string;
+  apartment?: string;
+}
+
+interface BookingCompany {
+  id: string;
+  companyName: string;
+  contactPhone?: string;
+}
+
+interface BookingCleaner {
+  id: string;
+  fullName: string;
+  phone?: string;
+}
+
+interface BookingReview {
+  id: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+interface BookingData {
+  id: string;
+  referenceCode: string;
+  serviceType: string;
+  serviceName: string;
+  scheduledDate: string;
+  scheduledStartTime: string;
+  estimatedTotal: number;
+  finalTotal?: number;
+  status: string;
+  specialInstructions?: string;
+  numRooms: number;
+  numBathrooms: number;
+  areaSqm?: number;
+  hasPets?: boolean;
+  paymentStatus?: string;
+  paidAt?: string;
+  createdAt: string;
+  address: BookingAddress;
+  company?: BookingCompany;
+  cleaner?: BookingCleaner;
+  review?: BookingReview;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ro-RO', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatTime(timeStr: string): string {
+  if (!timeStr) return '';
+  return timeStr.slice(0, 5);
+}
+
+function formatAddress(address: BookingAddress): string {
+  const parts = [address.streetAddress];
+  if (address.floor) parts.push(`Etaj ${address.floor}`);
+  if (address.apartment) parts.push(`Ap. ${address.apartment}`);
+  parts.push(`${address.city}, ${address.county}`);
+  return parts.join(', ');
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export default function BookingDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useAuth();
+
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+
+  const { data, loading, error } = useQuery<{ booking: BookingData }>(
+    CLIENT_BOOKING_DETAIL,
+    {
+      variables: { id },
+      skip: !id || !isAuthenticated,
+      fetchPolicy: 'cache-and-network',
+    },
+  );
+
+  const [cancelBooking, { loading: cancelling }] = useMutation(CANCEL_BOOKING, {
+    onCompleted: () => {
+      setCancelModalOpen(false);
+      setCancelReason('');
+    },
+    refetchQueries: [{ query: MY_BOOKINGS }],
+  });
+
+  const [openBookingChat, { loading: openingChat }] = useMutation(OPEN_BOOKING_CHAT, {
+    onCompleted: (data) => {
+      const chatRoomId = data.openBookingChat.id;
+      navigate(`/cont/mesaje/${chatRoomId}`);
+    },
+  });
+
+  const [payForBooking, { loading: paying }] = useMutation(PAY_FOR_BOOKING, {
+    refetchQueries: [{ query: CLIENT_BOOKING_DETAIL, variables: { id } }],
+  });
+
+  const [submitReview, { loading: submittingReview }] = useMutation(SUBMIT_REVIEW, {
+    onCompleted: () => {
+      setReviewRating(0);
+      setReviewComment('');
+    },
+    refetchQueries: [{ query: CLIENT_BOOKING_DETAIL, variables: { id } }],
+  });
+
+  // Auth guard
+  if (authLoading) {
+    return <LoadingSpinner text="Se verifica autentificarea..." />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/autentificare"
+        state={{ from: `/cont/comenzi/${id}` }}
+        replace
+      />
+    );
+  }
+
+  if (loading) {
+    return <LoadingSpinner text="Se incarca detaliile comenzii..." />;
+  }
+
+  if (error || !data?.booking) {
+    return (
+      <div className="py-16 text-center max-w-4xl mx-auto px-4">
+        <p className="text-danger mb-4">
+          {error
+            ? 'Nu am putut incarca detaliile comenzii.'
+            : 'Comanda nu a fost gasita.'}
+        </p>
+        <Button variant="outline" onClick={() => navigate('/cont/comenzi')}>
+          <ArrowLeft className="h-4 w-4" />
+          Inapoi la comenzi
+        </Button>
+      </div>
+    );
+  }
+
+  const booking = data.booking;
+  const canCancel = booking.status === 'PENDING' || booking.status === 'ASSIGNED';
+
+  const handleCancel = async () => {
+    await cancelBooking({
+      variables: {
+        id: booking.id,
+        reason: cancelReason.trim() || undefined,
+      },
+    });
+  };
+
+  return (
+    <div className="py-10 sm:py-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/cont/comenzi')}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="text-sm font-medium">Inapoi la comenzi</span>
+        </button>
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                {booking.serviceName}
+              </h1>
+              <Badge status={booking.status} />
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Hash className="h-4 w-4" />
+              <span className="text-sm font-mono">
+                {booking.referenceCode}
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-gray-900">
+              {booking.estimatedTotal} lei
+            </div>
+            <span className="text-sm text-gray-400">Total estimat</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Schedule & Property */}
+            <Card>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Detalii programare
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400">Data</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatDate(booking.scheduledDate)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400">Ora</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatTime(booking.scheduledStartTime)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+                    <Home className="h-5 w-5 text-secondary" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400">Camere</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {booking.numRooms}{' '}
+                      {booking.numRooms === 1 ? 'camera' : 'camere'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+                    <Bath className="h-5 w-5 text-secondary" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400">Bai</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {booking.numBathrooms}{' '}
+                      {booking.numBathrooms === 1 ? 'baie' : 'bai'}
+                    </div>
+                  </div>
+                </div>
+                {booking.areaSqm && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                      <Ruler className="h-5 w-5 text-accent" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400">Suprafata</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {booking.areaSqm} mp
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {booking.hasPets && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                      <PawPrint className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400">Animale</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        Da, exista animale de companie
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Address */}
+            <Card>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Adresa
+              </h2>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <MapPin className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-sm text-gray-700">
+                  {formatAddress(booking.address)}
+                </div>
+              </div>
+            </Card>
+
+            {/* Special Instructions */}
+            {booking.specialInstructions && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Instructiuni speciale
+                </h2>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                    <FileText className="h-5 w-5 text-gray-500" />
+                  </div>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {booking.specialInstructions}
+                  </p>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Company / Cleaner info */}
+            {(booking.company || booking.cleaner) && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Echipa de curatenie
+                </h2>
+                <div className="space-y-4">
+                  {booking.company && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+                        <Building2 className="h-5 w-5 text-secondary" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {booking.company.companyName}
+                        </div>
+                        {booking.company.contactPhone && (
+                          <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                            <Phone className="h-3 w-3" />
+                            {booking.company.contactPhone}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {booking.cleaner && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {booking.cleaner.fullName}
+                        </div>
+                        {booking.cleaner.phone && (
+                          <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                            <Phone className="h-3 w-3" />
+                            {booking.cleaner.phone}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Chat */}
+            {booking.status !== 'PENDING' && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Chat
+                </h2>
+                <Button
+                  className="w-full"
+                  loading={openingChat}
+                  onClick={() =>
+                    openBookingChat({ variables: { bookingId: booking.id } })
+                  }
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Deschide chat
+                </Button>
+              </Card>
+            )}
+
+            {/* Payment */}
+            {booking.status === 'COMPLETED' && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Plata
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {booking.finalTotal ?? booking.estimatedTotal} RON
+                        </div>
+                      </div>
+                    </div>
+                    {booking.paymentStatus === 'paid' ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                        Platit
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                        In asteptare
+                      </span>
+                    )}
+                  </div>
+                  {booking.paymentStatus === 'paid' && booking.paidAt && (
+                    <p className="text-xs text-gray-500">
+                      Platit pe {formatDate(booking.paidAt)}
+                    </p>
+                  )}
+                  {booking.paymentStatus !== 'paid' && (
+                    <Button
+                      className="w-full"
+                      loading={paying}
+                      onClick={() =>
+                        payForBooking({ variables: { id: booking.id } })
+                      }
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      Plateste acum
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Review */}
+            {booking.status === 'COMPLETED' && booking.paymentStatus === 'paid' && (
+              <Card>
+                {booking.review ? (
+                  <>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                      Recenzia ta
+                    </h2>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-5 w-5 ${
+                              star <= booking.review!.rating
+                                ? 'text-accent fill-accent'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {booking.review.comment && (
+                        <p className="text-sm text-gray-700">
+                          {booking.review.comment}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Trimisa pe {formatDate(booking.review.createdAt)}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                      Lasa o recenzie
+                    </h2>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            className="cursor-pointer p-0.5 transition-colors"
+                            onClick={() => setReviewRating(star)}
+                          >
+                            <Star
+                              className={`h-7 w-7 ${
+                                star <= reviewRating
+                                  ? 'text-accent fill-accent'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                        rows={3}
+                        placeholder="Cum a fost experienta? (optional)"
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                      />
+                      <Button
+                        className="w-full"
+                        disabled={reviewRating === 0}
+                        loading={submittingReview}
+                        onClick={() =>
+                          submitReview({
+                            variables: {
+                              input: {
+                                bookingId: booking.id,
+                                rating: reviewRating,
+                                comment: reviewComment.trim() || undefined,
+                              },
+                            },
+                          })
+                        }
+                      >
+                        <Star className="h-4 w-4" />
+                        Trimite recenzia
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </Card>
+            )}
+
+            {/* Actions */}
+            {canCancel && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Actiuni
+                </h2>
+                <Button
+                  variant="danger"
+                  className="w-full"
+                  onClick={() => setCancelModalOpen(true)}
+                >
+                  Anuleaza comanda
+                </Button>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* Cancel Modal */}
+        <Modal
+          open={cancelModalOpen}
+          onClose={() => setCancelModalOpen(false)}
+          title="Anuleaza comanda"
+        >
+          <p className="text-sm text-gray-500 mb-4">
+            Esti sigur ca vrei sa anulezi aceasta comanda? Aceasta actiune nu
+            poate fi anulata.
+          </p>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Motiv anulare (optional)
+            </label>
+            <textarea
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+              rows={3}
+              placeholder="Spune-ne de ce anulezi..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => setCancelModalOpen(false)}
+            >
+              Renunta
+            </Button>
+            <Button
+              variant="danger"
+              loading={cancelling}
+              onClick={handleCancel}
+            >
+              Confirma anularea
+            </Button>
+          </div>
+        </Modal>
+      </div>
+    </div>
+  );
+}

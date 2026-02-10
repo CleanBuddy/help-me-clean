@@ -1,0 +1,24 @@
+type Review {
+  id: ID!
+  booking: Booking
+  reviewer: User
+  rating: Int!
+  comment: String
+  reviewType: String!
+  createdAt: DateTime!
+}
+
+type ReviewConnection {
+  reviews: [Review!]!
+  totalCount: Int!
+}
+
+extend type Mutation {
+  submitReview(input: SubmitReviewInput!): Review!
+}
+
+input SubmitReviewInput {
+  bookingId: ID!
+  rating: Int!
+  comment: String
+}

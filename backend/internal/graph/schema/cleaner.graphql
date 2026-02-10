@@ -1,0 +1,67 @@
+enum CleanerStatus {
+  INVITED
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+type CleanerProfile {
+  id: ID!
+  userId: ID
+  user: User
+  company: Company!
+  fullName: String!
+  phone: String
+  email: String
+  avatarUrl: String
+  status: CleanerStatus!
+  isCompanyAdmin: Boolean!
+  inviteToken: String
+  ratingAvg: Float!
+  totalJobsCompleted: Int!
+  availability: [AvailabilitySlot!]!
+  createdAt: DateTime!
+}
+
+type AvailabilitySlot {
+  id: ID!
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isAvailable: Boolean!
+}
+
+type CleanerStats {
+  totalJobsCompleted: Int!
+  averageRating: Float!
+  totalReviews: Int!
+  thisMonthJobs: Int!
+  thisMonthEarnings: Float!
+}
+
+extend type Query {
+  myCleaners: [CleanerProfile!]!
+  myCleanerProfile: CleanerProfile!
+  myCleanerStats: CleanerStats!
+}
+
+extend type Mutation {
+  inviteCleaner(input: InviteCleanerInput!): CleanerProfile!
+  inviteSelfAsCleaner: CleanerProfile!
+  updateCleanerStatus(id: ID!, status: CleanerStatus!): CleanerProfile!
+  acceptInvitation(token: String!): CleanerProfile!
+  updateAvailability(slots: [AvailabilitySlotInput!]!): [AvailabilitySlot!]!
+}
+
+input InviteCleanerInput {
+  fullName: String!
+  email: String!
+  phone: String
+}
+
+input AvailabilitySlotInput {
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isAvailable: Boolean!
+}

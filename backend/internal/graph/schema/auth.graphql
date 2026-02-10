@@ -1,0 +1,11 @@
+type AuthPayload {
+  token: String!
+  user: User!
+  isNewUser: Boolean!
+}
+
+extend type Mutation {
+  signInWithGoogle(idToken: String!, role: UserRole!): AuthPayload!
+  refreshToken: AuthPayload!
+  registerDeviceToken(token: String!): Boolean!
+}

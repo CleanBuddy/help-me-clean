@@ -1,0 +1,8 @@
+{
+  "name": "e2e-admin",
+  "private": true,
+  "scripts": {
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui"
+  }
+}

@@ -1,0 +1,25 @@
+type Notification {
+  id: ID!
+  type: String!
+  title: String!
+  body: String!
+  data: JSON
+  isRead: Boolean!
+  createdAt: DateTime!
+}
+
+type NotificationConnection {
+  edges: [Notification!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+extend type Query {
+  myNotifications(first: Int, after: String, unreadOnly: Boolean): NotificationConnection!
+  unreadNotificationCount: Int!
+}
+
+extend type Mutation {
+  markNotificationRead(id: ID!): Notification!
+  markAllNotificationsRead: Boolean!
+}

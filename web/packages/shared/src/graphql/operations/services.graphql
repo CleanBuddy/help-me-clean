@@ -1,0 +1,18 @@
+query EstimatePrice($input: PriceEstimateInput!) {
+  estimatePrice(input: $input) {
+    hourlyRate
+    estimatedHours
+    subtotal
+    extras {
+      extra {
+        id
+        nameRo
+        nameEn
+        price
+      }
+      quantity
+      lineTotal
+    }
+    total
+  }
+}

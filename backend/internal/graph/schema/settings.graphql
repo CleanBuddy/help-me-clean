@@ -1,0 +1,15 @@
+type PlatformSetting {
+  key: String!
+  value: String!
+  valueType: String!
+  description: String
+  updatedAt: DateTime!
+}
+
+extend type Query {
+  platformSettings: [PlatformSetting!]!
+}
+
+extend type Mutation {
+  updatePlatformSetting(key: String!, value: String!): PlatformSetting!
+}

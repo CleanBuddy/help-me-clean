@@ -1,0 +1,227 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ApolloProvider } from '@apollo/client';
+import { createApolloClient } from '@helpmeclean/shared';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { CompanyProvider } from '@/context/CompanyContext';
+
+// Layouts
+import PublicLayout from '@/components/layout/PublicLayout';
+import ClientLayout from '@/components/layout/ClientLayout';
+import CompanyLayout from '@/components/layout/CompanyLayout';
+import CleanerLayout from '@/components/layout/CleanerLayout';
+import AdminLayout from '@/components/layout/AdminLayout';
+
+// Public pages
+import HomePage from '@/pages/HomePage';
+import ServicesPage from '@/pages/ServicesPage';
+import BookingPage from '@/pages/BookingPage';
+import LoginPage from '@/pages/LoginPage';
+import NotFoundPage from '@/pages/NotFoundPage';
+import RegisterCompanyPage from '@/pages/RegisterCompanyPage';
+import ClaimCompanyPage from '@/pages/ClaimCompanyPage';
+
+// Client pages
+import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
+import MyBookingsPage from '@/pages/client/MyBookingsPage';
+import ClientBookingDetailPage from '@/pages/client/BookingDetailPage';
+import ChatPage from '@/pages/client/ChatPage';
+import ProfilePage from '@/pages/client/ProfilePage';
+import AddressesPage from '@/pages/client/AddressesPage';
+
+// Company pages
+import CompanyDashboardPage from '@/pages/company/DashboardPage';
+import CompanyOrdersPage from '@/pages/company/OrdersPage';
+import CompanyOrderDetailPage from '@/pages/company/OrderDetailPage';
+import TeamPage from '@/pages/company/TeamPage';
+import CompanySettingsPage from '@/pages/company/SettingsPage';
+import CompanyMessagesPage from '@/pages/company/MessagesPage';
+
+// Cleaner pages
+import CleanerTodayPage from '@/pages/cleaner/TodayPage';
+import CleanerSchedulePage from '@/pages/cleaner/SchedulePage';
+import CleanerJobDetailPage from '@/pages/cleaner/JobDetailPage';
+import CleanerProfilePage from '@/pages/cleaner/ProfilePage';
+
+// Admin pages
+import AdminDashboardPage from '@/pages/admin/DashboardPage';
+import CompaniesPage from '@/pages/admin/CompaniesPage';
+import CompanyDetailPage from '@/pages/admin/CompanyDetailPage';
+import AdminBookingsPage from '@/pages/admin/BookingsPage';
+import AdminBookingDetailPage from '@/pages/admin/BookingDetailPage';
+import UsersPage from '@/pages/admin/UsersPage';
+import AdminSettingsPage from '@/pages/admin/SettingsPage';
+import AdminMessagesPage from '@/pages/admin/MessagesPage';
+
+// ─── Apollo Client ───────────────────────────────────────────────────────────
+
+const httpEndpoint =
+  import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/query';
+const wsEndpoint = httpEndpoint.replace(/^http/, 'ws');
+
+const client = createApolloClient(httpEndpoint, wsEndpoint);
+
+// ─── Route Guards ────────────────────────────────────────────────────────────
+
+const ROLE_HOME: Record<string, string> = {
+  CLIENT: '/cont',
+  COMPANY_ADMIN: '/firma',
+  CLEANER: '/worker',
+  GLOBAL_ADMIN: '/admin',
+};
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/autentificare" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function RoleRoute({ children, role }: { children: React.ReactNode; role: string }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!user || user.role !== role) {
+    const home = user ? (ROLE_HOME[user.role] || '/') : '/autentificare';
+    return <Navigate to={home} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// ─── Routes ──────────────────────────────────────────────────────────────────
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public routes - Header + Footer layout */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/servicii" element={<ServicesPage />} />
+        <Route path="/rezervare" element={<BookingPage />} />
+        <Route path="/autentificare" element={<LoginPage />} />
+        <Route path="/inregistrare-firma" element={<RegisterCompanyPage />} />
+        <Route path="/claim-firma/:token" element={<ClaimCompanyPage />} />
+      </Route>
+
+      {/* Client routes - Sidebar layout, auth + CLIENT role */}
+      <Route
+        path="/cont"
+        element={
+          <ProtectedRoute>
+            <RoleRoute role="CLIENT">
+              <ClientLayout />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ClientDashboardPage />} />
+        <Route path="comenzi" element={<MyBookingsPage />} />
+        <Route path="comenzi/:id" element={<ClientBookingDetailPage />} />
+        <Route path="mesaje" element={<ChatPage />} />
+        <Route path="mesaje/:roomId" element={<ChatPage />} />
+        <Route path="adrese" element={<AddressesPage />} />
+        <Route path="setari" element={<ProfilePage />} />
+      </Route>
+
+      {/* Company routes - Sidebar layout, auth + COMPANY_ADMIN role */}
+      <Route
+        path="/firma"
+        element={
+          <ProtectedRoute>
+            <RoleRoute role="COMPANY_ADMIN">
+              <CompanyProvider>
+                <CompanyLayout />
+              </CompanyProvider>
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<CompanyDashboardPage />} />
+        <Route path="comenzi" element={<CompanyOrdersPage />} />
+        <Route path="comenzi/:id" element={<CompanyOrderDetailPage />} />
+        <Route path="mesaje" element={<CompanyMessagesPage />} />
+        <Route path="mesaje/:roomId" element={<CompanyMessagesPage />} />
+        <Route path="echipa" element={<TeamPage />} />
+        <Route path="setari" element={<CompanySettingsPage />} />
+      </Route>
+
+      {/* Cleaner routes - Sidebar layout, auth + CLEANER role */}
+      <Route
+        path="/worker"
+        element={
+          <ProtectedRoute>
+            <RoleRoute role="CLEANER">
+              <CleanerLayout />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<CleanerTodayPage />} />
+        <Route path="program" element={<CleanerSchedulePage />} />
+        <Route path="job/:id" element={<CleanerJobDetailPage />} />
+        <Route path="mesaje" element={<ChatPage />} />
+        <Route path="mesaje/:roomId" element={<ChatPage />} />
+        <Route path="profil" element={<CleanerProfilePage />} />
+      </Route>
+
+      {/* Admin routes - Sidebar layout, auth + GLOBAL_ADMIN role */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <RoleRoute role="GLOBAL_ADMIN">
+              <AdminLayout />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminDashboardPage />} />
+        <Route path="companii" element={<CompaniesPage />} />
+        <Route path="companii/:id" element={<CompanyDetailPage />} />
+        <Route path="comenzi" element={<AdminBookingsPage />} />
+        <Route path="comenzi/:id" element={<AdminBookingDetailPage />} />
+        <Route path="mesaje" element={<AdminMessagesPage />} />
+        <Route path="mesaje/:roomId" element={<AdminMessagesPage />} />
+        <Route path="utilizatori" element={<UsersPage />} />
+        <Route path="setari" element={<AdminSettingsPage />} />
+      </Route>
+
+      {/* Catch all */}
+      <Route path="*" element={<PublicLayout />}>
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  );
+}
+
+// ─── App ─────────────────────────────────────────────────────────────────────
+
+function App() {
+  return (
+    <ApolloProvider client={client}>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ApolloProvider>
+  );
+}
+
+export default App;

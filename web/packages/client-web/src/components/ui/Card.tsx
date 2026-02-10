@@ -1,0 +1,27 @@
+import type { HTMLAttributes, ReactNode } from 'react';
+import { cn } from '@helpmeclean/shared';
+
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
+  padding?: boolean;
+}
+
+export default function Card({
+  children,
+  className,
+  padding = true,
+  ...props
+}: CardProps) {
+  return (
+    <div
+      className={cn(
+        'bg-white rounded-xl border border-gray-200 shadow-sm',
+        padding && 'p-6',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}

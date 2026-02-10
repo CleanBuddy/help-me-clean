@@ -1,0 +1,23 @@
+query Me {
+  me {
+    id
+    email
+    fullName
+    phone
+    avatarUrl
+    role
+    status
+    preferredLanguage
+    createdAt
+  }
+}
+
+mutation UpdateProfile($input: UpdateProfileInput!) {
+  updateProfile(input: $input) {
+    id
+    fullName
+    phone
+    avatarUrl
+    preferredLanguage
+  }
+}

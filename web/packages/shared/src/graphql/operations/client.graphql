@@ -1,0 +1,59 @@
+query MyAddresses {
+  myAddresses {
+    id
+    label
+    streetAddress
+    city
+    county
+    postalCode
+    floor
+    apartment
+    entryCode
+    notes
+    isDefault
+  }
+}
+
+query MyPaymentMethods {
+  myPaymentMethods {
+    id
+    cardLastFour
+    cardBrand
+    isDefault
+  }
+}
+
+mutation AddAddress($input: AddAddressInput!) {
+  addAddress(input: $input) {
+    id
+    label
+    streetAddress
+    city
+    county
+    isDefault
+  }
+}
+
+mutation DeleteAddress($id: ID!) {
+  deleteAddress(id: $id)
+}
+
+mutation SetDefaultAddress($id: ID!) {
+  setDefaultAddress(id: $id) {
+    id
+    isDefault
+  }
+}
+
+mutation AddPaymentMethod($stripeToken: String!) {
+  addPaymentMethod(stripeToken: $stripeToken) {
+    id
+    cardLastFour
+    cardBrand
+    isDefault
+  }
+}
+
+mutation DeletePaymentMethod($id: ID!) {
+  deletePaymentMethod(id: $id)
+}

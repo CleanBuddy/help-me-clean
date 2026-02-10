@@ -1,0 +1,21 @@
+{
+  "name": "helpmeclean-web",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "npm@11.7.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --filter=client-web",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test --filter=client-web"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "playwright": "^1.58.2",
+    "turbo": "^2.4.0"
+  }
+}

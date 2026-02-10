@@ -1,0 +1,79 @@
+type PlatformStats {
+  totalClients: Int!
+  totalCompanies: Int!
+  totalCleaners: Int!
+  totalBookings: Int!
+  totalRevenue: Float!
+  platformCommissionTotal: Float!
+  averageRating: Float!
+  bookingsThisMonth: Int!
+  revenueThisMonth: Float!
+  newClientsThisMonth: Int!
+  newCompaniesThisMonth: Int!
+}
+
+type BookingsByStatus {
+  status: BookingStatus!
+  count: Int!
+}
+
+type RevenueByMonth {
+  month: String!
+  revenue: Float!
+  commission: Float!
+  bookingCount: Int!
+}
+
+type CompanyPerformance {
+  company: Company!
+  totalBookings: Int!
+  totalRevenue: Float!
+  averageRating: Float!
+  completionRate: Float!
+}
+
+type UploadResult {
+  url: String!
+  fileName: String!
+}
+
+type CompanyFinancialSummary {
+  completedBookings: Int!
+  totalRevenue: Float!
+  totalCommission: Float!
+  netPayout: Float!
+}
+
+extend type Query {
+  platformStats(dateFrom: String, dateTo: String): PlatformStats!
+  bookingsByStatus: [BookingsByStatus!]!
+  revenueByMonth(months: Int): [RevenueByMonth!]!
+  companyPerformance(first: Int): [CompanyPerformance!]!
+  pendingCompanyApplications: [Company!]!
+  allCleaners: [CleanerProfile!]!
+  allChatRooms: [ChatRoom!]!
+  allUsers: [User!]!
+  searchCompanies(query: String, status: CompanyStatus, limit: Int, offset: Int): CompanyConnection!
+  companyFinancialSummary(companyId: ID!): CompanyFinancialSummary!
+  searchBookings(query: String, status: BookingStatus, limit: Int, offset: Int): BookingConnection!
+  allReviews(limit: Int, offset: Int): ReviewConnection!
+}
+
+extend type Mutation {
+  adminCancelBooking(id: ID!, reason: String!): Booking!
+  suspendUser(id: ID!, reason: String!): User!
+  reactivateUser(id: ID!): User!
+  uploadFile(file: Upload!, purpose: String!): UploadResult!
+  adminUpdateCompanyProfile(input: AdminUpdateCompanyInput!): Company!
+  adminUpdateCompanyStatus(id: ID!, status: CompanyStatus!): Company!
+  deleteReview(id: ID!): Boolean!
+}
+
+input AdminUpdateCompanyInput {
+  id: ID!
+  companyName: String!
+  cui: String!
+  address: String!
+  contactPhone: String!
+  contactEmail: String!
+}

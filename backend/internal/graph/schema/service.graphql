@@ -1,0 +1,94 @@
+type ServiceDefinition {
+  id: ID!
+  serviceType: ServiceType!
+  nameRo: String!
+  nameEn: String!
+  descriptionRo: String
+  descriptionEn: String
+  basePricePerHour: Float!
+  minHours: Float!
+  icon: String
+  isActive: Boolean!
+}
+
+type ServiceExtra {
+  id: ID!
+  nameRo: String!
+  nameEn: String!
+  price: Float!
+  icon: String
+  isActive: Boolean!
+}
+
+type PriceEstimate {
+  hourlyRate: Float!
+  estimatedHours: Float!
+  subtotal: Float!
+  extras: [ExtraLineItem!]!
+  total: Float!
+}
+
+type ExtraLineItem {
+  extra: ServiceExtra!
+  quantity: Int!
+  lineTotal: Float!
+}
+
+extend type Query {
+  availableServices: [ServiceDefinition!]!
+  availableExtras: [ServiceExtra!]!
+  estimatePrice(input: PriceEstimateInput!): PriceEstimate!
+}
+
+input PriceEstimateInput {
+  serviceType: ServiceType!
+  numRooms: Int!
+  numBathrooms: Int!
+  areaSqm: Int
+  extras: [ExtraInput!]
+}
+
+extend type Query {
+  allServices: [ServiceDefinition!]!
+  allExtras: [ServiceExtra!]!
+}
+
+extend type Mutation {
+  updateServiceDefinition(input: UpdateServiceDefinitionInput!): ServiceDefinition!
+  createServiceDefinition(input: CreateServiceDefinitionInput!): ServiceDefinition!
+  updateServiceExtra(input: UpdateServiceExtraInput!): ServiceExtra!
+  createServiceExtra(input: CreateServiceExtraInput!): ServiceExtra!
+}
+
+input UpdateServiceDefinitionInput {
+  id: ID!
+  nameRo: String!
+  nameEn: String!
+  basePricePerHour: Float!
+  minHours: Float!
+  isActive: Boolean!
+}
+
+input CreateServiceDefinitionInput {
+  serviceType: ServiceType!
+  nameRo: String!
+  nameEn: String!
+  basePricePerHour: Float!
+  minHours: Float!
+  isActive: Boolean!
+}
+
+input UpdateServiceExtraInput {
+  id: ID!
+  nameRo: String!
+  nameEn: String!
+  price: Float!
+  isActive: Boolean!
+}
+
+input CreateServiceExtraInput {
+  nameRo: String!
+  nameEn: String!
+  price: Float!
+  isActive: Boolean!
+}

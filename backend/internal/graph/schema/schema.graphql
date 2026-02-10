@@ -1,0 +1,18 @@
+# Root schema definition
+scalar DateTime
+scalar Upload
+scalar JSON
+
+type Query
+type Mutation
+type Subscription
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type Coordinates {
+  latitude: Float!
+  longitude: Float!
+}

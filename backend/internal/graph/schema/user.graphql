@@ -1,0 +1,55 @@
+enum UserRole {
+  CLIENT
+  COMPANY_ADMIN
+  CLEANER
+  GLOBAL_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+type User {
+  id: ID!
+  email: String!
+  fullName: String!
+  phone: String
+  avatarUrl: String
+  role: UserRole!
+  status: UserStatus!
+  preferredLanguage: String!
+  createdAt: DateTime!
+}
+
+extend type Query {
+  me: User!
+}
+
+extend type Mutation {
+  updateProfile(input: UpdateProfileInput!): User!
+}
+
+input UpdateProfileInput {
+  fullName: String
+  phone: String
+  avatarUrl: String
+  preferredLanguage: String
+}
+
+type UserConnection {
+  users: [User!]!
+  totalCount: Int!
+}
+
+extend type Query {
+  searchUsers(query: String, role: UserRole, status: UserStatus, limit: Int, offset: Int): UserConnection!
+  user(id: ID!): User!
+}
+
+extend type Mutation {
+  updateUserRole(userId: ID!, role: UserRole!): User!
+  adminUpdateUserProfile(userId: ID!, fullName: String!, phone: String): User!
+}

@@ -1,0 +1,64 @@
+type Address {
+  id: ID!
+  label: String
+  streetAddress: String!
+  city: String!
+  county: String!
+  postalCode: String
+  floor: String
+  apartment: String
+  entryCode: String
+  coordinates: Coordinates
+  notes: String
+  isDefault: Boolean!
+}
+
+type PaymentMethod {
+  id: ID!
+  cardLastFour: String!
+  cardBrand: String!
+  isDefault: Boolean!
+}
+
+extend type Query {
+  myAddresses: [Address!]!
+  myPaymentMethods: [PaymentMethod!]!
+}
+
+extend type Mutation {
+  addAddress(input: AddAddressInput!): Address!
+  updateAddress(id: ID!, input: UpdateAddressInput!): Address!
+  deleteAddress(id: ID!): Boolean!
+  setDefaultAddress(id: ID!): Address!
+  addPaymentMethod(stripeToken: String!): PaymentMethod!
+  deletePaymentMethod(id: ID!): Boolean!
+  setDefaultPaymentMethod(id: ID!): PaymentMethod!
+}
+
+input AddAddressInput {
+  label: String
+  streetAddress: String!
+  city: String!
+  county: String!
+  postalCode: String
+  floor: String
+  apartment: String
+  entryCode: String
+  latitude: Float
+  longitude: Float
+  notes: String
+}
+
+input UpdateAddressInput {
+  label: String
+  streetAddress: String
+  city: String
+  county: String
+  postalCode: String
+  floor: String
+  apartment: String
+  entryCode: String
+  latitude: Float
+  longitude: Float
+  notes: String
+}

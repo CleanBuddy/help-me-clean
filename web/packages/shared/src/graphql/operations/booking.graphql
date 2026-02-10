@@ -1,0 +1,101 @@
+query MyBookings($status: BookingStatus, $first: Int, $after: String) {
+  myBookings(status: $status, first: $first, after: $after) {
+    edges {
+      id
+      referenceCode
+      serviceType
+      serviceName
+      scheduledDate
+      scheduledStartTime
+      estimatedTotal
+      status
+      createdAt
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    totalCount
+  }
+}
+
+query AvailableServices {
+  availableServices {
+    id
+    serviceType
+    nameRo
+    nameEn
+    descriptionRo
+    descriptionEn
+    basePricePerHour
+    minHours
+    icon
+  }
+  availableExtras {
+    id
+    nameRo
+    nameEn
+    price
+    icon
+  }
+}
+
+mutation CreateBookingRequest($input: CreateBookingInput!) {
+  createBookingRequest(input: $input) {
+    id
+    referenceCode
+    status
+    estimatedTotal
+  }
+}
+
+query BookingDetail($id: ID!) {
+  booking(id: $id) {
+    id
+    referenceCode
+    serviceType
+    serviceName
+    scheduledDate
+    scheduledStartTime
+    estimatedDurationHours
+    propertyType
+    numRooms
+    numBathrooms
+    areaSqm
+    hasPets
+    specialInstructions
+    hourlyRate
+    estimatedTotal
+    finalTotal
+    status
+    paymentStatus
+    startedAt
+    completedAt
+    cancelledAt
+    cancellationReason
+    createdAt
+    address {
+      streetAddress
+      city
+      county
+      floor
+      apartment
+    }
+    company {
+      id
+      companyName
+    }
+    cleaner {
+      id
+      fullName
+    }
+  }
+}
+
+mutation CancelBooking($id: ID!, $reason: String) {
+  cancelBooking(id: $id, reason: $reason) {
+    id
+    status
+    cancelledAt
+  }
+}

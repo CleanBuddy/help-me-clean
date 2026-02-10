@@ -1,0 +1,91 @@
+enum CompanyStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum CompanyType {
+  SRL
+  PFA
+  II
+}
+
+type Company {
+  id: ID!
+  companyName: String!
+  cui: String!
+  companyType: CompanyType!
+  legalRepresentative: String!
+  contactEmail: String!
+  contactPhone: String!
+  address: String!
+  city: String!
+  county: String!
+  description: String
+  logoUrl: String
+  status: CompanyStatus!
+  rejectionReason: String
+  maxServiceRadiusKm: Int!
+  ratingAvg: Float!
+  totalJobsCompleted: Int!
+  documents: [CompanyDocument!]!
+  cleaners: [CleanerProfile!]!
+  admin: User
+  createdAt: DateTime!
+}
+
+type CompanyDocument {
+  id: ID!
+  documentType: String!
+  fileUrl: String!
+  fileName: String!
+  uploadedAt: DateTime!
+}
+
+type CompanyApplicationResult {
+  company: Company!
+  claimToken: String
+}
+
+type CompanyConnection {
+  edges: [Company!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+extend type Query {
+  myCompany: Company!
+  companies(status: CompanyStatus, first: Int, after: String): CompanyConnection!
+  company(id: ID!): Company!
+  companyChatRooms: [ChatRoom!]!
+}
+
+extend type Mutation {
+  applyAsCompany(input: CompanyApplicationInput!): CompanyApplicationResult!
+  claimCompany(claimToken: String!): Company!
+  updateCompanyProfile(input: UpdateCompanyInput!): Company!
+  uploadCompanyDocument(companyId: ID!, documentType: String!, file: Upload!): CompanyDocument!
+  approveCompany(id: ID!): Company!
+  rejectCompany(id: ID!, reason: String!): Company!
+  suspendCompany(id: ID!, reason: String!): Company!
+}
+
+input CompanyApplicationInput {
+  companyName: String!
+  cui: String!
+  companyType: CompanyType!
+  legalRepresentative: String!
+  contactEmail: String!
+  contactPhone: String!
+  address: String!
+  city: String!
+  county: String!
+  description: String
+}
+
+input UpdateCompanyInput {
+  description: String
+  contactPhone: String
+  maxServiceRadiusKm: Int
+}

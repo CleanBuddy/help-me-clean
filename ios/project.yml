@@ -1,0 +1,29 @@
+name: HelpMeClean
+options:
+  bundleIdPrefix: ro.helpmeClean
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.2"
+
+targets:
+  HelpMeClean:
+    type: application
+    platform: iOS
+    sources:
+      - HelpMeClean
+    info:
+      path: HelpMeClean/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.794597417467-fhv7oset50pld7mlnd0ttumpr1spm8gi
+            CFBundleURLName: Google Sign-In
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ro.helpmeClean.client
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "5.9"
+        DEVELOPMENT_TEAM: ""

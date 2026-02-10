@@ -1,0 +1,11 @@
+query MyBookings {
+  myBookings {
+    id
+    referenceCode
+    serviceType
+    status
+    scheduledDate
+    scheduledStartTime
+    estimatedTotal
+  }
+}
