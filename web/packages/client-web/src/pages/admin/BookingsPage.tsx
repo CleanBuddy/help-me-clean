@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Calendar, Building2, User } from 'lucide-react';
+import { ClipboardList, Calendar, Building2, User, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { ALL_BOOKINGS } from '@/graphql/operations';
+import Button from '@/components/ui/Button';
+import { SEARCH_BOOKINGS } from '@/graphql/operations';
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 20;
 
 type StatusFilter = 'ALL' | 'PENDING' | 'ASSIGNED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -43,6 +48,8 @@ const statusLabel: Record<string, string> = {
   CANCELLED_BY_ADMIN: 'Anulat de admin',
 };
 
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 interface BookingEdge {
   id: string;
   referenceCode: string;
@@ -50,14 +57,15 @@ interface BookingEdge {
   serviceName: string;
   scheduledDate: string;
   scheduledStartTime: string;
-  estimatedDurationHours: number;
-  status: string;
   estimatedTotal: number;
+  status: string;
   paymentStatus: string;
   createdAt: string;
   client: { id: string; fullName: string; email: string } | null;
   company: { id: string; companyName: string } | null;
 }
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('ro-RO', {
@@ -68,19 +76,42 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+// ─── Component ──────────────────────────────────────────────────────────────
+
 export default function BookingsPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<StatusFilter>('ALL');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [page, setPage] = useState(0);
 
-  const { data, loading } = useQuery(ALL_BOOKINGS, {
-    variables: {
-      status: filter === 'ALL' ? undefined : filter,
-      first: 50,
-    },
-  });
+  // Debounce the search input
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedQuery(searchInput);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
 
-  const bookings: BookingEdge[] = data?.allBookings?.edges ?? [];
-  const totalCount: number = data?.allBookings?.totalCount ?? 0;
+  // Reset page when filter changes
+  const handleFilterChange = (newFilter: StatusFilter) => {
+    setFilter(newFilter);
+    setPage(0);
+  };
+
+  const variables = {
+    query: debouncedQuery || undefined,
+    status: filter === 'ALL' ? undefined : filter,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  };
+
+  const { data, loading } = useQuery(SEARCH_BOOKINGS, { variables });
+
+  const bookings: BookingEdge[] = data?.searchBookings?.edges ?? [];
+  const totalCount: number = data?.searchBookings?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div>
@@ -96,12 +127,26 @@ export default function BookingsPage() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Cauta dupa cod referinta..."
+            className="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        </div>
+      </div>
+
       {/* Status Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit overflow-x-auto">
         {statusTabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setFilter(tab.key)}
+            onClick={() => handleFilterChange(tab.key)}
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
               filter === tab.key
@@ -187,6 +232,38 @@ export default function BookingsPage() {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && totalCount > 0 && (
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-gray-500">
+            {totalCount} {totalCount === 1 ? 'comanda gasita' : 'comenzi gasite'}
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Anterior
+            </Button>
+            <span className="text-sm text-gray-700">
+              Pagina {page + 1} din {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page + 1 >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Urmator
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

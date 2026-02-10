@@ -57,10 +57,6 @@ temp/
 **/generated/
 **/__generated__/
 
-# React Native / Expo
-.expo/
-.expo-shared/
-
 # iOS
 *.pbxuser
 !default.pbxuser
@@ -80,9 +76,3 @@ DerivedData/
 *.xcuserstate
 ios/Pods/
 
-# Android
-*.apk
-*.ap_
-*.aab
-.gradle/
-local.properties

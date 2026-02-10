@@ -38,11 +38,26 @@ function renderBookingsPage() {
   );
 }
 
+const sampleBooking = {
+  id: '1',
+  referenceCode: 'REF-001',
+  serviceType: 'STANDARD',
+  serviceName: 'Curatenie standard',
+  scheduledDate: '2024-06-01',
+  scheduledStartTime: '10:00',
+  estimatedTotal: 250,
+  status: 'PENDING',
+  paymentStatus: 'PENDING',
+  createdAt: '2024-05-28T10:00:00Z',
+  client: { id: 'c1', fullName: 'Maria Ionescu', email: 'maria@test.com' },
+  company: { id: 'co1', companyName: 'Clean SRL' },
+};
+
 describe('BookingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useQuery).mockReturnValue({
-      data: { allBookings: { edges: [], totalCount: 0 } },
+      data: { searchBookings: { edges: [], totalCount: 0 } },
       loading: false,
     } as ReturnType<typeof useQuery>);
   });
@@ -52,10 +67,68 @@ describe('BookingsPage', () => {
     expect(screen.getByText('Comenzi')).toBeInTheDocument();
   });
 
-  it('shows status filter tabs including Asignate', () => {
+  it('shows loading skeletons when loading is true', () => {
+    vi.mocked(useQuery).mockReturnValue({
+      data: undefined,
+      loading: true,
+    } as ReturnType<typeof useQuery>);
+    renderBookingsPage();
+    const skeletons = document.querySelectorAll('.animate-pulse');
+    expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it('shows bookings list with reference code, service name, and status badge', () => {
+    vi.mocked(useQuery).mockReturnValue({
+      data: {
+        searchBookings: {
+          edges: [sampleBooking],
+          totalCount: 1,
+        },
+      },
+      loading: false,
+    } as ReturnType<typeof useQuery>);
+    renderBookingsPage();
+    expect(screen.getByText('REF-001')).toBeInTheDocument();
+    expect(screen.getByText('Curatenie standard')).toBeInTheDocument();
+    // "In asteptare" appears both as a tab button and as the PENDING status badge
+    const matches = screen.getAllByText('In asteptare');
+    expect(matches.length).toBe(2);
+  });
+
+  it('shows "Nu exista comenzi." empty state when edges is empty', () => {
+    renderBookingsPage();
+    expect(screen.getByText('Nu exista comenzi.')).toBeInTheDocument();
+  });
+
+  it('shows pagination controls when totalCount > 20', () => {
+    const edges = Array.from({ length: 20 }, (_, i) => ({
+      ...sampleBooking,
+      id: `b-${i}`,
+      referenceCode: `REF-${String(i).padStart(3, '0')}`,
+    }));
+    vi.mocked(useQuery).mockReturnValue({
+      data: {
+        searchBookings: {
+          edges,
+          totalCount: 25,
+        },
+      },
+      loading: false,
+    } as ReturnType<typeof useQuery>);
+    renderBookingsPage();
+    expect(screen.getByText('Anterior')).toBeInTheDocument();
+    expect(screen.getByText('Urmator')).toBeInTheDocument();
+    expect(screen.getByText('Pagina 1 din 2')).toBeInTheDocument();
+  });
+
+  it('shows search input with placeholder', () => {
+    renderBookingsPage();
+    expect(screen.getByPlaceholderText('Cauta dupa cod referinta...')).toBeInTheDocument();
+  });
+
+  it('shows status filter tabs', () => {
     renderBookingsPage();
     expect(screen.getByText('Toate')).toBeInTheDocument();
-    expect(screen.getByText('In asteptare')).toBeInTheDocument();
     expect(screen.getByText('Asignate')).toBeInTheDocument();
     expect(screen.getByText('Confirmate')).toBeInTheDocument();
     expect(screen.getByText('In desfasurare')).toBeInTheDocument();
@@ -63,40 +136,11 @@ describe('BookingsPage', () => {
     expect(screen.getByText('Anulate')).toBeInTheDocument();
   });
 
-  it('shows "Nu exista comenzi." empty state', () => {
-    renderBookingsPage();
-    expect(screen.getByText('Nu exista comenzi.')).toBeInTheDocument();
-  });
-
-  it('tab filtering works', async () => {
-    const user = userEvent.setup();
-    renderBookingsPage();
-    await user.click(screen.getByText('Confirmate'));
-    // useQuery should have been called again with the filter change via re-render
-    expect(screen.getByText('Confirmate')).toBeInTheDocument();
-  });
-
   it('shows total count badge when there are bookings', () => {
     vi.mocked(useQuery).mockReturnValue({
       data: {
-        allBookings: {
-          edges: [
-            {
-              id: '1',
-              referenceCode: 'REF-001',
-              serviceType: 'STANDARD',
-              serviceName: 'Curatenie standard',
-              scheduledDate: '2024-06-01',
-              scheduledStartTime: '10:00',
-              estimatedDurationHours: 3,
-              status: 'PENDING',
-              estimatedTotal: 250,
-              paymentStatus: 'PENDING',
-              createdAt: '2024-05-28T10:00:00Z',
-              client: { id: 'c1', fullName: 'Maria Ionescu', email: 'maria@test.com' },
-              company: { id: 'co1', companyName: 'Clean SRL' },
-            },
-          ],
+        searchBookings: {
+          edges: [sampleBooking],
           totalCount: 5,
         },
       },
@@ -110,24 +154,8 @@ describe('BookingsPage', () => {
     const user = userEvent.setup();
     vi.mocked(useQuery).mockReturnValue({
       data: {
-        allBookings: {
-          edges: [
-            {
-              id: 'b-123',
-              referenceCode: 'REF-NAV',
-              serviceType: 'STANDARD',
-              serviceName: 'Curatenie standard',
-              scheduledDate: '2024-06-01',
-              scheduledStartTime: '10:00',
-              estimatedDurationHours: 3,
-              status: 'PENDING',
-              estimatedTotal: 250,
-              paymentStatus: 'PENDING',
-              createdAt: '2024-05-28T10:00:00Z',
-              client: { id: 'c1', fullName: 'Maria Ionescu', email: 'maria@test.com' },
-              company: { id: 'co1', companyName: 'Clean SRL' },
-            },
-          ],
+        searchBookings: {
+          edges: [{ ...sampleBooking, id: 'b-123', referenceCode: 'REF-NAV' }],
           totalCount: 1,
         },
       },
@@ -138,27 +166,11 @@ describe('BookingsPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/admin/comenzi/b-123');
   });
 
-  it('shows ASSIGNED status badge', () => {
+  it('shows ASSIGNED status badge as "Asignat"', () => {
     vi.mocked(useQuery).mockReturnValue({
       data: {
-        allBookings: {
-          edges: [
-            {
-              id: '1',
-              referenceCode: 'REF-A01',
-              serviceType: 'STANDARD',
-              serviceName: 'Curatenie standard',
-              scheduledDate: '2024-06-01',
-              scheduledStartTime: '10:00',
-              estimatedDurationHours: 3,
-              status: 'ASSIGNED',
-              estimatedTotal: 250,
-              paymentStatus: 'PENDING',
-              createdAt: '2024-05-28T10:00:00Z',
-              client: { id: 'c1', fullName: 'Maria Ionescu', email: 'maria@test.com' },
-              company: { id: 'co1', companyName: 'Clean SRL' },
-            },
-          ],
+        searchBookings: {
+          edges: [{ ...sampleBooking, status: 'ASSIGNED' }],
           totalCount: 1,
         },
       },
@@ -168,33 +180,10 @@ describe('BookingsPage', () => {
     expect(screen.getByText('Asignat')).toBeInTheDocument();
   });
 
-  it('shows booking reference code when bookings exist', () => {
-    vi.mocked(useQuery).mockReturnValue({
-      data: {
-        allBookings: {
-          edges: [
-            {
-              id: '1',
-              referenceCode: 'REF-001',
-              serviceType: 'STANDARD',
-              serviceName: 'Curatenie standard',
-              scheduledDate: '2024-06-01',
-              scheduledStartTime: '10:00',
-              estimatedDurationHours: 3,
-              status: 'PENDING',
-              estimatedTotal: 250,
-              paymentStatus: 'PENDING',
-              createdAt: '2024-05-28T10:00:00Z',
-              client: { id: 'c1', fullName: 'Maria Ionescu', email: 'maria@test.com' },
-              company: { id: 'co1', companyName: 'Clean SRL' },
-            },
-          ],
-          totalCount: 1,
-        },
-      },
-      loading: false,
-    } as ReturnType<typeof useQuery>);
+  it('tab filtering can be clicked', async () => {
+    const user = userEvent.setup();
     renderBookingsPage();
-    expect(screen.getByText('REF-001')).toBeInTheDocument();
+    await user.click(screen.getByText('Confirmate'));
+    expect(screen.getByText('Confirmate')).toBeInTheDocument();
   });
 });

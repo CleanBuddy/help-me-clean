@@ -8,8 +8,6 @@ Romania's first "Uber for cleaning" marketplace — an investor-ready MVP that f
 |-----------|-----------|------|
 | Backend | Go 1.24, gqlgen, sqlc, PostgreSQL 16 | :8080 |
 | Client Web | React 19, Vite 6, Shadcn/ui, TailwindCSS v4 | :3000 |
-| Cleaner Mobile | React Native 0.81, Expo 54, NativeWind 4 | Expo Go |
-| Company Mobile | React Native 0.81, Expo 54, NativeWind 4 | Expo Go |
 | Client iOS | SwiftUI, Apollo iOS, Liquid Glass (iOS 16+) | Xcode |
 
 All frontends communicate with the backend via **GraphQL** (Apollo Client) and **WebSocket** for real-time features.
@@ -33,11 +31,6 @@ help-me-clean/
 │   └── packages/
 │       ├── client-web/     # Client booking app (:3000)
 │       └── shared/         # Shared GraphQL, types, utils
-├── mobile/                 # Turborepo monorepo
-│   └── packages/
-│       ├── cleaner-app/    # Cleaner job management
-│       ├── company-app/    # Company mobile dashboard
-│       └── shared/         # Shared GraphQL, theme, utils
 ├── ios/                    # SwiftUI native client app
 │   ├── HelpMeClean/        # App source (views, viewmodels, GraphQL)
 │   └── project.yml         # XcodeGen project config
@@ -70,9 +63,6 @@ cp .env.example .env
 cd ../web
 npm install
 
-# Mobile
-cd ../mobile
-npm install --legacy-peer-deps
 ```
 
 ### 2. Database Setup
@@ -107,17 +97,12 @@ make run
 cd web
 npm run dev
 
-# Terminal 3: Mobile (pick one)
-cd mobile
-npm run cleaner    # Cleaner app
-npm run company    # Company app
 ```
 
 ### 5. Access Apps
 
 - **GraphQL Playground:** http://localhost:8080/graphql
 - **Client Web:** http://localhost:3000
-- **Mobile:** Scan QR code in Expo Go
 
 ### iOS Development
 
@@ -157,14 +142,6 @@ npm run type-check   # TypeScript check
 npm run test         # Run tests
 ```
 
-### Mobile
-
-```bash
-cd mobile
-npm run cleaner      # Start cleaner-app (Expo)
-npm run company      # Start company-app (Expo)
-```
-
 ## GraphQL Domains
 
 The backend exposes 14 GraphQL schema domains:
@@ -194,8 +171,6 @@ Each service has a `.env.example` — copy to `.env` and fill in values:
 |------|----------|
 | `backend/.env.example` | Server, database, auth (Google OAuth), Stripe, storage, Firebase, CORS |
 | `web/packages/client-web/.env.example` | GraphQL endpoint, Google client ID |
-| `mobile/packages/cleaner-app/.env.example` | GraphQL endpoint, mobile client IDs |
-| `mobile/packages/company-app/.env.example` | GraphQL endpoint, mobile client IDs |
 
 ## Testing
 
@@ -206,9 +181,6 @@ cd backend && make test
 # Web
 cd web && npm run test
 
-# Mobile (from each app directory)
-cd mobile/packages/cleaner-app && npm test
-cd mobile/packages/company-app && npm test
 ```
 
 ## Documentation

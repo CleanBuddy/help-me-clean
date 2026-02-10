@@ -8,6 +8,8 @@ import {
   Building2,
   Shield,
   MessageSquare,
+  Star,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +20,8 @@ const navItems = [
   { to: '/admin/comenzi', icon: ClipboardList, label: 'Comenzi' },
   { to: '/admin/mesaje', icon: MessageSquare, label: 'Mesaje' },
   { to: '/admin/utilizatori', icon: Users, label: 'Utilizatori' },
+  { to: '/admin/rapoarte', icon: BarChart3, label: 'Rapoarte' },
+  { to: '/admin/recenzii', icon: Star, label: 'Recenzii' },
   { to: '/admin/setari', icon: Settings, label: 'Setari' },
 ];
 

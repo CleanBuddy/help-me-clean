@@ -16,8 +16,6 @@
 | Client Web | React + TypeScript + Shadcn/ui | :3000 |
 | Company Dashboard | React + TypeScript + Shadcn/ui | :3001 |
 | Admin Dashboard | React + TypeScript + Shadcn/ui | :3002 |
-| Cleaner Mobile | React Native (Expo) + NativeWind | - |
-| Company Mobile | React Native (Expo) + NativeWind | - |
 | Client iOS | SwiftUI native + Apollo iOS | - |
 
 ---
@@ -35,11 +33,6 @@ Use specialized agents for different parts of the codebase:
 - **Agent:** `voltagent-lang:typescript-pro`
 - **Use for:** All `web/` directory work
 - **Responsibilities:** React components, Apollo Client, Shadcn/ui integration, TailwindCSS
-
-### React Native Mobile Apps
-- **Agent:** `voltagent-lang:react-specialist`
-- **Use for:** All `mobile/` directory work
-- **Responsibilities:** Expo apps, NativeWind styling, navigation, Apollo Client
 
 ### iOS Native App
 - **Agent:** `voltagent-lang:swift-expert`
@@ -84,14 +77,6 @@ Use specialized agents for different parts of the codebase:
 - Keep components small and focused (< 200 lines)
 - Component structure: `src/features/<domain>/<Component>.tsx`
 
-### Mobile (React Native + Expo)
-
-- Use NativeWind (TailwindCSS for RN) for styling
-- Platform-adaptive components where needed
-- Keep screens focused, extract reusable components
-- Use Expo SDK features when available
-- Screen structure: `src/screens/<Screen>.tsx`
-
 ### iOS (SwiftUI)
 
 - Use iOS 16+ Liquid Glass material effects
@@ -120,7 +105,6 @@ Use specialized agents for different parts of the codebase:
 
 - **Web:** Inter font family
 - **iOS:** SF Pro (system default)
-- **Mobile:** System fonts with fallbacks
 
 ### Spacing & Radius
 
@@ -183,15 +167,6 @@ npm run lint             # ESLint
 npm run type-check       # TypeScript check
 ```
 
-### Mobile
-```bash
-cd mobile
-npm install
-npm start                # Expo dev server
-npm run ios              # iOS simulator
-npm run android          # Android emulator
-```
-
 ### Database
 ```bash
 docker-compose up -d postgres   # Start PostgreSQL
@@ -223,7 +198,6 @@ Each service has a `.env.example` file. Copy to `.env` and fill in values:
 
 - `backend/.env.example` - Server, DB, auth, Stripe, storage
 - `web/packages/client-web/.env.example` - GraphQL endpoint, Google client ID
-- `mobile/packages/cleaner-app/.env.example` - GraphQL endpoint, mobile client IDs
 
 ---
 

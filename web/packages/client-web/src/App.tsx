@@ -49,8 +49,11 @@ import CompanyDetailPage from '@/pages/admin/CompanyDetailPage';
 import AdminBookingsPage from '@/pages/admin/BookingsPage';
 import AdminBookingDetailPage from '@/pages/admin/BookingDetailPage';
 import UsersPage from '@/pages/admin/UsersPage';
+import UserDetailPage from '@/pages/admin/UserDetailPage';
 import AdminSettingsPage from '@/pages/admin/SettingsPage';
 import AdminMessagesPage from '@/pages/admin/MessagesPage';
+import ReportsPage from '@/pages/admin/ReportsPage';
+import ReviewsPage from '@/pages/admin/ReviewsPage';
 
 // ─── Apollo Client ───────────────────────────────────────────────────────────
 
@@ -201,6 +204,9 @@ function AppRoutes() {
         <Route path="mesaje" element={<AdminMessagesPage />} />
         <Route path="mesaje/:roomId" element={<AdminMessagesPage />} />
         <Route path="utilizatori" element={<UsersPage />} />
+        <Route path="utilizatori/:id" element={<UserDetailPage />} />
+        <Route path="rapoarte" element={<ReportsPage />} />
+        <Route path="recenzii" element={<ReviewsPage />} />
         <Route path="setari" element={<AdminSettingsPage />} />
       </Route>
 

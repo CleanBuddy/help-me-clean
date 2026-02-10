@@ -79,12 +79,6 @@ function formatMessageTime(dateStr: string): string {
   }
 }
 
-function getParticipantNames(participants: ChatParticipant[], myId: string): string {
-  const others = participants.filter((p) => p.user.id !== myId);
-  if (others.length === 0) return 'Conversatie';
-  return others.map((p) => p.user.fullName).join(', ');
-}
-
 function getInitials(name: string): string {
   return name
     .split(' ')

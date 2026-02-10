@@ -42,7 +42,7 @@ Available in development builds only. No Google account needed.
 | CLIENT | `test-e2e@helpmeclean.ro` | client-web (:3000) |
 | COMPANY_ADMIN | `company-admin@helpmeclean.ro` | company-dashboard (:3001) |
 | GLOBAL_ADMIN | `admin@helpmeclean.ro` | admin-dashboard (:3002) |
-| CLEANER | `cleaner@helpmeclean.ro` | (via API or mobile) |
+| CLEANER | `cleaner@helpmeclean.ro` | (via API) |
 
 ---
 
