@@ -20,3 +20,6 @@ DELETE FROM reviews WHERE id = $1;
 
 -- name: CountAllReviews :one
 SELECT COUNT(*) FROM reviews;
+
+-- name: CountReviewsByCleanerID :one
+SELECT COUNT(*) FROM reviews WHERE reviewed_cleaner_id = $1;

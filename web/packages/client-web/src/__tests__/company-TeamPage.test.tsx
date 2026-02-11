@@ -2,25 +2,65 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import TeamPage from '@/pages/company/TeamPage';
+import { MY_CLEANERS } from '@/graphql/operations';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockUseQuery = vi.fn();
-const mockUseMutation = vi.fn();
+vi.mock('@apollo/client', async () => {
+  const actual = await vi.importActual('@apollo/client');
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+    useMutation: vi.fn(),
+    useLazyQuery: vi.fn(),
+  };
+});
 
-vi.mock('@apollo/client', () => ({
-  useQuery: (...args: unknown[]) => mockUseQuery(...args),
-  useMutation: (...args: unknown[]) => mockUseMutation(...args),
-  gql: (strings: TemplateStringsArray) => strings.join(''),
-}));
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const defaultCleaner = {
+  id: 'cl1',
+  userId: 'u1',
+  fullName: 'Ana Popa',
+  email: 'ana@test.com',
+  phone: '0711111111',
+  avatarUrl: null,
+  status: 'ACTIVE',
+  isCompanyAdmin: false,
+  inviteToken: null,
+  ratingAvg: 4.5,
+  totalJobsCompleted: 10,
+  availability: [],
+  createdAt: '2025-01-01',
+};
+
+function mockQueries(overrides?: { cleaners?: unknown[]; loading?: boolean }) {
+  vi.mocked(useQuery).mockImplementation((query: unknown) => {
+    if (query === MY_CLEANERS) {
+      return {
+        data: overrides?.cleaners !== undefined
+          ? { myCleaners: overrides.cleaners }
+          : { myCleaners: [] },
+        loading: overrides?.loading ?? false,
+        refetch: vi.fn(),
+      } as unknown as ReturnType<typeof useQuery>;
+    }
+    return { data: null, loading: false, refetch: vi.fn() } as unknown as ReturnType<typeof useQuery>;
+  });
+}
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('TeamPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseMutation.mockReturnValue([vi.fn(), { loading: false }]);
+    vi.mocked(useMutation).mockReturnValue([vi.fn(), { loading: false }] as unknown as ReturnType<typeof useMutation>);
+    vi.mocked(useLazyQuery).mockReturnValue([
+      vi.fn(),
+      { data: null, loading: false, called: false },
+    ] as unknown as ReturnType<typeof useLazyQuery>);
   });
 
   const renderPage = () =>
@@ -31,70 +71,51 @@ describe('TeamPage', () => {
     );
 
   it('shows page title "Echipa mea"', () => {
-    mockUseQuery.mockReturnValue({
-      data: { myCleaners: [] },
-      loading: false,
-      refetch: vi.fn(),
-    });
+    mockQueries();
     renderPage();
     expect(screen.getByText('Echipa mea')).toBeInTheDocument();
   });
 
   it('shows "Invita cleaner" button', () => {
-    mockUseQuery.mockReturnValue({
-      data: { myCleaners: [] },
-      loading: false,
-      refetch: vi.fn(),
-    });
+    mockQueries();
     renderPage();
     expect(screen.getByText('Invita cleaner')).toBeInTheDocument();
   });
 
   it('shows empty state when no cleaners', () => {
-    mockUseQuery.mockReturnValue({
-      data: { myCleaners: [] },
-      loading: false,
-      refetch: vi.fn(),
-    });
+    mockQueries();
     renderPage();
     expect(screen.getByText('Niciun cleaner')).toBeInTheDocument();
     expect(screen.getByText(/nu ai adaugat inca niciun cleaner/i)).toBeInTheDocument();
   });
 
   it('shows cleaner cards with name, status badge, and rating', () => {
-    mockUseQuery.mockReturnValue({
-      data: {
-        myCleaners: [
-          {
-            id: 'cl1',
-            fullName: 'Ana Popa',
-            email: 'ana@test.com',
-            phone: '0711111111',
-            avatarUrl: null,
-            status: 'ACTIVE',
-            isCompanyAdmin: false,
-            ratingAvg: 4.5,
-            totalJobsCompleted: 10,
-            createdAt: '2025-01-01',
-          },
-        ],
-      },
-      loading: false,
-      refetch: vi.fn(),
-    });
+    mockQueries({ cleaners: [defaultCleaner] });
     renderPage();
     expect(screen.getByText('Ana Popa')).toBeInTheDocument();
-    expect(screen.getByText('Activ')).toBeInTheDocument();
+    // Status badge "Activ" and status button "Activ" both appear
+    const activElements = screen.getAllByText('Activ');
+    expect(activElements.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('4.5')).toBeInTheDocument();
+  });
+
+  it('shows status change buttons for active cleaners', () => {
+    mockQueries({ cleaners: [defaultCleaner] });
+    renderPage();
+    expect(screen.getByText('Schimba status')).toBeInTheDocument();
+    expect(screen.getByText('Inactiv')).toBeInTheDocument();
+    expect(screen.getByText('Suspendat')).toBeInTheDocument();
+  });
+
+  it('shows deactivate button for active cleaner', () => {
+    mockQueries({ cleaners: [defaultCleaner] });
+    renderPage();
+    expect(screen.getByText('Dezactiveaza')).toBeInTheDocument();
   });
 
   it('shows invite modal when button clicked', async () => {
     const user = userEvent.setup();
-    mockUseQuery.mockReturnValue({
-      data: { myCleaners: [] },
-      loading: false,
-      refetch: vi.fn(),
-    });
+    mockQueries();
     renderPage();
     // Click the first "Invita" button to open the modal
     const buttons = screen.getAllByText(/invita/i);
@@ -107,11 +128,7 @@ describe('TeamPage', () => {
 
   it('invite form has name and email inputs', async () => {
     const user = userEvent.setup();
-    mockUseQuery.mockReturnValue({
-      data: { myCleaners: [] },
-      loading: false,
-      refetch: vi.fn(),
-    });
+    mockQueries();
     renderPage();
     const buttons = screen.getAllByText(/invita/i);
     await user.click(buttons[0]);
@@ -120,13 +137,15 @@ describe('TeamPage', () => {
   });
 
   it('shows loading skeletons when loading', () => {
-    mockUseQuery.mockReturnValue({
-      data: undefined,
-      loading: true,
-      refetch: vi.fn(),
-    });
+    mockQueries({ loading: true });
     renderPage();
     const skeletons = document.querySelectorAll('.animate-pulse');
     expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it('shows details toggle button for cleaner', () => {
+    mockQueries({ cleaners: [defaultCleaner] });
+    renderPage();
+    expect(screen.getByText('Detalii')).toBeInTheDocument();
   });
 });

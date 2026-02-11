@@ -88,3 +88,53 @@ ORDER BY created_at DESC LIMIT $1 OFFSET $2;
 SELECT COUNT(*) FROM bookings WHERE
     (@query::text = '' OR reference_code ILIKE '%' || @query::text || '%')
     AND (@status_filter::text = '' OR status::text = @status_filter::text);
+
+-- name: ListBookingsByCompanyAndDateRange :many
+SELECT * FROM bookings
+WHERE company_id = $1
+  AND scheduled_date >= @date_from::date
+  AND scheduled_date <= @date_to::date
+  AND status NOT IN ('cancelled_by_client', 'cancelled_by_company', 'cancelled_by_admin')
+ORDER BY scheduled_date, scheduled_start_time;
+
+-- name: ListBookingsByCleanerAndDateRange :many
+SELECT * FROM bookings
+WHERE cleaner_id = $1
+  AND scheduled_date >= @date_from::date
+  AND scheduled_date <= @date_to::date
+  AND status NOT IN ('cancelled_by_client', 'cancelled_by_company', 'cancelled_by_admin')
+ORDER BY scheduled_date, scheduled_start_time;
+
+-- name: SearchCompanyBookings :many
+SELECT * FROM bookings WHERE
+    company_id = $1
+    AND (@query::text = '' OR reference_code ILIKE '%' || @query::text || '%')
+    AND (@status_filter::text = '' OR status::text = @status_filter::text OR (@status_filter::text = 'cancelled' AND status::text LIKE 'cancelled%'))
+    AND (@date_from::date = '0001-01-01' OR scheduled_date >= @date_from::date)
+    AND (@date_to::date = '0001-01-01' OR scheduled_date <= @date_to::date)
+ORDER BY created_at DESC LIMIT $2 OFFSET $3;
+
+-- name: CountSearchCompanyBookings :one
+SELECT COUNT(*) FROM bookings WHERE
+    company_id = $1
+    AND (@query::text = '' OR reference_code ILIKE '%' || @query::text || '%')
+    AND (@status_filter::text = '' OR status::text = @status_filter::text OR (@status_filter::text = 'cancelled' AND status::text LIKE 'cancelled%'))
+    AND (@date_from::date = '0001-01-01' OR scheduled_date >= @date_from::date)
+    AND (@date_to::date = '0001-01-01' OR scheduled_date <= @date_to::date);
+
+-- name: SearchCleanerBookings :many
+SELECT * FROM bookings WHERE
+    cleaner_id = $1
+    AND (@query::text = '' OR reference_code ILIKE '%' || @query::text || '%')
+    AND (@status_filter::text = '' OR status::text = @status_filter::text OR (@status_filter::text = 'cancelled' AND status::text LIKE 'cancelled%'))
+    AND (@date_from::date = '0001-01-01' OR scheduled_date >= @date_from::date)
+    AND (@date_to::date = '0001-01-01' OR scheduled_date <= @date_to::date)
+ORDER BY created_at DESC LIMIT $2 OFFSET $3;
+
+-- name: CountSearchCleanerBookings :one
+SELECT COUNT(*) FROM bookings WHERE
+    cleaner_id = $1
+    AND (@query::text = '' OR reference_code ILIKE '%' || @query::text || '%')
+    AND (@status_filter::text = '' OR status::text = @status_filter::text OR (@status_filter::text = 'cancelled' AND status::text LIKE 'cancelled%'))
+    AND (@date_from::date = '0001-01-01' OR scheduled_date >= @date_from::date)
+    AND (@date_to::date = '0001-01-01' OR scheduled_date <= @date_to::date);

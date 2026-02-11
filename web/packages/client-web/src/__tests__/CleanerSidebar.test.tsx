@@ -61,9 +61,10 @@ describe('CleanerSidebar', () => {
     expect(screen.getByText('Worker Dashboard')).toBeInTheDocument();
   });
 
-  it('shows nav links: Azi, Program, Mesaje, Profil', () => {
+  it('shows nav links: Dashboard, Comenzi, Program, Mesaje, Profil', () => {
     renderSidebar();
-    expect(screen.getByText('Azi')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Comenzi')).toBeInTheDocument();
     expect(screen.getByText('Program')).toBeInTheDocument();
     expect(screen.getByText('Mesaje')).toBeInTheDocument();
     expect(screen.getByText('Profil')).toBeInTheDocument();

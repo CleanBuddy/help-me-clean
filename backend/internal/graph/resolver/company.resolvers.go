@@ -89,17 +89,56 @@ func (r *mutationResolver) UpdateCompanyProfile(ctx context.Context, input model
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	// Get the company for this admin user.
 	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
 	if err != nil {
 		return nil, fmt.Errorf("company not found for user: %w", err)
 	}
 
-	// For MVP, we use UpdateCompanyStatus as a way to touch the record.
-	// Since there is no dedicated UpdateCompany query, we return the existing
-	// company data. In a full implementation, a dedicated SQL query would be added.
-	_ = input
-	return dbCompanyToGQL(company), nil
+	var desc, phone, email string
+	if input.Description != nil {
+		desc = *input.Description
+	}
+	if input.ContactPhone != nil {
+		phone = *input.ContactPhone
+	}
+	if input.ContactEmail != nil {
+		email = *input.ContactEmail
+	}
+	var radius int32
+	if input.MaxServiceRadiusKm != nil {
+		radius = int32(*input.MaxServiceRadiusKm)
+	}
+
+	updated, err := r.Queries.UpdateCompanyOwnProfile(ctx, db.UpdateCompanyOwnProfileParams{
+		ID:           company.ID,
+		Description:  desc,
+		ContactPhone: phone,
+		ContactEmail: email,
+		MaxRadius:    radius,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update company profile: %w", err)
+	}
+
+	// Update work schedule if provided.
+	if input.WorkSchedule != nil {
+		for _, day := range input.WorkSchedule {
+			startTime := parseHHMMToTime(day.StartTime)
+			endTime := parseHHMMToTime(day.EndTime)
+			_, err := r.Queries.UpsertCompanyWorkScheduleDay(ctx, db.UpsertCompanyWorkScheduleDayParams{
+				CompanyID: company.ID,
+				DayOfWeek: int32(day.DayOfWeek),
+				StartTime: startTime,
+				EndTime:   endTime,
+				IsWorkDay: day.IsWorkDay,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to update work schedule day %d: %w", day.DayOfWeek, err)
+			}
+		}
+	}
+
+	return dbCompanyToGQL(updated), nil
 }
 
 // UploadCompanyDocument is the resolver for the uploadCompanyDocument field.
@@ -205,6 +244,61 @@ func (r *queryResolver) MyCompany(ctx context.Context) (*model.Company, error) {
 	}
 
 	return dbCompanyToGQL(company), nil
+}
+
+// MyCompanyFinancialSummary is the resolver for the myCompanyFinancialSummary field.
+func (r *queryResolver) MyCompanyFinancialSummary(ctx context.Context) (*model.CompanyFinancialSummary, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	summary, err := r.Queries.GetCompanyFinancialSummary(ctx, company.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get financial summary: %w", err)
+	}
+
+	return &model.CompanyFinancialSummary{
+		CompletedBookings: int(summary.CompletedBookings),
+		TotalRevenue:      numericToFloat(summary.TotalRevenue),
+		TotalCommission:   numericToFloat(summary.TotalCommission),
+		NetPayout:         numericToFloat(summary.NetPayout),
+	}, nil
+}
+
+// MyCompanyWorkSchedule is the resolver for the myCompanyWorkSchedule field.
+func (r *queryResolver) MyCompanyWorkSchedule(ctx context.Context) ([]*model.CompanyWorkSchedule, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	rows, err := r.Queries.ListCompanyWorkSchedule(ctx, company.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list work schedule: %w", err)
+	}
+
+	result := make([]*model.CompanyWorkSchedule, len(rows))
+	for i, row := range rows {
+		result[i] = &model.CompanyWorkSchedule{
+			ID:        uuidToString(row.ID),
+			DayOfWeek: int(row.DayOfWeek),
+			StartTime: timeToString(row.StartTime),
+			EndTime:   timeToString(row.EndTime),
+			IsWorkDay: row.IsWorkDay,
+		}
+	}
+	return result, nil
 }
 
 // Companies is the resolver for the companies field.

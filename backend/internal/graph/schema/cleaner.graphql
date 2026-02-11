@@ -13,6 +13,7 @@ type CleanerProfile {
   fullName: String!
   phone: String
   email: String
+  bio: String
   avatarUrl: String
   status: CleanerStatus!
   isCompanyAdmin: Boolean!
@@ -39,10 +40,42 @@ type CleanerStats {
   thisMonthEarnings: Float!
 }
 
+type CleanerPerformance {
+  cleanerId: ID!
+  fullName: String!
+  ratingAvg: Float!
+  totalCompletedJobs: Int!
+  thisMonthCompleted: Int!
+  totalEarnings: Float!
+  thisMonthEarnings: Float!
+}
+
+type CleanerDailyEarnings {
+  date: String!
+  amount: Float!
+}
+
+type CleanerDateOverride {
+  id: ID!
+  date: String!
+  isAvailable: Boolean!
+  startTime: String!
+  endTime: String!
+}
+
 extend type Query {
   myCleaners: [CleanerProfile!]!
   myCleanerProfile: CleanerProfile!
   myCleanerStats: CleanerStats!
+  cleanerPerformance(cleanerId: ID!): CleanerPerformance!
+  myCleanerAvailability: [AvailabilitySlot!]!
+  myCleanerBookingsByDateRange(from: String!, to: String!): [Booking!]!
+  cleanerEarningsByDateRange(from: String!, to: String!): [CleanerDailyEarnings!]!
+  searchCleanerBookings(query: String, status: String, dateFrom: String, dateTo: String, limit: Int, offset: Int): BookingConnection!
+  myCleanerReviews(limit: Int, offset: Int): ReviewConnection!
+  myCleanerCompanySchedule: [CompanyWorkSchedule!]!
+  myCleanerDateOverrides(from: String!, to: String!): [CleanerDateOverride!]!
+  cleanerDateOverrides(cleanerId: ID!, from: String!, to: String!): [CleanerDateOverride!]!
 }
 
 extend type Mutation {
@@ -51,6 +84,10 @@ extend type Mutation {
   updateCleanerStatus(id: ID!, status: CleanerStatus!): CleanerProfile!
   acceptInvitation(token: String!): CleanerProfile!
   updateAvailability(slots: [AvailabilitySlotInput!]!): [AvailabilitySlot!]!
+  updateCleanerAvailability(cleanerId: ID!, slots: [AvailabilitySlotInput!]!): [AvailabilitySlot!]!
+  updateCleanerProfile(input: UpdateCleanerProfileInput!): CleanerProfile!
+  setCleanerDateOverride(date: String!, isAvailable: Boolean!, startTime: String!, endTime: String!): CleanerDateOverride!
+  setCleanerDateOverrideByAdmin(cleanerId: ID!, date: String!, isAvailable: Boolean!, startTime: String!, endTime: String!): CleanerDateOverride!
 }
 
 input InviteCleanerInput {
@@ -64,4 +101,9 @@ input AvailabilitySlotInput {
   startTime: String!
   endTime: String!
   isAvailable: Boolean!
+}
+
+input UpdateCleanerProfileInput {
+  phone: String
+  bio: String
 }

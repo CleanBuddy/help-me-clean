@@ -127,6 +127,15 @@ func timeToString(t pgtype.Time) string {
 	return fmt.Sprintf("%02d:%02d", hours, mins)
 }
 
+func parseHHMMToTime(s string) pgtype.Time {
+	var h, m int
+	fmt.Sscanf(s, "%d:%d", &h, &m)
+	return pgtype.Time{
+		Microseconds: int64(h)*3_600_000_000 + int64(m)*60_000_000,
+		Valid:        true,
+	}
+}
+
 func pgTextEmpty() pgtype.Text {
 	return pgtype.Text{}
 }
@@ -343,6 +352,7 @@ func dbCleanerToGQL(c db.Cleaner) *model.CleanerProfile {
 		FullName:           c.FullName,
 		Phone:              textPtr(c.Phone),
 		Email:              textPtr(c.Email),
+		Bio:                textPtr(c.Bio),
 		AvatarURL:          textPtr(c.AvatarUrl),
 		Status:             dbCleanerStatusToGQL(c.Status),
 		IsCompanyAdmin:     boolVal(c.IsCompanyAdmin),

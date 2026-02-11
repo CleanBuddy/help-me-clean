@@ -8,13 +8,12 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"time"
-
-	"github.com/jackc/pgx/v5/pgtype"
-
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // RevenueByDateRange is the resolver for the revenueByDateRange field.
@@ -154,4 +153,47 @@ func (r *queryResolver) PlatformTotals(ctx context.Context) (*model.PlatformTota
 		UniqueClients:   int(totals.UniqueClients),
 		ActiveCompanies: int(totals.ActiveCompanies),
 	}, nil
+}
+
+// CompanyRevenueByDateRange is the resolver for the companyRevenueByDateRange field.
+func (r *queryResolver) CompanyRevenueByDateRange(ctx context.Context, from string, to string) ([]*model.DailyRevenue, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	fromTime, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'from' date format: %w", err)
+	}
+	toTime, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'to' date format: %w", err)
+	}
+
+	rows, err := r.Queries.GetCompanyRevenueByDateRange(ctx, db.GetCompanyRevenueByDateRangeParams{
+		CompanyID:     company.ID,
+		CompletedAt:   pgtype.Timestamptz{Time: fromTime, Valid: true},
+		CompletedAt_2: pgtype.Timestamptz{Time: toTime, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get company revenue: %w", err)
+	}
+
+	result := make([]*model.DailyRevenue, len(rows))
+	for i, row := range rows {
+		result[i] = &model.DailyRevenue{
+			Date:         dateToString(row.Date),
+			BookingCount: int(row.BookingCount),
+			Revenue:      numericToFloat(row.Revenue),
+			Commission:   numericToFloat(row.Commission),
+		}
+	}
+
+	return result, nil
 }

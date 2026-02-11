@@ -23,3 +23,24 @@ UPDATE cleaners SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *;
 
 -- name: LinkCleanerToUser :one
 UPDATE cleaners SET user_id = $2, status = 'active', updated_at = NOW() WHERE id = $1 RETURNING *;
+
+-- name: UpdateCleanerOwnProfile :one
+UPDATE cleaners SET
+    phone = @new_phone::text,
+    bio = @new_bio::text,
+    updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: GetCleanerPerformanceStats :one
+SELECT
+    c.id,
+    c.full_name,
+    c.rating_avg,
+    COUNT(b.id) FILTER (WHERE b.status = 'completed')::bigint AS total_completed_jobs,
+    COUNT(b.id) FILTER (WHERE b.status = 'completed' AND b.completed_at >= date_trunc('month', CURRENT_DATE))::bigint AS this_month_completed,
+    COALESCE(SUM(COALESCE(b.final_total, b.estimated_total)) FILTER (WHERE b.status = 'completed'), 0)::numeric AS total_earnings,
+    COALESCE(SUM(COALESCE(b.final_total, b.estimated_total)) FILTER (WHERE b.status = 'completed' AND b.completed_at >= date_trunc('month', CURRENT_DATE)), 0)::numeric AS this_month_earnings
+FROM cleaners c
+LEFT JOIN bookings b ON b.cleaner_id = c.id
+WHERE c.id = $1
+GROUP BY c.id, c.full_name, c.rating_avg;

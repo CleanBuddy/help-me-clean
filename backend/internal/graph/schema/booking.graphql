@@ -72,6 +72,8 @@ extend type Query {
   myAssignedJobs(status: BookingStatus): [Booking!]!
   todaysJobs: [Booking!]!
   allBookings(status: BookingStatus, companyId: ID, dateFrom: String, dateTo: String, first: Int, after: String): BookingConnection!
+  companyBookingsByDateRange(from: String!, to: String!): [Booking!]!
+  searchCompanyBookings(query: String, status: String, dateFrom: String, dateTo: String, limit: Int, offset: Int): BookingConnection!
 }
 
 extend type Mutation {

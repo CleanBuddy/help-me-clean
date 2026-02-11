@@ -24,6 +24,22 @@ FROM bookings b JOIN companies c ON b.company_id = c.id
 WHERE b.status = 'completed' AND b.completed_at >= $1 AND b.completed_at <= $2
 GROUP BY c.id, c.company_name ORDER BY revenue DESC LIMIT $3;
 
+-- name: GetCompanyRevenueByDateRange :many
+SELECT DATE(completed_at) AS date,
+    COUNT(*)::bigint AS booking_count,
+    COALESCE(SUM(COALESCE(final_total, estimated_total)), 0)::numeric AS revenue,
+    COALESCE(SUM(COALESCE(platform_commission_amount, 0)), 0)::numeric AS commission
+FROM bookings
+WHERE company_id = $1 AND status = 'completed' AND completed_at >= $2 AND completed_at <= $3
+GROUP BY DATE(completed_at) ORDER BY date;
+
+-- name: GetCleanerEarningsByDateRange :many
+SELECT DATE(completed_at) AS date,
+    COALESCE(SUM(COALESCE(final_total, estimated_total)), 0)::numeric AS amount
+FROM bookings
+WHERE cleaner_id = $1 AND status = 'completed' AND completed_at >= $2 AND completed_at <= $3
+GROUP BY DATE(completed_at) ORDER BY date;
+
 -- name: GetPlatformTotals :one
 SELECT
     COUNT(*) FILTER (WHERE status = 'completed')::bigint AS total_completed,

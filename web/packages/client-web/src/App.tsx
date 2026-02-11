@@ -35,12 +35,14 @@ import CompanyOrderDetailPage from '@/pages/company/OrderDetailPage';
 import TeamPage from '@/pages/company/TeamPage';
 import CompanySettingsPage from '@/pages/company/SettingsPage';
 import CompanyMessagesPage from '@/pages/company/MessagesPage';
+import CompanyCalendarPage from '@/pages/company/CalendarPage';
 
 // Cleaner pages
-import CleanerTodayPage from '@/pages/cleaner/TodayPage';
-import CleanerSchedulePage from '@/pages/cleaner/SchedulePage';
+import CleanerDashboardPage from '@/pages/cleaner/DashboardPage';
+import CleanerOrdersPage from '@/pages/cleaner/OrdersPage';
+import CleanerCalendarPage from '@/pages/cleaner/CalendarPage';
 import CleanerJobDetailPage from '@/pages/cleaner/JobDetailPage';
-import CleanerProfilePage from '@/pages/cleaner/ProfilePage';
+import CleanerSettingsPage from '@/pages/cleaner/SettingsPage';
 
 // Admin pages
 import AdminDashboardPage from '@/pages/admin/DashboardPage';
@@ -160,6 +162,7 @@ function AppRoutes() {
         <Route index element={<CompanyDashboardPage />} />
         <Route path="comenzi" element={<CompanyOrdersPage />} />
         <Route path="comenzi/:id" element={<CompanyOrderDetailPage />} />
+        <Route path="program" element={<CompanyCalendarPage />} />
         <Route path="mesaje" element={<CompanyMessagesPage />} />
         <Route path="mesaje/:roomId" element={<CompanyMessagesPage />} />
         <Route path="echipa" element={<TeamPage />} />
@@ -177,12 +180,13 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<CleanerTodayPage />} />
-        <Route path="program" element={<CleanerSchedulePage />} />
-        <Route path="job/:id" element={<CleanerJobDetailPage />} />
+        <Route index element={<CleanerDashboardPage />} />
+        <Route path="comenzi" element={<CleanerOrdersPage />} />
+        <Route path="comenzi/:id" element={<CleanerJobDetailPage />} />
+        <Route path="program" element={<CleanerCalendarPage />} />
         <Route path="mesaje" element={<ChatPage />} />
         <Route path="mesaje/:roomId" element={<ChatPage />} />
-        <Route path="profil" element={<CleanerProfilePage />} />
+        <Route path="profil" element={<CleanerSettingsPage />} />
       </Route>
 
       {/* Admin routes - Sidebar layout, auth + GLOBAL_ADMIN role */}

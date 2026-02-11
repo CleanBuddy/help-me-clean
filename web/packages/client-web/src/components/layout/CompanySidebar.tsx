@@ -7,6 +7,7 @@ import {
   LogOut,
   Building2,
   MessageSquare,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +15,7 @@ import { useAuth } from '@/context/AuthContext';
 const navItems = [
   { to: '/firma', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/firma/comenzi', icon: ClipboardList, label: 'Comenzi' },
+  { to: '/firma/program', icon: CalendarDays, label: 'Program' },
   { to: '/firma/mesaje', icon: MessageSquare, label: 'Mesaje' },
   { to: '/firma/echipa', icon: Users, label: 'Echipa mea' },
   { to: '/firma/setari', icon: Settings, label: 'Setari' },

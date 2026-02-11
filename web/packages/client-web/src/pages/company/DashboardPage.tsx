@@ -1,16 +1,190 @@
+import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
-import { ClipboardList, Users, Star, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  ClipboardList,
+  TrendingUp,
+  Wallet,
+  Receipt,
+  Star,
+  MapPin,
+  ChevronRight,
+} from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import Card from '@/components/ui/Card';
-import { MY_COMPANY } from '@/graphql/operations';
+import Badge from '@/components/ui/Badge';
+import { cn } from '@helpmeclean/shared';
+import {
+  MY_COMPANY,
+  MY_COMPANY_FINANCIAL_SUMMARY,
+  COMPANY_REVENUE_BY_DATE_RANGE,
+  COMPANY_BOOKINGS,
+} from '@/graphql/operations';
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const statusBadgeVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
+  PENDING: 'warning',
+  CONFIRMED: 'info',
+  IN_PROGRESS: 'info',
+  COMPLETED: 'success',
+  CANCELLED: 'danger',
+};
+
+const statusLabel: Record<string, string> = {
+  PENDING: 'In asteptare',
+  CONFIRMED: 'Confirmata',
+  IN_PROGRESS: 'In desfasurare',
+  COMPLETED: 'Finalizata',
+  CANCELLED: 'Anulata',
+};
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('ro-RO', { day: '2-digit', month: 'short' });
+}
+
+function toYYYYMMDD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+
+interface KpiCardProps {
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  colorBg: string;
+  colorText: string;
+  valueColor?: string;
+}
+
+function KpiCard({ icon: Icon, label, value, colorBg, colorText, valueColor }: KpiCardProps) {
+  return (
+    <Card>
+      <div className="flex items-center gap-4">
+        <div className={cn('p-3 rounded-xl', colorBg)}>
+          <Icon className={cn('h-6 w-6', colorText)} />
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">{label}</p>
+          <p className={cn('text-2xl font-bold', valueColor ?? 'text-gray-900')}>
+            {value}
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function KpiSkeleton({ count }: { count: number }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <Card key={i}>
+          <div className="animate-pulse flex items-center gap-4">
+            <div className="h-12 w-12 bg-gray-200 rounded-xl" />
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
+              <div className="h-7 bg-gray-200 rounded w-16" />
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ─── Chart Tooltip ────────────────────────────────────────────────────────────
+
+interface ChartPayloadItem {
+  value: number;
+  dataKey: string;
+  color: string;
+}
+
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: ChartPayloadItem[];
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-lg p-3">
+      <p className="text-sm font-medium text-gray-900 mb-1">{label}</p>
+      {payload.map((entry) => (
+        <p key={entry.dataKey} className="text-sm" style={{ color: entry.color }}>
+          {entry.dataKey === 'revenue' ? 'Venit' : 'Comision'}: {Number(entry.value).toFixed(2)} RON
+        </p>
+      ))}
+    </div>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { data, loading } = useQuery(MY_COMPANY);
-  const company = data?.myCompany;
+  const navigate = useNavigate();
+
+  // Date range for chart: last 30 days
+  const { from, to } = useMemo(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return {
+      from: toYYYYMMDD(thirtyDaysAgo),
+      to: toYYYYMMDD(now),
+    };
+  }, []);
+
+  // Queries
+  const { data: companyData, loading: companyLoading } = useQuery(MY_COMPANY);
+  const { data: financialData, loading: financialLoading } = useQuery(MY_COMPANY_FINANCIAL_SUMMARY);
+  const { data: revenueData, loading: revenueLoading } = useQuery(COMPANY_REVENUE_BY_DATE_RANGE, {
+    variables: { from, to },
+  });
+  const { data: bookingsData, loading: bookingsLoading } = useQuery(COMPANY_BOOKINGS, {
+    variables: { first: 5 },
+  });
+
+  const company = companyData?.myCompany;
+  const financial = financialData?.myCompanyFinancialSummary;
+  const revenuePoints = revenueData?.companyRevenueByDateRange ?? [];
+  const recentBookings = bookingsData?.companyBookings?.edges ?? [];
+
+  const isKpiLoading = companyLoading || financialLoading;
+
+  // Chart data formatted for display
+  const chartData = useMemo(
+    () =>
+      revenuePoints.map((point: { date: string; revenue: number; commission: number; bookingCount: number }) => ({
+        date: formatDate(point.date),
+        revenue: Number(point.revenue),
+        commission: Number(point.commission),
+      })),
+    [revenuePoints],
+  );
 
   return (
     <div>
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
           Bun venit{company ? `, ${company.companyName}` : ''}!
@@ -20,74 +194,177 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-24 mb-3" />
-                <div className="h-8 bg-gray-200 rounded w-16" />
-              </div>
-            </Card>
-          ))}
-        </div>
+      {/* KPI Cards */}
+      {isKpiLoading ? (
+        <KpiSkeleton count={6} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <ClipboardList className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Comenzi finalizate</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {company?.totalJobsCompleted ?? 0}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-secondary/10">
-                <TrendingUp className="h-6 w-6 text-secondary" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Venit saptamana</p>
-                <p className="text-2xl font-bold text-secondary">0 RON</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-accent/10">
-                <Star className="h-6 w-6 text-accent" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Rating mediu</p>
-                <p className="text-2xl font-bold text-accent">
-                  {company?.ratingAvg ? Number(company.ratingAvg).toFixed(1) : '--'}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-blue-50">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Raza serviciu</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {company?.maxServiceRadiusKm ?? '--'} km
-                </p>
-              </div>
-            </div>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <KpiCard
+            icon={ClipboardList}
+            label="Comenzi finalizate"
+            value={company?.totalJobsCompleted ?? 0}
+            colorBg="bg-blue-600/10"
+            colorText="text-blue-600"
+          />
+          <KpiCard
+            icon={TrendingUp}
+            label="Venit total"
+            value={`${Number(financial?.totalRevenue ?? 0).toFixed(2)} RON`}
+            colorBg="bg-emerald-500/10"
+            colorText="text-emerald-500"
+            valueColor="text-emerald-600"
+          />
+          <KpiCard
+            icon={Wallet}
+            label="Venit net"
+            value={`${Number(financial?.netPayout ?? 0).toFixed(2)} RON`}
+            colorBg="bg-emerald-600/10"
+            colorText="text-emerald-600"
+            valueColor="text-emerald-700"
+          />
+          <KpiCard
+            icon={Receipt}
+            label="Comision platforma"
+            value={`${Number(financial?.totalCommission ?? 0).toFixed(2)} RON`}
+            colorBg="bg-amber-500/10"
+            colorText="text-amber-500"
+            valueColor="text-amber-600"
+          />
+          <KpiCard
+            icon={Star}
+            label="Rating mediu"
+            value={company?.ratingAvg ? Number(company.ratingAvg).toFixed(1) : '--'}
+            colorBg="bg-amber-500/10"
+            colorText="text-amber-500"
+            valueColor="text-amber-600"
+          />
+          <KpiCard
+            icon={MapPin}
+            label="Raza serviciu"
+            value={`${company?.maxServiceRadiusKm ?? '--'} km`}
+            colorBg="bg-blue-600/10"
+            colorText="text-blue-600"
+          />
         </div>
       )}
+
+      {/* Revenue Chart */}
+      <div className="mt-8">
+        <Card>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Venituri ultimele 30 zile</h2>
+
+          {revenueLoading ? (
+            <div className="animate-pulse">
+              <div className="h-64 bg-gray-100 rounded-xl" />
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="flex items-center justify-center h-64 text-gray-400">
+              <p>Nu exista date de venit pentru aceasta perioada.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="commissionGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v: number) => `${v} RON`}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#2563EB"
+                  strokeWidth={2}
+                  fill="url(#revenueGradient)"
+                  name="Venit"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="commission"
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                  fill="url(#commissionGradient)"
+                  name="Comision"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+      </div>
+
+      {/* Recent Orders */}
+      <div className="mt-8">
+        <Card>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Comenzi recente</h2>
+
+          {bookingsLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="animate-pulse flex justify-between items-center">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-32" />
+                    <div className="h-3 bg-gray-200 rounded w-48" />
+                  </div>
+                  <div className="h-6 bg-gray-200 rounded w-20" />
+                </div>
+              ))}
+            </div>
+          ) : recentBookings.length === 0 ? (
+            <div className="text-center py-12">
+              <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Nicio comanda</h3>
+              <p className="text-gray-500">Nu ai comenzi recente.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentBookings.map((booking: Record<string, unknown>) => (
+                <div
+                  key={booking.id as string}
+                  onClick={() => navigate(`/firma/comenzi/${booking.id}`)}
+                  className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-blue-600/30 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <p className="font-semibold text-gray-900">
+                        #{booking.referenceCode as string}
+                      </p>
+                      <Badge variant={statusBadgeVariant[(booking.status as string) || 'PENDING']}>
+                        {statusLabel[(booking.status as string) || 'PENDING'] || (booking.status as string)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {booking.serviceName as string} &middot; {booking.scheduledDate as string}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4">
+                    <p className="text-lg font-bold text-gray-900 whitespace-nowrap">
+                      {Number(booking.estimatedTotal ?? 0).toFixed(2)} RON
+                    </p>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

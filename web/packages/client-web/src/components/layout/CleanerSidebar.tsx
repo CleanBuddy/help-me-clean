@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  ClipboardList,
   CalendarDays,
   MessageSquare,
   User,
@@ -11,7 +12,8 @@ import { cn } from '@helpmeclean/shared';
 import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
-  { to: '/worker', icon: LayoutDashboard, label: 'Azi' },
+  { to: '/worker', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/worker/comenzi', icon: ClipboardList, label: 'Comenzi' },
   { to: '/worker/program', icon: CalendarDays, label: 'Program' },
   { to: '/worker/mesaje', icon: MessageSquare, label: 'Mesaje' },
   { to: '/worker/profil', icon: User, label: 'Profil' },

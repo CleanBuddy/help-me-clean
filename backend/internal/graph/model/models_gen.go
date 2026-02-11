@@ -150,6 +150,29 @@ type ChatRoom struct {
 	CreatedAt    time.Time              `json:"createdAt"`
 }
 
+type CleanerDailyEarnings struct {
+	Date   string  `json:"date"`
+	Amount float64 `json:"amount"`
+}
+
+type CleanerDateOverride struct {
+	ID          string `json:"id"`
+	Date        string `json:"date"`
+	IsAvailable bool   `json:"isAvailable"`
+	StartTime   string `json:"startTime"`
+	EndTime     string `json:"endTime"`
+}
+
+type CleanerPerformance struct {
+	CleanerID          string  `json:"cleanerId"`
+	FullName           string  `json:"fullName"`
+	RatingAvg          float64 `json:"ratingAvg"`
+	TotalCompletedJobs int     `json:"totalCompletedJobs"`
+	ThisMonthCompleted int     `json:"thisMonthCompleted"`
+	TotalEarnings      float64 `json:"totalEarnings"`
+	ThisMonthEarnings  float64 `json:"thisMonthEarnings"`
+}
+
 type CleanerProfile struct {
 	ID                 string              `json:"id"`
 	UserID             *string             `json:"userId,omitempty"`
@@ -158,6 +181,7 @@ type CleanerProfile struct {
 	FullName           string              `json:"fullName"`
 	Phone              *string             `json:"phone,omitempty"`
 	Email              *string             `json:"email,omitempty"`
+	Bio                *string             `json:"bio,omitempty"`
 	AvatarURL          *string             `json:"avatarUrl,omitempty"`
 	Status             CleanerStatus       `json:"status"`
 	IsCompanyAdmin     bool                `json:"isCompanyAdmin"`
@@ -245,6 +269,14 @@ type CompanyPerformance struct {
 	TotalRevenue   float64  `json:"totalRevenue"`
 	AverageRating  float64  `json:"averageRating"`
 	CompletionRate float64  `json:"completionRate"`
+}
+
+type CompanyWorkSchedule struct {
+	ID        string `json:"id"`
+	DayOfWeek int    `json:"dayOfWeek"`
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+	IsWorkDay bool   `json:"isWorkDay"`
 }
 
 type Coordinates struct {
@@ -472,10 +504,17 @@ type UpdateAddressInput struct {
 	Notes         *string  `json:"notes,omitempty"`
 }
 
+type UpdateCleanerProfileInput struct {
+	Phone *string `json:"phone,omitempty"`
+	Bio   *string `json:"bio,omitempty"`
+}
+
 type UpdateCompanyInput struct {
-	Description        *string `json:"description,omitempty"`
-	ContactPhone       *string `json:"contactPhone,omitempty"`
-	MaxServiceRadiusKm *int    `json:"maxServiceRadiusKm,omitempty"`
+	Description        *string                 `json:"description,omitempty"`
+	ContactPhone       *string                 `json:"contactPhone,omitempty"`
+	ContactEmail       *string                 `json:"contactEmail,omitempty"`
+	MaxServiceRadiusKm *int                    `json:"maxServiceRadiusKm,omitempty"`
+	WorkSchedule       []*WorkScheduleDayInput `json:"workSchedule,omitempty"`
 }
 
 type UpdateProfileInput struct {
@@ -522,6 +561,13 @@ type User struct {
 type UserConnection struct {
 	Users      []*User `json:"users"`
 	TotalCount int     `json:"totalCount"`
+}
+
+type WorkScheduleDayInput struct {
+	DayOfWeek int    `json:"dayOfWeek"`
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+	IsWorkDay bool   `json:"isWorkDay"`
 }
 
 type BookingStatus string

@@ -69,6 +69,15 @@ SELECT COUNT(*) FROM companies WHERE
     (company_name ILIKE '%' || @query::text || '%' OR cui ILIKE '%' || @query::text || '%')
     AND (@status_filter::text = '' OR status::text = @status_filter::text);
 
+-- name: UpdateCompanyOwnProfile :one
+UPDATE companies SET
+    description = COALESCE(NULLIF(@description::text, ''), description),
+    contact_phone = COALESCE(NULLIF(@contact_phone::text, ''), contact_phone),
+    contact_email = COALESCE(NULLIF(@contact_email::text, ''), contact_email),
+    max_service_radius_km = CASE WHEN @max_radius::int > 0 THEN @max_radius::int ELSE max_service_radius_km END,
+    updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
 -- name: GetCompanyFinancialSummary :one
 SELECT
     COUNT(*) FILTER (WHERE status = 'completed')::bigint AS completed_bookings,

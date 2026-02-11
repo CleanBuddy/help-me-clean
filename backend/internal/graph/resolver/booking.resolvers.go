@@ -12,6 +12,7 @@ import (
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -624,5 +625,133 @@ func (r *queryResolver) AllBookings(ctx context.Context, status *model.BookingSt
 			EndCursor:   endCursor,
 		},
 		TotalCount: len(edges),
+	}, nil
+}
+
+// CompanyBookingsByDateRange is the resolver for the companyBookingsByDateRange field.
+func (r *queryResolver) CompanyBookingsByDateRange(ctx context.Context, from string, to string) ([]*model.Booking, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	fromDate, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'from' date: %w", err)
+	}
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'to' date: %w", err)
+	}
+
+	bookings, err := r.Queries.ListBookingsByCompanyAndDateRange(ctx, db.ListBookingsByCompanyAndDateRangeParams{
+		CompanyID: company.ID,
+		DateFrom:  pgtype.Date{Time: fromDate, Valid: true},
+		DateTo:    pgtype.Date{Time: toDate, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list bookings by date range: %w", err)
+	}
+
+	result := make([]*model.Booking, len(bookings))
+	for i, b := range bookings {
+		gqlBooking := dbBookingToGQL(b)
+		r.enrichBooking(ctx, b, gqlBooking)
+		result[i] = gqlBooking
+	}
+
+	return result, nil
+}
+
+// SearchCompanyBookings is the resolver for the searchCompanyBookings field.
+func (r *queryResolver) SearchCompanyBookings(ctx context.Context, query *string, status *string, dateFrom *string, dateTo *string, limit *int, offset *int) (*model.BookingConnection, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	qLimit := int32(20)
+	if limit != nil {
+		qLimit = int32(*limit)
+	}
+	qOffset := int32(0)
+	if offset != nil {
+		qOffset = int32(*offset)
+	}
+
+	var queryStr string
+	if query != nil {
+		queryStr = *query
+	}
+	var statusStr string
+	if status != nil {
+		statusStr = strings.ToLower(*status)
+	}
+
+	// Parse date filters — use zero date sentinel to skip filter in SQL.
+	zeroDate := pgtype.Date{Time: time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC), Valid: true}
+	fromDate := zeroDate
+	toDate := zeroDate
+	if dateFrom != nil {
+		if t, err := time.Parse("2006-01-02", *dateFrom); err == nil {
+			fromDate = pgtype.Date{Time: t, Valid: true}
+		}
+	}
+	if dateTo != nil {
+		if t, err := time.Parse("2006-01-02", *dateTo); err == nil {
+			toDate = pgtype.Date{Time: t, Valid: true}
+		}
+	}
+
+	bookings, err := r.Queries.SearchCompanyBookings(ctx, db.SearchCompanyBookingsParams{
+		CompanyID:    company.ID,
+		Limit:        qLimit + 1,
+		Offset:       qOffset,
+		Query:        queryStr,
+		StatusFilter: statusStr,
+		DateFrom:     fromDate,
+		DateTo:       toDate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to search company bookings: %w", err)
+	}
+
+	hasNext := len(bookings) > int(qLimit)
+	if hasNext {
+		bookings = bookings[:qLimit]
+	}
+
+	edges := make([]*model.Booking, len(bookings))
+	for i, b := range bookings {
+		gqlBooking := dbBookingToGQL(b)
+		r.enrichBooking(ctx, b, gqlBooking)
+		edges[i] = gqlBooking
+	}
+
+	// Get total count.
+	total, _ := r.Queries.CountSearchCompanyBookings(ctx, db.CountSearchCompanyBookingsParams{
+		CompanyID:    company.ID,
+		Query:        queryStr,
+		StatusFilter: statusStr,
+		DateFrom:     fromDate,
+		DateTo:       toDate,
+	})
+
+	return &model.BookingConnection{
+		Edges: edges,
+		PageInfo: &model.PageInfo{
+			HasNextPage: hasNext,
+		},
+		TotalCount: int(total),
 	}, nil
 }

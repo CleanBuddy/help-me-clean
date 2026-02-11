@@ -1,0 +1,1 @@
+ALTER TABLE cleaners DROP COLUMN IF EXISTS bio;

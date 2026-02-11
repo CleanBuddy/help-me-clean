@@ -1,25 +1,71 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { useQuery, useMutation } from '@apollo/client';
 import SettingsPage from '@/pages/company/SettingsPage';
+import { MY_COMPANY } from '@/graphql/operations';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockUseQuery = vi.fn();
-const mockUseMutation = vi.fn();
+vi.mock('@apollo/client', async () => {
+  const actual = await vi.importActual('@apollo/client');
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+    useMutation: vi.fn(),
+  };
+});
 
-vi.mock('@apollo/client', () => ({
-  useQuery: (...args: unknown[]) => mockUseQuery(...args),
-  useMutation: (...args: unknown[]) => mockUseMutation(...args),
-  gql: (strings: TemplateStringsArray) => strings.join(''),
-}));
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const defaultCompany = {
+  id: '1',
+  companyName: 'CleanPro SRL',
+  cui: 'RO12345678',
+  companyType: 'SRL',
+  legalRepresentative: 'Ion Popescu',
+  contactEmail: 'contact@cleanpro.ro',
+  contactPhone: '+40700000000',
+  address: 'Str. Principala 1',
+  city: 'Bucuresti',
+  county: 'Bucuresti',
+  description: 'Firma de curatenie',
+  logoUrl: null,
+  status: 'APPROVED',
+  rejectionReason: null,
+  maxServiceRadiusKm: 25,
+  ratingAvg: 4.5,
+  totalJobsCompleted: 30,
+  documents: [
+    {
+      id: 'doc1',
+      documentType: 'CUI',
+      fileName: 'certificat_cui.pdf',
+      fileUrl: 'https://example.com/cert.pdf',
+      uploadedAt: '2025-01-15T10:00:00Z',
+    },
+  ],
+  createdAt: '2025-01-01',
+};
+
+function mockQuery(overrides?: { data?: unknown; loading?: boolean }) {
+  vi.mocked(useQuery).mockImplementation((query: unknown) => {
+    if (query === MY_COMPANY) {
+      return {
+        data: overrides?.data !== undefined ? overrides.data : { myCompany: defaultCompany },
+        loading: overrides?.loading ?? false,
+      } as ReturnType<typeof useQuery>;
+    }
+    return { data: null, loading: false } as ReturnType<typeof useQuery>;
+  });
+}
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseMutation.mockReturnValue([vi.fn(), { loading: false }]);
+    vi.mocked(useMutation).mockReturnValue([vi.fn(), { loading: false }] as unknown as ReturnType<typeof useMutation>);
   });
 
   const renderPage = () =>
@@ -30,148 +76,66 @@ describe('SettingsPage', () => {
     );
 
   it('shows page title "Setari"', () => {
-    mockUseQuery.mockReturnValue({
-      data: {
-        myCompany: {
-          id: '1',
-          companyName: 'CleanPro SRL',
-          cui: 'RO12345678',
-          companyType: 'SRL',
-          legalRepresentative: 'Ion Popescu',
-          contactEmail: 'contact@cleanpro.ro',
-          contactPhone: '+40700000000',
-          address: 'Str. Principala 1',
-          city: 'Bucuresti',
-          county: 'Bucuresti',
-          description: 'Firma de curatenie',
-          logoUrl: null,
-          status: 'ACTIVE',
-          rejectionReason: null,
-          maxServiceRadiusKm: 25,
-        },
-      },
-      loading: false,
-    });
+    mockQuery();
     renderPage();
     expect(screen.getByText('Setari')).toBeInTheDocument();
   });
 
   it('shows company name when loaded', () => {
-    mockUseQuery.mockReturnValue({
-      data: {
-        myCompany: {
-          id: '1',
-          companyName: 'CleanPro SRL',
-          cui: 'RO12345678',
-          companyType: 'SRL',
-          legalRepresentative: 'Ion Popescu',
-          contactEmail: 'contact@cleanpro.ro',
-          contactPhone: '+40700000000',
-          address: 'Str. Principala 1',
-          city: 'Bucuresti',
-          county: 'Bucuresti',
-          description: 'Firma de curatenie',
-          logoUrl: null,
-          status: 'ACTIVE',
-          rejectionReason: null,
-          maxServiceRadiusKm: 25,
-        },
-      },
-      loading: false,
-    });
+    mockQuery();
     renderPage();
     expect(screen.getByText('CleanPro SRL')).toBeInTheDocument();
   });
 
   it('shows company CUI when loaded', () => {
-    mockUseQuery.mockReturnValue({
-      data: {
-        myCompany: {
-          id: '1',
-          companyName: 'CleanPro SRL',
-          cui: 'RO12345678',
-          companyType: 'SRL',
-          legalRepresentative: 'Ion Popescu',
-          contactEmail: 'contact@cleanpro.ro',
-          contactPhone: '+40700000000',
-          address: 'Str. Principala 1',
-          city: 'Bucuresti',
-          county: 'Bucuresti',
-          description: '',
-          logoUrl: null,
-          status: 'ACTIVE',
-          rejectionReason: null,
-          maxServiceRadiusKm: 25,
-        },
-      },
-      loading: false,
-    });
+    mockQuery();
     renderPage();
     expect(screen.getByText(/CUI: RO12345678/)).toBeInTheDocument();
   });
 
   it('shows company type when loaded', () => {
-    mockUseQuery.mockReturnValue({
-      data: {
-        myCompany: {
-          id: '1',
-          companyName: 'CleanPro SRL',
-          cui: 'RO12345678',
-          companyType: 'SRL',
-          legalRepresentative: 'Ion Popescu',
-          contactEmail: 'contact@cleanpro.ro',
-          contactPhone: '+40700000000',
-          address: 'Str. Principala 1',
-          city: 'Bucuresti',
-          county: 'Bucuresti',
-          description: '',
-          logoUrl: null,
-          status: 'ACTIVE',
-          rejectionReason: null,
-          maxServiceRadiusKm: 25,
-        },
-      },
-      loading: false,
-    });
+    mockQuery();
     renderPage();
     expect(screen.getByText('Tip firma')).toBeInTheDocument();
     expect(screen.getByText('SRL')).toBeInTheDocument();
   });
 
   it('shows loading skeleton when loading', () => {
-    mockUseQuery.mockReturnValue({
-      data: undefined,
-      loading: true,
-    });
+    mockQuery({ loading: true });
     renderPage();
     const skeletons = document.querySelectorAll('.animate-pulse');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
-  it('shows company status badge', () => {
-    mockUseQuery.mockReturnValue({
-      data: {
-        myCompany: {
-          id: '1',
-          companyName: 'CleanPro SRL',
-          cui: 'RO12345678',
-          companyType: 'SRL',
-          legalRepresentative: 'Ion Popescu',
-          contactEmail: 'contact@cleanpro.ro',
-          contactPhone: '+40700000000',
-          address: 'Str. Principala 1',
-          city: 'Bucuresti',
-          county: 'Bucuresti',
-          description: '',
-          logoUrl: null,
-          status: 'ACTIVE',
-          rejectionReason: null,
-          maxServiceRadiusKm: 25,
-        },
-      },
-      loading: false,
-    });
+  it('shows company status badge as Aprobata for APPROVED status', () => {
+    mockQuery();
     renderPage();
-    expect(screen.getByText('Activa')).toBeInTheDocument();
+    expect(screen.getByText('Aprobata')).toBeInTheDocument();
+  });
+
+  it('shows editable profile form with contactEmail field', () => {
+    mockQuery();
+    renderPage();
+    expect(screen.getByText('Editeaza profilul firmei')).toBeInTheDocument();
+    expect(screen.getByText('Email contact')).toBeInTheDocument();
+  });
+
+  it('shows documents section', () => {
+    mockQuery();
+    renderPage();
+    expect(screen.getByText('Documente firma')).toBeInTheDocument();
+    expect(screen.getByText('certificat_cui.pdf')).toBeInTheDocument();
+  });
+
+  it('shows empty documents message when no documents', () => {
+    mockQuery({ data: { myCompany: { ...defaultCompany, documents: [] } } });
+    renderPage();
+    expect(screen.getByText('Nu exista documente incarcate.')).toBeInTheDocument();
+  });
+
+  it('shows coverage zone section', () => {
+    mockQuery();
+    renderPage();
+    expect(screen.getByText('Zona de acoperire')).toBeInTheDocument();
   });
 });

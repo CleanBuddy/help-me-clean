@@ -54,8 +54,18 @@ type CompanyConnection {
   totalCount: Int!
 }
 
+type CompanyWorkSchedule {
+  id: ID!
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isWorkDay: Boolean!
+}
+
 extend type Query {
   myCompany: Company!
+  myCompanyFinancialSummary: CompanyFinancialSummary!
+  myCompanyWorkSchedule: [CompanyWorkSchedule!]!
   companies(status: CompanyStatus, first: Int, after: String): CompanyConnection!
   company(id: ID!): Company!
   companyChatRooms: [ChatRoom!]!
@@ -87,5 +97,14 @@ input CompanyApplicationInput {
 input UpdateCompanyInput {
   description: String
   contactPhone: String
+  contactEmail: String
   maxServiceRadiusKm: Int
+  workSchedule: [WorkScheduleDayInput!]
+}
+
+input WorkScheduleDayInput {
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  isWorkDay: Boolean!
 }

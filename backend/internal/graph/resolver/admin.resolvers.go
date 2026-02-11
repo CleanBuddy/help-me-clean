@@ -8,11 +8,10 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
 )

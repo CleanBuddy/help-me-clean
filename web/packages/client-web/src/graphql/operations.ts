@@ -505,6 +505,13 @@ export const MY_COMPANY = gql`
       maxServiceRadiusKm
       ratingAvg
       totalJobsCompleted
+      documents {
+        id
+        documentType
+        fileName
+        fileUrl
+        uploadedAt
+      }
       createdAt
     }
   }
@@ -540,6 +547,7 @@ export const UPDATE_COMPANY_PROFILE = gql`
       companyName
       description
       contactPhone
+      contactEmail
       maxServiceRadiusKm
     }
   }
@@ -561,6 +569,13 @@ export const MY_CLEANERS = gql`
       inviteToken
       ratingAvg
       totalJobsCompleted
+      availability {
+        id
+        dayOfWeek
+        startTime
+        endTime
+        isAvailable
+      }
       createdAt
     }
   }
@@ -1318,6 +1333,154 @@ export const DELETE_REVIEW = gql`
   }
 `;
 
+// ─── Company CMS ────────────────────────────────────────────────────────────
+
+export const MY_COMPANY_FINANCIAL_SUMMARY = gql`
+  query MyCompanyFinancialSummary {
+    myCompanyFinancialSummary {
+      completedBookings
+      totalRevenue
+      totalCommission
+      netPayout
+    }
+  }
+`;
+
+export const COMPANY_REVENUE_BY_DATE_RANGE = gql`
+  query CompanyRevenueByDateRange($from: String!, $to: String!) {
+    companyRevenueByDateRange(from: $from, to: $to) {
+      date
+      bookingCount
+      revenue
+      commission
+    }
+  }
+`;
+
+export const COMPANY_BOOKINGS_BY_DATE_RANGE = gql`
+  query CompanyBookingsByDateRange($from: String!, $to: String!) {
+    companyBookingsByDateRange(from: $from, to: $to) {
+      id
+      referenceCode
+      serviceType
+      serviceName
+      scheduledDate
+      scheduledStartTime
+      estimatedDurationHours
+      status
+      estimatedTotal
+      client {
+        id
+        fullName
+        phone
+      }
+      cleaner {
+        id
+        fullName
+      }
+      address {
+        streetAddress
+        city
+      }
+    }
+  }
+`;
+
+export const SEARCH_COMPANY_BOOKINGS = gql`
+  query SearchCompanyBookings($query: String, $status: String, $dateFrom: String, $dateTo: String, $limit: Int, $offset: Int) {
+    searchCompanyBookings(query: $query, status: $status, dateFrom: $dateFrom, dateTo: $dateTo, limit: $limit, offset: $offset) {
+      edges {
+        id
+        referenceCode
+        serviceType
+        serviceName
+        scheduledDate
+        scheduledStartTime
+        estimatedTotal
+        status
+        createdAt
+        client {
+          id
+          fullName
+          phone
+        }
+        cleaner {
+          id
+          fullName
+        }
+        address {
+          streetAddress
+          city
+          county
+        }
+      }
+      totalCount
+    }
+  }
+`;
+
+export const CLEANER_PERFORMANCE = gql`
+  query CleanerPerformance($cleanerId: ID!) {
+    cleanerPerformance(cleanerId: $cleanerId) {
+      cleanerId
+      fullName
+      ratingAvg
+      totalCompletedJobs
+      thisMonthCompleted
+      totalEarnings
+      thisMonthEarnings
+    }
+  }
+`;
+
+export const MY_COMPANY_WORK_SCHEDULE = gql`
+  query MyCompanyWorkSchedule {
+    myCompanyWorkSchedule {
+      id
+      dayOfWeek
+      startTime
+      endTime
+      isWorkDay
+    }
+  }
+`;
+
+export const UPDATE_CLEANER_AVAILABILITY = gql`
+  mutation UpdateCleanerAvailability($cleanerId: ID!, $slots: [AvailabilitySlotInput!]!) {
+    updateCleanerAvailability(cleanerId: $cleanerId, slots: $slots) {
+      id
+      dayOfWeek
+      startTime
+      endTime
+      isAvailable
+    }
+  }
+`;
+
+export const CLEANER_DATE_OVERRIDES = gql`
+  query CleanerDateOverrides($cleanerId: ID!, $from: String!, $to: String!) {
+    cleanerDateOverrides(cleanerId: $cleanerId, from: $from, to: $to) {
+      id
+      date
+      isAvailable
+      startTime
+      endTime
+    }
+  }
+`;
+
+export const SET_CLEANER_DATE_OVERRIDE_BY_ADMIN = gql`
+  mutation SetCleanerDateOverrideByAdmin($cleanerId: ID!, $date: String!, $isAvailable: Boolean!, $startTime: String!, $endTime: String!) {
+    setCleanerDateOverrideByAdmin(cleanerId: $cleanerId, date: $date, isAvailable: $isAvailable, startTime: $startTime, endTime: $endTime) {
+      id
+      date
+      isAvailable
+      startTime
+      endTime
+    }
+  }
+`;
+
 // ─── Cleaner ──────────────────────────────────────────────────────────────────
 
 export const TODAYS_JOBS = gql`
@@ -1374,6 +1537,7 @@ export const MY_CLEANER_PROFILE = gql`
       fullName
       phone
       email
+      bio
       avatarUrl
       status
       ratingAvg
@@ -1449,6 +1613,165 @@ export const COMPLETE_JOB = gql`
       id
       status
       completedAt
+    }
+  }
+`;
+
+// ─── Worker Dashboard Operations ────────────────────────────────────────────
+
+export const CLEANER_EARNINGS_BY_DATE_RANGE = gql`
+  query CleanerEarningsByDateRange($from: String!, $to: String!) {
+    cleanerEarningsByDateRange(from: $from, to: $to) {
+      date
+      amount
+    }
+  }
+`;
+
+export const SEARCH_CLEANER_BOOKINGS = gql`
+  query SearchCleanerBookings($query: String, $status: String, $dateFrom: String, $dateTo: String, $limit: Int, $offset: Int) {
+    searchCleanerBookings(query: $query, status: $status, dateFrom: $dateFrom, dateTo: $dateTo, limit: $limit, offset: $offset) {
+      edges {
+        id
+        referenceCode
+        serviceType
+        serviceName
+        scheduledDate
+        scheduledStartTime
+        estimatedDurationHours
+        hourlyRate
+        estimatedTotal
+        status
+        createdAt
+        client {
+          id
+          fullName
+          phone
+        }
+        address {
+          streetAddress
+          city
+          county
+        }
+      }
+      pageInfo {
+        hasNextPage
+      }
+      totalCount
+    }
+  }
+`;
+
+export const MY_CLEANER_AVAILABILITY = gql`
+  query MyCleanerAvailability {
+    myCleanerAvailability {
+      id
+      dayOfWeek
+      startTime
+      endTime
+      isAvailable
+    }
+  }
+`;
+
+export const MY_CLEANER_BOOKINGS_BY_DATE_RANGE = gql`
+  query MyCleanerBookingsByDateRange($from: String!, $to: String!) {
+    myCleanerBookingsByDateRange(from: $from, to: $to) {
+      id
+      referenceCode
+      serviceType
+      serviceName
+      scheduledDate
+      scheduledStartTime
+      estimatedDurationHours
+      status
+      client {
+        fullName
+        phone
+      }
+      address {
+        streetAddress
+        city
+      }
+    }
+  }
+`;
+
+export const MY_CLEANER_REVIEWS = gql`
+  query MyCleanerReviews($limit: Int, $offset: Int) {
+    myCleanerReviews(limit: $limit, offset: $offset) {
+      reviews {
+        id
+        rating
+        comment
+        reviewType
+        createdAt
+        booking {
+          id
+          referenceCode
+        }
+        reviewer {
+          id
+          fullName
+        }
+      }
+      totalCount
+    }
+  }
+`;
+
+export const MY_CLEANER_COMPANY_SCHEDULE = gql`
+  query MyCleanerCompanySchedule {
+    myCleanerCompanySchedule {
+      id
+      dayOfWeek
+      startTime
+      endTime
+      isWorkDay
+    }
+  }
+`;
+
+export const MY_CLEANER_DATE_OVERRIDES = gql`
+  query MyCleanerDateOverrides($from: String!, $to: String!) {
+    myCleanerDateOverrides(from: $from, to: $to) {
+      id
+      date
+      isAvailable
+      startTime
+      endTime
+    }
+  }
+`;
+
+export const SET_CLEANER_DATE_OVERRIDE = gql`
+  mutation SetCleanerDateOverride($date: String!, $isAvailable: Boolean!, $startTime: String!, $endTime: String!) {
+    setCleanerDateOverride(date: $date, isAvailable: $isAvailable, startTime: $startTime, endTime: $endTime) {
+      id
+      date
+      isAvailable
+      startTime
+      endTime
+    }
+  }
+`;
+
+export const UPDATE_CLEANER_PROFILE = gql`
+  mutation UpdateCleanerProfile($input: UpdateCleanerProfileInput!) {
+    updateCleanerProfile(input: $input) {
+      id
+      fullName
+      phone
+      email
+      bio
+      avatarUrl
+      status
+      ratingAvg
+      totalJobsCompleted
+      company {
+        id
+        companyName
+      }
     }
   }
 `;

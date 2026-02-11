@@ -13,6 +13,7 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -204,6 +205,189 @@ func (r *mutationResolver) UpdateAvailability(ctx context.Context, slots []*mode
 	return result, nil
 }
 
+// UpdateCleanerAvailability is the resolver for the updateCleanerAvailability field.
+func (r *mutationResolver) UpdateCleanerAvailability(ctx context.Context, cleanerID string, slots []*model.AvailabilitySlotInput) ([]*model.AvailabilitySlot, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Verify the cleaner belongs to the company admin's company.
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	cleaner, err := r.Queries.GetCleanerByID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner not found: %w", err)
+	}
+
+	if cleaner.CompanyID != company.ID {
+		return nil, fmt.Errorf("cleaner does not belong to your company")
+	}
+
+	// Delete existing availability and recreate.
+	err = r.Queries.DeleteCleanerAvailability(ctx, cleaner.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to clear availability: %w", err)
+	}
+
+	var result []*model.AvailabilitySlot
+	for _, slot := range slots {
+		startTime, _ := time.Parse("15:04", slot.StartTime)
+		endTime, _ := time.Parse("15:04", slot.EndTime)
+
+		avail, err := r.Queries.SetCleanerAvailability(ctx, db.SetCleanerAvailabilityParams{
+			CleanerID: cleaner.ID,
+			DayOfWeek: int32(slot.DayOfWeek),
+			StartTime: pgtype.Time{
+				Microseconds: int64(startTime.Hour())*3_600_000_000 + int64(startTime.Minute())*60_000_000,
+				Valid:        true,
+			},
+			EndTime: pgtype.Time{
+				Microseconds: int64(endTime.Hour())*3_600_000_000 + int64(endTime.Minute())*60_000_000,
+				Valid:        true,
+			},
+			IsAvailable: pgtype.Bool{Bool: slot.IsAvailable, Valid: true},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to set availability: %w", err)
+		}
+
+		result = append(result, &model.AvailabilitySlot{
+			ID:          uuidToString(avail.ID),
+			DayOfWeek:   int(avail.DayOfWeek),
+			StartTime:   timeToString(avail.StartTime),
+			EndTime:     timeToString(avail.EndTime),
+			IsAvailable: boolVal(avail.IsAvailable),
+		})
+	}
+
+	return result, nil
+}
+
+// UpdateCleanerProfile is the resolver for the updateCleanerProfile field.
+func (r *mutationResolver) UpdateCleanerProfile(ctx context.Context, input model.UpdateCleanerProfileInput) (*model.CleanerProfile, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	var phone, bio string
+	if input.Phone != nil {
+		phone = *input.Phone
+	} else {
+		phone = cleaner.Phone.String
+	}
+	if input.Bio != nil {
+		bio = *input.Bio
+	} else {
+		bio = cleaner.Bio.String
+	}
+
+	updated, err := r.Queries.UpdateCleanerOwnProfile(ctx, db.UpdateCleanerOwnProfileParams{
+		ID:       cleaner.ID,
+		NewPhone: phone,
+		NewBio:   bio,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update cleaner profile: %w", err)
+	}
+
+	return r.cleanerWithCompany(ctx, updated)
+}
+
+// SetCleanerDateOverride is the resolver for the setCleanerDateOverride field.
+func (r *mutationResolver) SetCleanerDateOverride(ctx context.Context, date string, isAvailable bool, startTime string, endTime string) (*model.CleanerDateOverride, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	parsedDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format: %w", err)
+	}
+
+	row, err := r.Queries.UpsertCleanerDateOverride(ctx, db.UpsertCleanerDateOverrideParams{
+		CleanerID:    cleaner.ID,
+		OverrideDate: pgtype.Date{Time: parsedDate, Valid: true},
+		IsAvailable:  isAvailable,
+		StartTime:    parseHHMMToTime(startTime),
+		EndTime:      parseHHMMToTime(endTime),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to set date override: %w", err)
+	}
+
+	return &model.CleanerDateOverride{
+		ID:          uuidToString(row.ID),
+		Date:        dateToString(row.OverrideDate),
+		IsAvailable: row.IsAvailable,
+		StartTime:   timeToString(row.StartTime),
+		EndTime:     timeToString(row.EndTime),
+	}, nil
+}
+
+// SetCleanerDateOverrideByAdmin is the resolver for the setCleanerDateOverrideByAdmin field.
+func (r *mutationResolver) SetCleanerDateOverrideByAdmin(ctx context.Context, cleanerID string, date string, isAvailable bool, startTime string, endTime string) (*model.CleanerDateOverride, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Verify the caller is a company admin.
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	// Verify the cleaner belongs to the admin's company.
+	cleaner, err := r.Queries.GetCleanerByID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner not found: %w", err)
+	}
+
+	if cleaner.CompanyID != company.ID {
+		return nil, fmt.Errorf("cleaner does not belong to your company")
+	}
+
+	parsedDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format: %w", err)
+	}
+
+	row, err := r.Queries.UpsertCleanerDateOverride(ctx, db.UpsertCleanerDateOverrideParams{
+		CleanerID:    cleaner.ID,
+		OverrideDate: pgtype.Date{Time: parsedDate, Valid: true},
+		IsAvailable:  isAvailable,
+		StartTime:    parseHHMMToTime(startTime),
+		EndTime:      parseHHMMToTime(endTime),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to set date override: %w", err)
+	}
+
+	return &model.CleanerDateOverride{
+		ID:          uuidToString(row.ID),
+		Date:        dateToString(row.OverrideDate),
+		IsAvailable: row.IsAvailable,
+		StartTime:   timeToString(row.StartTime),
+		EndTime:     timeToString(row.EndTime),
+	}, nil
+}
+
 // MyCleaners is the resolver for the myCleaners field.
 func (r *queryResolver) MyCleaners(ctx context.Context) ([]*model.CleanerProfile, error) {
 	claims := auth.GetUserFromContext(ctx)
@@ -226,6 +410,23 @@ func (r *queryResolver) MyCleaners(ctx context.Context) ([]*model.CleanerProfile
 	for i, c := range cleaners {
 		profile := dbCleanerToGQL(c)
 		profile.Company = companyGQL
+
+		// Load availability for each cleaner.
+		avails, err := r.Queries.ListCleanerAvailability(ctx, c.ID)
+		if err == nil {
+			slots := make([]*model.AvailabilitySlot, len(avails))
+			for j, a := range avails {
+				slots[j] = &model.AvailabilitySlot{
+					ID:          uuidToString(a.ID),
+					DayOfWeek:   int(a.DayOfWeek),
+					StartTime:   timeToString(a.StartTime),
+					EndTime:     timeToString(a.EndTime),
+					IsAvailable: boolVal(a.IsAvailable),
+				}
+			}
+			profile.Availability = slots
+		}
+
 		result[i] = profile
 	}
 
@@ -295,4 +496,404 @@ func (r *queryResolver) MyCleanerStats(ctx context.Context) (*model.CleanerStats
 		ThisMonthJobs:      int(thisMonthJobs),
 		ThisMonthEarnings:  numericToFloat(thisMonthEarnings),
 	}, nil
+}
+
+// CleanerPerformance is the resolver for the cleanerPerformance field.
+func (r *queryResolver) CleanerPerformance(ctx context.Context, cleanerID string) (*model.CleanerPerformance, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	stats, err := r.Queries.GetCleanerPerformanceStats(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cleaner performance: %w", err)
+	}
+
+	return &model.CleanerPerformance{
+		CleanerID:          cleanerID,
+		FullName:           stats.FullName,
+		RatingAvg:          numericToFloat(stats.RatingAvg),
+		TotalCompletedJobs: int(stats.TotalCompletedJobs),
+		ThisMonthCompleted: int(stats.ThisMonthCompleted),
+		TotalEarnings:      numericToFloat(stats.TotalEarnings),
+		ThisMonthEarnings:  numericToFloat(stats.ThisMonthEarnings),
+	}, nil
+}
+
+// MyCleanerAvailability is the resolver for the myCleanerAvailability field.
+func (r *queryResolver) MyCleanerAvailability(ctx context.Context) ([]*model.AvailabilitySlot, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	avails, err := r.Queries.ListCleanerAvailability(ctx, cleaner.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list availability: %w", err)
+	}
+
+	result := make([]*model.AvailabilitySlot, len(avails))
+	for i, a := range avails {
+		result[i] = &model.AvailabilitySlot{
+			ID:          uuidToString(a.ID),
+			DayOfWeek:   int(a.DayOfWeek),
+			StartTime:   timeToString(a.StartTime),
+			EndTime:     timeToString(a.EndTime),
+			IsAvailable: boolVal(a.IsAvailable),
+		}
+	}
+	return result, nil
+}
+
+// MyCleanerBookingsByDateRange is the resolver for the myCleanerBookingsByDateRange field.
+func (r *queryResolver) MyCleanerBookingsByDateRange(ctx context.Context, from string, to string) ([]*model.Booking, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	fromDate, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'from' date: %w", err)
+	}
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'to' date: %w", err)
+	}
+
+	bookings, err := r.Queries.ListBookingsByCleanerAndDateRange(ctx, db.ListBookingsByCleanerAndDateRangeParams{
+		CleanerID: cleaner.ID,
+		DateFrom:  pgtype.Date{Time: fromDate, Valid: true},
+		DateTo:    pgtype.Date{Time: toDate, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list bookings: %w", err)
+	}
+
+	result := make([]*model.Booking, len(bookings))
+	for i, b := range bookings {
+		gqlBooking := dbBookingToGQL(b)
+		r.enrichBooking(ctx, b, gqlBooking)
+		result[i] = gqlBooking
+	}
+	return result, nil
+}
+
+// CleanerEarningsByDateRange is the resolver for the cleanerEarningsByDateRange field.
+func (r *queryResolver) CleanerEarningsByDateRange(ctx context.Context, from string, to string) ([]*model.CleanerDailyEarnings, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	fromDate, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'from' date: %w", err)
+	}
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid 'to' date: %w", err)
+	}
+
+	rows, err := r.Queries.GetCleanerEarningsByDateRange(ctx, db.GetCleanerEarningsByDateRangeParams{
+		CleanerID:     cleaner.ID,
+		CompletedAt:   pgtype.Timestamptz{Time: fromDate, Valid: true},
+		CompletedAt_2: pgtype.Timestamptz{Time: toDate.Add(24 * time.Hour), Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get earnings: %w", err)
+	}
+
+	result := make([]*model.CleanerDailyEarnings, len(rows))
+	for i, row := range rows {
+		result[i] = &model.CleanerDailyEarnings{
+			Date:   row.Date.Time.Format("2006-01-02"),
+			Amount: numericToFloat(row.Amount),
+		}
+	}
+	return result, nil
+}
+
+// SearchCleanerBookings is the resolver for the searchCleanerBookings field.
+func (r *queryResolver) SearchCleanerBookings(ctx context.Context, query *string, status *string, dateFrom *string, dateTo *string, limit *int, offset *int) (*model.BookingConnection, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	qLimit := int32(20)
+	if limit != nil {
+		qLimit = int32(*limit)
+	}
+	qOffset := int32(0)
+	if offset != nil {
+		qOffset = int32(*offset)
+	}
+
+	var queryStr string
+	if query != nil {
+		queryStr = *query
+	}
+	var statusStr string
+	if status != nil {
+		statusStr = strings.ToLower(*status)
+	}
+
+	zeroDate := pgtype.Date{Time: time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC), Valid: true}
+	fromDate := zeroDate
+	toDate := zeroDate
+	if dateFrom != nil {
+		if t, err := time.Parse("2006-01-02", *dateFrom); err == nil {
+			fromDate = pgtype.Date{Time: t, Valid: true}
+		}
+	}
+	if dateTo != nil {
+		if t, err := time.Parse("2006-01-02", *dateTo); err == nil {
+			toDate = pgtype.Date{Time: t, Valid: true}
+		}
+	}
+
+	bookings, err := r.Queries.SearchCleanerBookings(ctx, db.SearchCleanerBookingsParams{
+		CleanerID:    cleaner.ID,
+		Limit:        qLimit + 1,
+		Offset:       qOffset,
+		Query:        queryStr,
+		StatusFilter: statusStr,
+		DateFrom:     fromDate,
+		DateTo:       toDate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to search cleaner bookings: %w", err)
+	}
+
+	hasNext := len(bookings) > int(qLimit)
+	if hasNext {
+		bookings = bookings[:qLimit]
+	}
+
+	edges := make([]*model.Booking, len(bookings))
+	for i, b := range bookings {
+		gqlBooking := dbBookingToGQL(b)
+		r.enrichBooking(ctx, b, gqlBooking)
+		edges[i] = gqlBooking
+	}
+
+	total, _ := r.Queries.CountSearchCleanerBookings(ctx, db.CountSearchCleanerBookingsParams{
+		CleanerID:    cleaner.ID,
+		Query:        queryStr,
+		StatusFilter: statusStr,
+		DateFrom:     fromDate,
+		DateTo:       toDate,
+	})
+
+	return &model.BookingConnection{
+		Edges: edges,
+		PageInfo: &model.PageInfo{
+			HasNextPage: hasNext,
+		},
+		TotalCount: int(total),
+	}, nil
+}
+
+// MyCleanerReviews is the resolver for the myCleanerReviews field.
+func (r *queryResolver) MyCleanerReviews(ctx context.Context, limit *int, offset *int) (*model.ReviewConnection, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	l := int32(20)
+	if limit != nil {
+		l = int32(*limit)
+	}
+	o := int32(0)
+	if offset != nil {
+		o = int32(*offset)
+	}
+
+	dbReviews, err := r.Queries.ListReviewsByCleanerID(ctx, db.ListReviewsByCleanerIDParams{
+		ReviewedCleanerID: cleaner.ID,
+		Limit:             l,
+		Offset:            o,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list reviews: %w", err)
+	}
+
+	count, err := r.Queries.CountReviewsByCleanerID(ctx, cleaner.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count reviews: %w", err)
+	}
+
+	reviews := make([]*model.Review, len(dbReviews))
+	for i, rv := range dbReviews {
+		review := dbReviewToGQL(rv)
+		if booking, bErr := r.Queries.GetBookingByID(ctx, rv.BookingID); bErr == nil {
+			review.Booking = dbBookingToGQL(booking)
+		}
+		if rv.ReviewerUserID.Valid {
+			if user, uErr := r.Queries.GetUserByID(ctx, rv.ReviewerUserID); uErr == nil {
+				review.Reviewer = dbUserToGQL(user)
+			}
+		}
+		reviews[i] = review
+	}
+
+	return &model.ReviewConnection{
+		Reviews:    reviews,
+		TotalCount: int(count),
+	}, nil
+}
+
+// MyCleanerCompanySchedule is the resolver for the myCleanerCompanySchedule field.
+func (r *queryResolver) MyCleanerCompanySchedule(ctx context.Context) ([]*model.CompanyWorkSchedule, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	rows, err := r.Queries.ListCompanyWorkSchedule(ctx, cleaner.CompanyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list company work schedule: %w", err)
+	}
+
+	result := make([]*model.CompanyWorkSchedule, len(rows))
+	for i, row := range rows {
+		result[i] = &model.CompanyWorkSchedule{
+			ID:        uuidToString(row.ID),
+			DayOfWeek: int(row.DayOfWeek),
+			StartTime: timeToString(row.StartTime),
+			EndTime:   timeToString(row.EndTime),
+			IsWorkDay: row.IsWorkDay,
+		}
+	}
+	return result, nil
+}
+
+// MyCleanerDateOverrides is the resolver for the myCleanerDateOverrides field.
+func (r *queryResolver) MyCleanerDateOverrides(ctx context.Context, from string, to string) ([]*model.CleanerDateOverride, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner profile not found: %w", err)
+	}
+
+	fromDate, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid from date: %w", err)
+	}
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid to date: %w", err)
+	}
+
+	rows, err := r.Queries.ListCleanerDateOverrides(ctx, db.ListCleanerDateOverridesParams{
+		CleanerID:      cleaner.ID,
+		OverrideDate:   pgtype.Date{Time: fromDate, Valid: true},
+		OverrideDate_2: pgtype.Date{Time: toDate, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list date overrides: %w", err)
+	}
+
+	result := make([]*model.CleanerDateOverride, len(rows))
+	for i, row := range rows {
+		result[i] = &model.CleanerDateOverride{
+			ID:          uuidToString(row.ID),
+			Date:        dateToString(row.OverrideDate),
+			IsAvailable: row.IsAvailable,
+			StartTime:   timeToString(row.StartTime),
+			EndTime:     timeToString(row.EndTime),
+		}
+	}
+	return result, nil
+}
+
+// CleanerDateOverrides is the resolver for the cleanerDateOverrides field.
+func (r *queryResolver) CleanerDateOverrides(ctx context.Context, cleanerID string, from string, to string) ([]*model.CleanerDateOverride, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Verify the caller is a company admin.
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found for user: %w", err)
+	}
+
+	// Verify the cleaner belongs to the admin's company.
+	cleaner, err := r.Queries.GetCleanerByID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner not found: %w", err)
+	}
+
+	if cleaner.CompanyID != company.ID {
+		return nil, fmt.Errorf("cleaner does not belong to your company")
+	}
+
+	fromDate, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid from date: %w", err)
+	}
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid to date: %w", err)
+	}
+
+	rows, err := r.Queries.ListCleanerDateOverrides(ctx, db.ListCleanerDateOverridesParams{
+		CleanerID:      cleaner.ID,
+		OverrideDate:   pgtype.Date{Time: fromDate, Valid: true},
+		OverrideDate_2: pgtype.Date{Time: toDate, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list date overrides: %w", err)
+	}
+
+	result := make([]*model.CleanerDateOverride, len(rows))
+	for i, row := range rows {
+		result[i] = &model.CleanerDateOverride{
+			ID:          uuidToString(row.ID),
+			Date:        dateToString(row.OverrideDate),
+			IsAvailable: row.IsAvailable,
+			StartTime:   timeToString(row.StartTime),
+			EndTime:     timeToString(row.EndTime),
+		}
+	}
+	return result, nil
 }
