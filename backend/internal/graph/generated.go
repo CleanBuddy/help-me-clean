@@ -188,6 +188,17 @@ type ComplexityRoot struct {
 		StartTime   func(childComplexity int) int
 	}
 
+	CleanerDocument struct {
+		DocumentType    func(childComplexity int) int
+		FileName        func(childComplexity int) int
+		FileURL         func(childComplexity int) int
+		ID              func(childComplexity int) int
+		RejectionReason func(childComplexity int) int
+		ReviewedAt      func(childComplexity int) int
+		Status          func(childComplexity int) int
+		UploadedAt      func(childComplexity int) int
+	}
+
 	CleanerPerformance struct {
 		CleanerID          func(childComplexity int) int
 		FullName           func(childComplexity int) int
@@ -204,6 +215,7 @@ type ComplexityRoot struct {
 		Bio                func(childComplexity int) int
 		Company            func(childComplexity int) int
 		CreatedAt          func(childComplexity int) int
+		Documents          func(childComplexity int) int
 		Email              func(childComplexity int) int
 		FullName           func(childComplexity int) int
 		ID                 func(childComplexity int) int
@@ -288,11 +300,14 @@ type ComplexityRoot struct {
 	}
 
 	CompanyDocument struct {
-		DocumentType func(childComplexity int) int
-		FileName     func(childComplexity int) int
-		FileURL      func(childComplexity int) int
-		ID           func(childComplexity int) int
-		UploadedAt   func(childComplexity int) int
+		DocumentType    func(childComplexity int) int
+		FileName        func(childComplexity int) int
+		FileURL         func(childComplexity int) int
+		ID              func(childComplexity int) int
+		RejectionReason func(childComplexity int) int
+		ReviewedAt      func(childComplexity int) int
+		Status          func(childComplexity int) int
+		UploadedAt      func(childComplexity int) int
 	}
 
 	CompanyEarningsSummary struct {
@@ -435,6 +450,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AcceptInvitation              func(childComplexity int, token string) int
+		ActivateCleaner               func(childComplexity int, id string) int
 		AddAddress                    func(childComplexity int, input model.AddAddressInput) int
 		AdminCancelBooking            func(childComplexity int, id string, reason string) int
 		AdminIssueRefund              func(childComplexity int, bookingID string, amount int, reason string) int
@@ -461,6 +477,7 @@ type ComplexityRoot struct {
 		CreateSetupIntent             func(childComplexity int) int
 		DeleteAddress                 func(childComplexity int, id string) int
 		DeleteCityArea                func(childComplexity int, id string) int
+		DeleteCleanerDocument         func(childComplexity int, id string) int
 		DeletePaymentMethod           func(childComplexity int, id string) int
 		DeleteReview                  func(childComplexity int, id string) int
 		GenerateBookingInvoice        func(childComplexity int, bookingID string) int
@@ -481,6 +498,8 @@ type ComplexityRoot struct {
 		RegisterDeviceToken           func(childComplexity int, token string) int
 		RejectCompany                 func(childComplexity int, id string, reason string) int
 		RequestRefund                 func(childComplexity int, bookingID string, reason string) int
+		ReviewCleanerDocument         func(childComplexity int, id string, approved bool, rejectionReason *string) int
+		ReviewCompanyDocument         func(childComplexity int, id string, approved bool, rejectionReason *string) int
 		SelectBookingTimeSlot         func(childComplexity int, bookingID string, timeSlotID string) int
 		SendMessage                   func(childComplexity int, roomID string, content string, messageType *string) int
 		SetCleanerDateOverride        func(childComplexity int, date string, isAvailable bool, startTime string, endTime string) int
@@ -507,6 +526,7 @@ type ComplexityRoot struct {
 		UpdateServiceDefinition       func(childComplexity int, input model.UpdateServiceDefinitionInput) int
 		UpdateServiceExtra            func(childComplexity int, input model.UpdateServiceExtraInput) int
 		UpdateUserRole                func(childComplexity int, userID string, role model.UserRole) int
+		UploadCleanerDocument         func(childComplexity int, cleanerID string, documentType string, file graphql.Upload) int
 		UploadCompanyDocument         func(childComplexity int, companyID string, documentType string, file graphql.Upload) int
 		UploadFile                    func(childComplexity int, file graphql.Upload, purpose string) int
 		UpsertBillingProfile          func(childComplexity int, input model.BillingProfileInput) int
@@ -662,6 +682,7 @@ type ComplexityRoot struct {
 		ChatRoom                     func(childComplexity int, id string) int
 		CityAreas                    func(childComplexity int, cityID string) int
 		CleanerDateOverrides         func(childComplexity int, cleanerID string, from string, to string) int
+		CleanerDocuments             func(childComplexity int, cleanerID string) int
 		CleanerEarningsByDateRange   func(childComplexity int, from string, to string) int
 		CleanerPerformance           func(childComplexity int, cleanerID string) int
 		CleanerServiceAreas          func(childComplexity int, cleanerID string) int
@@ -705,7 +726,9 @@ type ComplexityRoot struct {
 		MyPaymentMethods             func(childComplexity int) int
 		MyPayoutDetail               func(childComplexity int, id string) int
 		MyPayouts                    func(childComplexity int, first *int, after *string) int
+		PendingCleanerDocuments      func(childComplexity int) int
 		PendingCompanyApplications   func(childComplexity int) int
+		PendingCompanyDocuments      func(childComplexity int) int
 		PlatformRevenueReport        func(childComplexity int, from string, to string) int
 		PlatformSettings             func(childComplexity int) int
 		PlatformStats                func(childComplexity int, dateFrom *string, dateTo *string) int
@@ -872,6 +895,10 @@ type MutationResolver interface {
 	UpdateCleanerProfile(ctx context.Context, input model.UpdateCleanerProfileInput) (*model.CleanerProfile, error)
 	SetCleanerDateOverride(ctx context.Context, date string, isAvailable bool, startTime string, endTime string) (*model.CleanerDateOverride, error)
 	SetCleanerDateOverrideByAdmin(ctx context.Context, cleanerID string, date string, isAvailable bool, startTime string, endTime string) (*model.CleanerDateOverride, error)
+	UploadCleanerDocument(ctx context.Context, cleanerID string, documentType string, file graphql.Upload) (*model.CleanerDocument, error)
+	DeleteCleanerDocument(ctx context.Context, id string) (bool, error)
+	ReviewCleanerDocument(ctx context.Context, id string, approved bool, rejectionReason *string) (*model.CleanerDocument, error)
+	ActivateCleaner(ctx context.Context, id string) (*model.CleanerProfile, error)
 	AddAddress(ctx context.Context, input model.AddAddressInput) (*model.Address, error)
 	UpdateAddress(ctx context.Context, id string, input model.UpdateAddressInput) (*model.Address, error)
 	DeleteAddress(ctx context.Context, id string) (bool, error)
@@ -885,6 +912,7 @@ type MutationResolver interface {
 	ApproveCompany(ctx context.Context, id string) (*model.Company, error)
 	RejectCompany(ctx context.Context, id string, reason string) (*model.Company, error)
 	SuspendCompany(ctx context.Context, id string, reason string) (*model.Company, error)
+	ReviewCompanyDocument(ctx context.Context, id string, approved bool, rejectionReason *string) (*model.CompanyDocument, error)
 	UpsertBillingProfile(ctx context.Context, input model.BillingProfileInput) (*model.ClientBillingProfile, error)
 	GenerateBookingInvoice(ctx context.Context, bookingID string) (*model.Invoice, error)
 	CancelInvoice(ctx context.Context, id string) (*model.Invoice, error)
@@ -959,6 +987,8 @@ type QueryResolver interface {
 	MyCleanerCompanySchedule(ctx context.Context) ([]*model.CompanyWorkSchedule, error)
 	MyCleanerDateOverrides(ctx context.Context, from string, to string) ([]*model.CleanerDateOverride, error)
 	CleanerDateOverrides(ctx context.Context, cleanerID string, from string, to string) ([]*model.CleanerDateOverride, error)
+	CleanerDocuments(ctx context.Context, cleanerID string) ([]*model.CleanerDocument, error)
+	PendingCleanerDocuments(ctx context.Context) ([]*model.CleanerDocument, error)
 	MyAddresses(ctx context.Context) ([]*model.Address, error)
 	MyPaymentMethods(ctx context.Context) ([]*model.PaymentMethod, error)
 	MyCompany(ctx context.Context) (*model.Company, error)
@@ -967,6 +997,7 @@ type QueryResolver interface {
 	Companies(ctx context.Context, status *model.CompanyStatus, first *int, after *string) (*model.CompanyConnection, error)
 	Company(ctx context.Context, id string) (*model.Company, error)
 	CompanyChatRooms(ctx context.Context) ([]*model.ChatRoom, error)
+	PendingCompanyDocuments(ctx context.Context) ([]*model.CompanyDocument, error)
 	MyBillingProfile(ctx context.Context) (*model.ClientBillingProfile, error)
 	MyInvoices(ctx context.Context, first *int, after *string) (*model.InvoiceConnection, error)
 	InvoiceDetail(ctx context.Context, id string) (*model.Invoice, error)
@@ -1612,6 +1643,55 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.CleanerDateOverride.StartTime(childComplexity), true
 
+	case "CleanerDocument.documentType":
+		if e.complexity.CleanerDocument.DocumentType == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.DocumentType(childComplexity), true
+	case "CleanerDocument.fileName":
+		if e.complexity.CleanerDocument.FileName == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.FileName(childComplexity), true
+	case "CleanerDocument.fileUrl":
+		if e.complexity.CleanerDocument.FileURL == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.FileURL(childComplexity), true
+	case "CleanerDocument.id":
+		if e.complexity.CleanerDocument.ID == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.ID(childComplexity), true
+	case "CleanerDocument.rejectionReason":
+		if e.complexity.CleanerDocument.RejectionReason == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.RejectionReason(childComplexity), true
+	case "CleanerDocument.reviewedAt":
+		if e.complexity.CleanerDocument.ReviewedAt == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.ReviewedAt(childComplexity), true
+	case "CleanerDocument.status":
+		if e.complexity.CleanerDocument.Status == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.Status(childComplexity), true
+	case "CleanerDocument.uploadedAt":
+		if e.complexity.CleanerDocument.UploadedAt == nil {
+			break
+		}
+
+		return e.complexity.CleanerDocument.UploadedAt(childComplexity), true
+
 	case "CleanerPerformance.cleanerId":
 		if e.complexity.CleanerPerformance.CleanerID == nil {
 			break
@@ -1685,6 +1765,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CleanerProfile.CreatedAt(childComplexity), true
+	case "CleanerProfile.documents":
+		if e.complexity.CleanerProfile.Documents == nil {
+			break
+		}
+
+		return e.complexity.CleanerProfile.Documents(childComplexity), true
 	case "CleanerProfile.email":
 		if e.complexity.CleanerProfile.Email == nil {
 			break
@@ -2094,6 +2180,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CompanyDocument.ID(childComplexity), true
+	case "CompanyDocument.rejectionReason":
+		if e.complexity.CompanyDocument.RejectionReason == nil {
+			break
+		}
+
+		return e.complexity.CompanyDocument.RejectionReason(childComplexity), true
+	case "CompanyDocument.reviewedAt":
+		if e.complexity.CompanyDocument.ReviewedAt == nil {
+			break
+		}
+
+		return e.complexity.CompanyDocument.ReviewedAt(childComplexity), true
+	case "CompanyDocument.status":
+		if e.complexity.CompanyDocument.Status == nil {
+			break
+		}
+
+		return e.complexity.CompanyDocument.Status(childComplexity), true
 	case "CompanyDocument.uploadedAt":
 		if e.complexity.CompanyDocument.UploadedAt == nil {
 			break
@@ -2668,6 +2772,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AcceptInvitation(childComplexity, args["token"].(string)), true
+	case "Mutation.activateCleaner":
+		if e.complexity.Mutation.ActivateCleaner == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_activateCleaner_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ActivateCleaner(childComplexity, args["id"].(string)), true
 	case "Mutation.addAddress":
 		if e.complexity.Mutation.AddAddress == nil {
 			break
@@ -2949,6 +3064,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteCityArea(childComplexity, args["id"].(string)), true
+	case "Mutation.deleteCleanerDocument":
+		if e.complexity.Mutation.DeleteCleanerDocument == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteCleanerDocument_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteCleanerDocument(childComplexity, args["id"].(string)), true
 	case "Mutation.deletePaymentMethod":
 		if e.complexity.Mutation.DeletePaymentMethod == nil {
 			break
@@ -3144,6 +3270,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RequestRefund(childComplexity, args["bookingId"].(string), args["reason"].(string)), true
+	case "Mutation.reviewCleanerDocument":
+		if e.complexity.Mutation.ReviewCleanerDocument == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_reviewCleanerDocument_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ReviewCleanerDocument(childComplexity, args["id"].(string), args["approved"].(bool), args["rejectionReason"].(*string)), true
+	case "Mutation.reviewCompanyDocument":
+		if e.complexity.Mutation.ReviewCompanyDocument == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_reviewCompanyDocument_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ReviewCompanyDocument(childComplexity, args["id"].(string), args["approved"].(bool), args["rejectionReason"].(*string)), true
 	case "Mutation.selectBookingTimeSlot":
 		if e.complexity.Mutation.SelectBookingTimeSlot == nil {
 			break
@@ -3430,6 +3578,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateUserRole(childComplexity, args["userId"].(string), args["role"].(model.UserRole)), true
+	case "Mutation.uploadCleanerDocument":
+		if e.complexity.Mutation.UploadCleanerDocument == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_uploadCleanerDocument_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UploadCleanerDocument(childComplexity, args["cleanerId"].(string), args["documentType"].(string), args["file"].(graphql.Upload)), true
 	case "Mutation.uploadCompanyDocument":
 		if e.complexity.Mutation.UploadCompanyDocument == nil {
 			break
@@ -4175,6 +4334,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.CleanerDateOverrides(childComplexity, args["cleanerId"].(string), args["from"].(string), args["to"].(string)), true
+	case "Query.cleanerDocuments":
+		if e.complexity.Query.CleanerDocuments == nil {
+			break
+		}
+
+		args, err := ec.field_Query_cleanerDocuments_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CleanerDocuments(childComplexity, args["cleanerId"].(string)), true
 	case "Query.cleanerEarningsByDateRange":
 		if e.complexity.Query.CleanerEarningsByDateRange == nil {
 			break
@@ -4563,12 +4733,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyPayouts(childComplexity, args["first"].(*int), args["after"].(*string)), true
+	case "Query.pendingCleanerDocuments":
+		if e.complexity.Query.PendingCleanerDocuments == nil {
+			break
+		}
+
+		return e.complexity.Query.PendingCleanerDocuments(childComplexity), true
 	case "Query.pendingCompanyApplications":
 		if e.complexity.Query.PendingCompanyApplications == nil {
 			break
 		}
 
 		return e.complexity.Query.PendingCompanyApplications(childComplexity), true
+	case "Query.pendingCompanyDocuments":
+		if e.complexity.Query.PendingCompanyDocuments == nil {
+			break
+		}
+
+		return e.complexity.Query.PendingCompanyDocuments(childComplexity), true
 	case "Query.platformRevenueReport":
 		if e.complexity.Query.PlatformRevenueReport == nil {
 			break
@@ -5403,6 +5585,17 @@ func (ec *executionContext) field_Mutation_acceptInvitation_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_activateCleaner_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_addAddress_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5738,6 +5931,17 @@ func (ec *executionContext) field_Mutation_deleteCityArea_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteCleanerDocument_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deletePaymentMethod_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5925,6 +6129,48 @@ func (ec *executionContext) field_Mutation_requestRefund_args(ctx context.Contex
 		return nil, err
 	}
 	args["reason"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_reviewCleanerDocument_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "approved", ec.unmarshalNBoolean2bool)
+	if err != nil {
+		return nil, err
+	}
+	args["approved"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "rejectionReason", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["rejectionReason"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_reviewCompanyDocument_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "approved", ec.unmarshalNBoolean2bool)
+	if err != nil {
+		return nil, err
+	}
+	args["approved"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "rejectionReason", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["rejectionReason"] = arg2
 	return args, nil
 }
 
@@ -6314,6 +6560,27 @@ func (ec *executionContext) field_Mutation_updateUserRole_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_uploadCleanerDocument_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "documentType", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["documentType"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "file", ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload)
+	if err != nil {
+		return nil, err
+	}
+	args["file"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_uploadCompanyDocument_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6586,6 +6853,17 @@ func (ec *executionContext) field_Query_cleanerDateOverrides_args(ctx context.Co
 		return nil, err
 	}
 	args["to"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_cleanerDocuments_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
 	return args, nil
 }
 
@@ -8180,6 +8458,8 @@ func (ec *executionContext) fieldContext_Booking_cleaner(_ context.Context, fiel
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -10525,6 +10805,238 @@ func (ec *executionContext) fieldContext_CleanerDateOverride_endTime(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _CleanerDocument_id(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerDocument_documentType(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_documentType,
+		func(ctx context.Context) (any, error) {
+			return obj.DocumentType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_documentType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerDocument_fileUrl(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_fileUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.FileURL, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_fileUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerDocument_fileName(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_fileName,
+		func(ctx context.Context) (any, error) {
+			return obj.FileName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_fileName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerDocument_status(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNDocumentStatus2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐDocumentStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DocumentStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerDocument_uploadedAt(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_uploadedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UploadedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_uploadedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerDocument_reviewedAt(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_reviewedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.ReviewedAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_reviewedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerDocument_rejectionReason(ctx context.Context, field graphql.CollectedField, obj *model.CleanerDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerDocument_rejectionReason,
+		func(ctx context.Context) (any, error) {
+			return obj.RejectionReason, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerDocument_rejectionReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CleanerPerformance_cleanerId(ctx context.Context, field graphql.CollectedField, obj *model.CleanerPerformance) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11198,6 +11710,53 @@ func (ec *executionContext) fieldContext_CleanerProfile_totalJobsCompleted(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _CleanerProfile_documents(ctx context.Context, field graphql.CollectedField, obj *model.CleanerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerProfile_documents,
+		func(ctx context.Context) (any, error) {
+			return obj.Documents, nil
+		},
+		nil,
+		ec.marshalNCleanerDocument2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocumentᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerProfile_documents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerDocument_id(ctx, field)
+			case "documentType":
+				return ec.fieldContext_CleanerDocument_documentType(ctx, field)
+			case "fileUrl":
+				return ec.fieldContext_CleanerDocument_fileUrl(ctx, field)
+			case "fileName":
+				return ec.fieldContext_CleanerDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerDocument_status(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_CleanerDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CleanerDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CleanerDocument_rejectionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerDocument", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CleanerProfile_availability(ctx context.Context, field graphql.CollectedField, obj *model.CleanerProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11465,6 +12024,8 @@ func (ec *executionContext) fieldContext_CleanerSuggestion_cleaner(_ context.Con
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -12625,8 +13186,14 @@ func (ec *executionContext) fieldContext_Company_documents(_ context.Context, fi
 				return ec.fieldContext_CompanyDocument_fileUrl(ctx, field)
 			case "fileName":
 				return ec.fieldContext_CompanyDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CompanyDocument_status(ctx, field)
 			case "uploadedAt":
 				return ec.fieldContext_CompanyDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CompanyDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CompanyDocument_rejectionReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type CompanyDocument", field.Name)
 		},
@@ -12686,6 +13253,8 @@ func (ec *executionContext) fieldContext_Company_cleaners(_ context.Context, fie
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -13130,6 +13699,35 @@ func (ec *executionContext) fieldContext_CompanyDocument_fileName(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _CompanyDocument_status(ctx context.Context, field graphql.CollectedField, obj *model.CompanyDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CompanyDocument_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNDocumentStatus2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐDocumentStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CompanyDocument_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CompanyDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DocumentStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CompanyDocument_uploadedAt(ctx context.Context, field graphql.CollectedField, obj *model.CompanyDocument) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -13154,6 +13752,64 @@ func (ec *executionContext) fieldContext_CompanyDocument_uploadedAt(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CompanyDocument_reviewedAt(ctx context.Context, field graphql.CollectedField, obj *model.CompanyDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CompanyDocument_reviewedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.ReviewedAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CompanyDocument_reviewedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CompanyDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CompanyDocument_rejectionReason(ctx context.Context, field graphql.CollectedField, obj *model.CompanyDocument) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CompanyDocument_rejectionReason,
+		func(ctx context.Context) (any, error) {
+			return obj.RejectionReason, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CompanyDocument_rejectionReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CompanyDocument",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -17737,6 +18393,8 @@ func (ec *executionContext) fieldContext_Mutation_inviteCleaner(ctx context.Cont
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -17811,6 +18469,8 @@ func (ec *executionContext) fieldContext_Mutation_inviteSelfAsCleaner(_ context.
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -17875,6 +18535,8 @@ func (ec *executionContext) fieldContext_Mutation_updateCleanerStatus(ctx contex
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -17950,6 +18612,8 @@ func (ec *executionContext) fieldContext_Mutation_acceptInvitation(ctx context.C
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -18131,6 +18795,8 @@ func (ec *executionContext) fieldContext_Mutation_updateCleanerProfile(ctx conte
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -18253,6 +18919,242 @@ func (ec *executionContext) fieldContext_Mutation_setCleanerDateOverrideByAdmin(
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_setCleanerDateOverrideByAdmin_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_uploadCleanerDocument(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_uploadCleanerDocument,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UploadCleanerDocument(ctx, fc.Args["cleanerId"].(string), fc.Args["documentType"].(string), fc.Args["file"].(graphql.Upload))
+		},
+		nil,
+		ec.marshalNCleanerDocument2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocument,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_uploadCleanerDocument(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerDocument_id(ctx, field)
+			case "documentType":
+				return ec.fieldContext_CleanerDocument_documentType(ctx, field)
+			case "fileUrl":
+				return ec.fieldContext_CleanerDocument_fileUrl(ctx, field)
+			case "fileName":
+				return ec.fieldContext_CleanerDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerDocument_status(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_CleanerDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CleanerDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CleanerDocument_rejectionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerDocument", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_uploadCleanerDocument_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteCleanerDocument(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteCleanerDocument,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteCleanerDocument(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteCleanerDocument(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteCleanerDocument_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_reviewCleanerDocument(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_reviewCleanerDocument,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ReviewCleanerDocument(ctx, fc.Args["id"].(string), fc.Args["approved"].(bool), fc.Args["rejectionReason"].(*string))
+		},
+		nil,
+		ec.marshalNCleanerDocument2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocument,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_reviewCleanerDocument(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerDocument_id(ctx, field)
+			case "documentType":
+				return ec.fieldContext_CleanerDocument_documentType(ctx, field)
+			case "fileUrl":
+				return ec.fieldContext_CleanerDocument_fileUrl(ctx, field)
+			case "fileName":
+				return ec.fieldContext_CleanerDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerDocument_status(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_CleanerDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CleanerDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CleanerDocument_rejectionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerDocument", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_reviewCleanerDocument_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_activateCleaner(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_activateCleaner,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ActivateCleaner(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNCleanerProfile2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerProfile,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_activateCleaner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerProfile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_CleanerProfile_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_CleanerProfile_user(ctx, field)
+			case "company":
+				return ec.fieldContext_CleanerProfile_company(ctx, field)
+			case "fullName":
+				return ec.fieldContext_CleanerProfile_fullName(ctx, field)
+			case "phone":
+				return ec.fieldContext_CleanerProfile_phone(ctx, field)
+			case "email":
+				return ec.fieldContext_CleanerProfile_email(ctx, field)
+			case "bio":
+				return ec.fieldContext_CleanerProfile_bio(ctx, field)
+			case "avatarUrl":
+				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerProfile_status(ctx, field)
+			case "isCompanyAdmin":
+				return ec.fieldContext_CleanerProfile_isCompanyAdmin(ctx, field)
+			case "inviteToken":
+				return ec.fieldContext_CleanerProfile_inviteToken(ctx, field)
+			case "ratingAvg":
+				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
+			case "totalJobsCompleted":
+				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "availability":
+				return ec.fieldContext_CleanerProfile_availability(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_CleanerProfile_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerProfile", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_activateCleaner_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -18849,8 +19751,14 @@ func (ec *executionContext) fieldContext_Mutation_uploadCompanyDocument(ctx cont
 				return ec.fieldContext_CompanyDocument_fileUrl(ctx, field)
 			case "fileName":
 				return ec.fieldContext_CompanyDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CompanyDocument_status(ctx, field)
 			case "uploadedAt":
 				return ec.fieldContext_CompanyDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CompanyDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CompanyDocument_rejectionReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type CompanyDocument", field.Name)
 		},
@@ -19118,6 +20026,65 @@ func (ec *executionContext) fieldContext_Mutation_suspendCompany(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_suspendCompany_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_reviewCompanyDocument(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_reviewCompanyDocument,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ReviewCompanyDocument(ctx, fc.Args["id"].(string), fc.Args["approved"].(bool), fc.Args["rejectionReason"].(*string))
+		},
+		nil,
+		ec.marshalNCompanyDocument2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCompanyDocument,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_reviewCompanyDocument(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CompanyDocument_id(ctx, field)
+			case "documentType":
+				return ec.fieldContext_CompanyDocument_documentType(ctx, field)
+			case "fileUrl":
+				return ec.fieldContext_CompanyDocument_fileUrl(ctx, field)
+			case "fileName":
+				return ec.fieldContext_CompanyDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CompanyDocument_status(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_CompanyDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CompanyDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CompanyDocument_rejectionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CompanyDocument", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_reviewCompanyDocument_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -24208,6 +25175,8 @@ func (ec *executionContext) fieldContext_Query_allCleaners(_ context.Context, fi
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -25530,6 +26499,8 @@ func (ec *executionContext) fieldContext_Query_myCleaners(_ context.Context, fie
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -25593,6 +26564,8 @@ func (ec *executionContext) fieldContext_Query_myCleanerProfile(_ context.Contex
 				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
 			case "totalJobsCompleted":
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -26142,6 +27115,112 @@ func (ec *executionContext) fieldContext_Query_cleanerDateOverrides(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_cleanerDocuments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_cleanerDocuments,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().CleanerDocuments(ctx, fc.Args["cleanerId"].(string))
+		},
+		nil,
+		ec.marshalNCleanerDocument2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocumentᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_cleanerDocuments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerDocument_id(ctx, field)
+			case "documentType":
+				return ec.fieldContext_CleanerDocument_documentType(ctx, field)
+			case "fileUrl":
+				return ec.fieldContext_CleanerDocument_fileUrl(ctx, field)
+			case "fileName":
+				return ec.fieldContext_CleanerDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerDocument_status(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_CleanerDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CleanerDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CleanerDocument_rejectionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerDocument", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_cleanerDocuments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_pendingCleanerDocuments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_pendingCleanerDocuments,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().PendingCleanerDocuments(ctx)
+		},
+		nil,
+		ec.marshalNCleanerDocument2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocumentᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_pendingCleanerDocuments(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerDocument_id(ctx, field)
+			case "documentType":
+				return ec.fieldContext_CleanerDocument_documentType(ctx, field)
+			case "fileUrl":
+				return ec.fieldContext_CleanerDocument_fileUrl(ctx, field)
+			case "fileName":
+				return ec.fieldContext_CleanerDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerDocument_status(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_CleanerDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CleanerDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CleanerDocument_rejectionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerDocument", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_myAddresses(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -26569,6 +27648,53 @@ func (ec *executionContext) fieldContext_Query_companyChatRooms(_ context.Contex
 				return ec.fieldContext_ChatRoom_createdAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ChatRoom", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_pendingCompanyDocuments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_pendingCompanyDocuments,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().PendingCompanyDocuments(ctx)
+		},
+		nil,
+		ec.marshalNCompanyDocument2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCompanyDocumentᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_pendingCompanyDocuments(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CompanyDocument_id(ctx, field)
+			case "documentType":
+				return ec.fieldContext_CompanyDocument_documentType(ctx, field)
+			case "fileUrl":
+				return ec.fieldContext_CompanyDocument_fileUrl(ctx, field)
+			case "fileName":
+				return ec.fieldContext_CompanyDocument_fileName(ctx, field)
+			case "status":
+				return ec.fieldContext_CompanyDocument_status(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_CompanyDocument_uploadedAt(ctx, field)
+			case "reviewedAt":
+				return ec.fieldContext_CompanyDocument_reviewedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_CompanyDocument_rejectionReason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CompanyDocument", field.Name)
 		},
 	}
 	return fc, nil
@@ -34697,6 +35823,74 @@ func (ec *executionContext) _CleanerDateOverride(ctx context.Context, sel ast.Se
 	return out
 }
 
+var cleanerDocumentImplementors = []string{"CleanerDocument"}
+
+func (ec *executionContext) _CleanerDocument(ctx context.Context, sel ast.SelectionSet, obj *model.CleanerDocument) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cleanerDocumentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CleanerDocument")
+		case "id":
+			out.Values[i] = ec._CleanerDocument_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "documentType":
+			out.Values[i] = ec._CleanerDocument_documentType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "fileUrl":
+			out.Values[i] = ec._CleanerDocument_fileUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "fileName":
+			out.Values[i] = ec._CleanerDocument_fileName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._CleanerDocument_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "uploadedAt":
+			out.Values[i] = ec._CleanerDocument_uploadedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reviewedAt":
+			out.Values[i] = ec._CleanerDocument_reviewedAt(ctx, field, obj)
+		case "rejectionReason":
+			out.Values[i] = ec._CleanerDocument_rejectionReason(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var cleanerPerformanceImplementors = []string{"CleanerPerformance"}
 
 func (ec *executionContext) _CleanerPerformance(ctx context.Context, sel ast.SelectionSet, obj *model.CleanerPerformance) graphql.Marshaler {
@@ -34823,6 +36017,11 @@ func (ec *executionContext) _CleanerProfile(ctx context.Context, sel ast.Selecti
 			}
 		case "totalJobsCompleted":
 			out.Values[i] = ec._CleanerProfile_totalJobsCompleted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "documents":
+			out.Values[i] = ec._CleanerProfile_documents(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -35300,11 +36499,20 @@ func (ec *executionContext) _CompanyDocument(ctx context.Context, sel ast.Select
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "status":
+			out.Values[i] = ec._CompanyDocument_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "uploadedAt":
 			out.Values[i] = ec._CompanyDocument_uploadedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "reviewedAt":
+			out.Values[i] = ec._CompanyDocument_reviewedAt(ctx, field, obj)
+		case "rejectionReason":
+			out.Values[i] = ec._CompanyDocument_rejectionReason(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -36515,6 +37723,34 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "uploadCleanerDocument":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_uploadCleanerDocument(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteCleanerDocument":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteCleanerDocument(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reviewCleanerDocument":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_reviewCleanerDocument(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "activateCleaner":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_activateCleaner(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "addAddress":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_addAddress(ctx, field)
@@ -36602,6 +37838,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "suspendCompany":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_suspendCompany(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reviewCompanyDocument":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_reviewCompanyDocument(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -38610,6 +39853,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "cleanerDocuments":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_cleanerDocuments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "pendingCleanerDocuments":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_pendingCleanerDocuments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "myAddresses":
 			field := field
 
@@ -38774,6 +40061,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_companyChatRooms(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "pendingCompanyDocuments":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_pendingCompanyDocuments(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -41461,6 +42770,64 @@ func (ec *executionContext) marshalNCleanerDateOverride2ᚖhelpmecleanᚑbackend
 	return ec._CleanerDateOverride(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNCleanerDocument2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocument(ctx context.Context, sel ast.SelectionSet, v model.CleanerDocument) graphql.Marshaler {
+	return ec._CleanerDocument(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCleanerDocument2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocumentᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CleanerDocument) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCleanerDocument2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocument(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCleanerDocument2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDocument(ctx context.Context, sel ast.SelectionSet, v *model.CleanerDocument) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CleanerDocument(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNCleanerPerformance2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerPerformance(ctx context.Context, sel ast.SelectionSet, v model.CleanerPerformance) graphql.Marshaler {
 	return ec._CleanerPerformance(ctx, sel, &v)
 }
@@ -42095,6 +43462,16 @@ func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNDocumentStatus2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐDocumentStatus(ctx context.Context, v any) (model.DocumentStatus, error) {
+	var res model.DocumentStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDocumentStatus2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐDocumentStatus(ctx context.Context, sel ast.SelectionSet, v model.DocumentStatus) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNEnabledCity2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCity(ctx context.Context, sel ast.SelectionSet, v model.EnabledCity) graphql.Marshaler {

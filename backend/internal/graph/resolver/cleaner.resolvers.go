@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -392,6 +393,90 @@ func (r *mutationResolver) SetCleanerDateOverrideByAdmin(ctx context.Context, cl
 		StartTime:   timeToString(row.StartTime),
 		EndTime:     timeToString(row.EndTime),
 	}, nil
+}
+
+// UploadCleanerDocument is the resolver for the uploadCleanerDocument field.
+func (r *mutationResolver) UploadCleanerDocument(ctx context.Context, cleanerID string, documentType string, file graphql.Upload) (*model.CleanerDocument, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	subdir := fmt.Sprintf("cleaners/%s", cleanerID)
+	fileURL, err := r.Storage.Upload(ctx, subdir, file.Filename, file.File)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload file: %w", err)
+	}
+
+	doc, err := r.Queries.CreateCleanerDocument(ctx, db.CreateCleanerDocumentParams{
+		CleanerID:    stringToUUID(cleanerID),
+		DocumentType: documentType,
+		FileUrl:      fileURL,
+		FileName:     file.Filename,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to save cleaner document: %w", err)
+	}
+
+	return dbCleanerDocToGQL(doc), nil
+}
+
+// DeleteCleanerDocument is the resolver for the deleteCleanerDocument field.
+func (r *mutationResolver) DeleteCleanerDocument(ctx context.Context, id string) (bool, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return false, fmt.Errorf("not authenticated")
+	}
+
+	if err := r.Queries.DeleteCleanerDocument(ctx, stringToUUID(id)); err != nil {
+		return false, fmt.Errorf("failed to delete document: %w", err)
+	}
+	return true, nil
+}
+
+// ReviewCleanerDocument is the resolver for the reviewCleanerDocument field.
+func (r *mutationResolver) ReviewCleanerDocument(ctx context.Context, id string, approved bool, rejectionReason *string) (*model.CleanerDocument, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil || claims.Role != "admin" {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	status := "approved"
+	if !approved {
+		status = "rejected"
+	}
+
+	var reason pgtype.Text
+	if rejectionReason != nil {
+		reason = pgtype.Text{String: *rejectionReason, Valid: true}
+	}
+
+	doc, err := r.Queries.UpdateCleanerDocumentStatus(ctx, db.UpdateCleanerDocumentStatusParams{
+		ID:              stringToUUID(id),
+		Status:          status,
+		ReviewedBy:      stringToUUID(claims.UserID),
+		RejectionReason: reason,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to review document: %w", err)
+	}
+
+	return dbCleanerDocToGQL(doc), nil
+}
+
+// ActivateCleaner is the resolver for the activateCleaner field.
+func (r *mutationResolver) ActivateCleaner(ctx context.Context, id string) (*model.CleanerProfile, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil || claims.Role != "admin" {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	cleaner, err := r.Queries.ActivateCleanerStatus(ctx, stringToUUID(id))
+	if err != nil {
+		return nil, fmt.Errorf("failed to activate cleaner: %w", err)
+	}
+
+	return r.cleanerWithCompany(ctx, cleaner)
 }
 
 // MyCleaners is the resolver for the myCleaners field.
@@ -900,6 +985,39 @@ func (r *queryResolver) CleanerDateOverrides(ctx context.Context, cleanerID stri
 			StartTime:   timeToString(row.StartTime),
 			EndTime:     timeToString(row.EndTime),
 		}
+	}
+	return result, nil
+}
+
+// CleanerDocuments is the resolver for the cleanerDocuments field.
+func (r *queryResolver) CleanerDocuments(ctx context.Context, cleanerID string) ([]*model.CleanerDocument, error) {
+	docs, err := r.Queries.ListCleanerDocuments(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to list cleaner documents: %w", err)
+	}
+
+	result := make([]*model.CleanerDocument, len(docs))
+	for i, d := range docs {
+		result[i] = dbCleanerDocToGQL(d)
+	}
+	return result, nil
+}
+
+// PendingCleanerDocuments is the resolver for the pendingCleanerDocuments field.
+func (r *queryResolver) PendingCleanerDocuments(ctx context.Context) ([]*model.CleanerDocument, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil || claims.Role != "admin" {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	docs, err := r.Queries.ListPendingCleanerDocuments(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pending cleaner documents: %w", err)
+	}
+
+	result := make([]*model.CleanerDocument, len(docs))
+	for i, d := range docs {
+		result[i] = dbCleanerDocToGQL(d)
 	}
 	return result, nil
 }

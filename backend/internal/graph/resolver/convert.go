@@ -557,13 +557,40 @@ func dbReviewToGQL(r db.Review) *model.Review {
 	}
 }
 
+func dbDocStatusToGQL(s string) model.DocumentStatus {
+	switch s {
+	case "approved":
+		return model.DocumentStatusApproved
+	case "rejected":
+		return model.DocumentStatusRejected
+	default:
+		return model.DocumentStatusPending
+	}
+}
+
 func dbCompanyDocToGQL(d db.CompanyDocument) *model.CompanyDocument {
 	return &model.CompanyDocument{
-		ID:           uuidToString(d.ID),
-		DocumentType: d.DocumentType,
-		FileURL:      d.FileUrl,
-		FileName:     d.FileName,
-		UploadedAt:   timestamptzToTime(d.UploadedAt),
+		ID:              uuidToString(d.ID),
+		DocumentType:    d.DocumentType,
+		FileURL:         d.FileUrl,
+		FileName:        d.FileName,
+		Status:          dbDocStatusToGQL(d.Status),
+		UploadedAt:      timestamptzToTime(d.UploadedAt),
+		ReviewedAt:      timestamptzToTimePtr(d.ReviewedAt),
+		RejectionReason: textPtr(d.RejectionReason),
+	}
+}
+
+func dbCleanerDocToGQL(d db.CleanerDocument) *model.CleanerDocument {
+	return &model.CleanerDocument{
+		ID:              uuidToString(d.ID),
+		DocumentType:    d.DocumentType,
+		FileURL:         d.FileUrl,
+		FileName:        d.FileName,
+		Status:          dbDocStatusToGQL(d.Status),
+		UploadedAt:      timestamptzToTime(d.UploadedAt),
+		ReviewedAt:      timestamptzToTimePtr(d.ReviewedAt),
+		RejectionReason: textPtr(d.RejectionReason),
 	}
 }
 

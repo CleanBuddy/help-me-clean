@@ -1,0 +1,127 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import DocumentCard from '@/components/ui/DocumentCard';
+
+vi.mock('@helpmeclean/shared', () => ({
+  cn: (...args: unknown[]) =>
+    args
+      .flat()
+      .filter((a) => typeof a === 'string' && a.length > 0)
+      .join(' '),
+}));
+
+const baseProps = {
+  id: 'doc-1',
+  documentType: 'ID_CARD',
+  documentTypeLabel: 'Carte de identitate',
+  fileName: 'buletin.pdf',
+  fileUrl: 'https://storage.example.com/buletin.pdf',
+  status: 'PENDING' as const,
+  uploadedAt: '2024-06-15T10:30:00Z',
+};
+
+describe('DocumentCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders file name and type label', () => {
+    render(<DocumentCard {...baseProps} />);
+    expect(screen.getByText('buletin.pdf')).toBeInTheDocument();
+    expect(screen.getByText('Carte de identitate')).toBeInTheDocument();
+  });
+
+  it('renders PENDING status badge', () => {
+    render(<DocumentCard {...baseProps} status="PENDING" />);
+    expect(screen.getByText('In asteptare')).toBeInTheDocument();
+  });
+
+  it('renders APPROVED status badge', () => {
+    render(<DocumentCard {...baseProps} status="APPROVED" />);
+    expect(screen.getByText('Aprobat')).toBeInTheDocument();
+  });
+
+  it('renders REJECTED status badge with rejection reason', () => {
+    render(
+      <DocumentCard
+        {...baseProps}
+        status="REJECTED"
+        rejectionReason="Bad quality"
+      />,
+    );
+    expect(screen.getByText('Respins')).toBeInTheDocument();
+    expect(screen.getByText('Motiv: Bad quality')).toBeInTheDocument();
+  });
+
+  it('renders preview link pointing to fileUrl', () => {
+    render(<DocumentCard {...baseProps} />);
+    const link = screen.getByTitle('Previzualizeaza');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://storage.example.com/buletin.pdf');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('shows delete button for PENDING docs when onDelete provided', () => {
+    render(<DocumentCard {...baseProps} status="PENDING" onDelete={vi.fn()} />);
+    expect(screen.getByTitle('Sterge')).toBeInTheDocument();
+  });
+
+  it('does not show delete button for APPROVED docs', () => {
+    render(<DocumentCard {...baseProps} status="APPROVED" onDelete={vi.fn()} />);
+    expect(screen.queryByTitle('Sterge')).not.toBeInTheDocument();
+  });
+
+  it('shows approve and reject buttons when handlers provided and status is PENDING', () => {
+    render(
+      <DocumentCard
+        {...baseProps}
+        status="PENDING"
+        onApprove={vi.fn()}
+        onReject={vi.fn()}
+      />,
+    );
+    expect(screen.getByTitle('Aproba')).toBeInTheDocument();
+    expect(screen.getByTitle('Respinge')).toBeInTheDocument();
+  });
+
+  it('does not show approve/reject buttons when status is APPROVED', () => {
+    render(
+      <DocumentCard
+        {...baseProps}
+        status="APPROVED"
+        onApprove={vi.fn()}
+        onReject={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTitle('Aproba')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Respinge')).not.toBeInTheDocument();
+  });
+
+  it('calls onDelete when delete button clicked', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(<DocumentCard {...baseProps} status="PENDING" onDelete={onDelete} />);
+    await user.click(screen.getByTitle('Sterge'));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledWith('doc-1');
+  });
+
+  it('calls onApprove when approve button clicked', async () => {
+    const user = userEvent.setup();
+    const onApprove = vi.fn();
+    render(<DocumentCard {...baseProps} status="PENDING" onApprove={onApprove} />);
+    await user.click(screen.getByTitle('Aproba'));
+    expect(onApprove).toHaveBeenCalledTimes(1);
+    expect(onApprove).toHaveBeenCalledWith('doc-1');
+  });
+
+  it('calls onReject when reject button clicked', async () => {
+    const user = userEvent.setup();
+    const onReject = vi.fn();
+    render(<DocumentCard {...baseProps} status="PENDING" onReject={onReject} />);
+    await user.click(screen.getByTitle('Respinge'));
+    expect(onReject).toHaveBeenCalledTimes(1);
+    expect(onReject).toHaveBeenCalledWith('doc-1');
+  });
+});

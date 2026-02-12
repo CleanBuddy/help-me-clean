@@ -1,13 +1,14 @@
-import { ApolloClient, InMemoryCache, createHttpLink, split } from '@apollo/client';
+import { ApolloClient, ApolloLink, InMemoryCache, split } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
+import createUploadLink from 'apollo-upload-client/createUploadLink.mjs';
 
 export function createApolloClient(graphqlEndpoint: string, wsEndpoint?: string) {
-  const httpLink = createHttpLink({
+  const uploadLink = createUploadLink({
     uri: graphqlEndpoint,
-  });
+  }) as unknown as ApolloLink;
 
   const authLink = setContext((_, { headers }) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -19,7 +20,7 @@ export function createApolloClient(graphqlEndpoint: string, wsEndpoint?: string)
     };
   });
 
-  let link = authLink.concat(httpLink);
+  let link = authLink.concat(uploadLink);
 
   if (wsEndpoint) {
     const wsLink = new GraphQLWsLink(
@@ -41,7 +42,7 @@ export function createApolloClient(graphqlEndpoint: string, wsEndpoint?: string)
         );
       },
       wsLink,
-      authLink.concat(httpLink),
+      authLink.concat(uploadLink),
     );
   }
 

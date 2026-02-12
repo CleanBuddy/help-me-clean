@@ -18,6 +18,9 @@ import {
   Wallet,
   Hash,
   Clock,
+  FileText,
+  Users,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
@@ -25,6 +28,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
+import DocumentCard from '@/components/ui/DocumentCard';
 import {
   COMPANY,
   APPROVE_COMPANY,
@@ -35,9 +39,12 @@ import {
   COMPANY_FINANCIAL_SUMMARY,
   ADMIN_UPDATE_COMPANY_PROFILE,
   ADMIN_UPDATE_COMPANY_STATUS,
+  REVIEW_COMPANY_DOCUMENT,
+  REVIEW_CLEANER_DOCUMENT,
+  ACTIVATE_CLEANER,
 } from '@/graphql/operations';
 
-type DetailTab = 'detalii' | 'financiar' | 'comenzi';
+type DetailTab = 'detalii' | 'financiar' | 'comenzi' | 'documente';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   PENDING_APPROVAL: 'warning',
@@ -77,6 +84,51 @@ const formatCurrency = new Intl.NumberFormat('ro-RO', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
+
+const companyDocTypeLabel: Record<string, string> = {
+  certificat_constatator: 'Certificat Constatator',
+  asigurare_raspundere_civila: 'Asigurare Raspundere Civila',
+  cui_document: 'Document CUI',
+};
+
+const cleanerDocTypeLabel: Record<string, string> = {
+  cazier_judiciar: 'Cazier Judiciar',
+  contract_munca: 'Contract de Munca',
+};
+
+const cleanerStatusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
+  ACTIVE: 'success',
+  PENDING_REVIEW: 'warning',
+  INACTIVE: 'default',
+  INVITED: 'info',
+};
+
+const cleanerStatusLabel: Record<string, string> = {
+  ACTIVE: 'Activ',
+  PENDING_REVIEW: 'In asteptare',
+  INACTIVE: 'Inactiv',
+  INVITED: 'Invitat',
+};
+
+interface CompanyDocument {
+  id: string;
+  documentType: string;
+  fileUrl: string;
+  fileName: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  uploadedAt: string;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
+}
+
+interface CleanerWithDocs {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  status: string;
+  documents: CompanyDocument[];
+}
 
 interface EditableField {
   companyName: string;
@@ -123,6 +175,14 @@ export default function CompanyDetailPage() {
   const [editingField, setEditingField] = useState<EditableFieldKey | null>(null);
   const [editValue, setEditValue] = useState('');
 
+  // Document rejection modal state
+  const [docRejectModal, setDocRejectModal] = useState<{
+    open: boolean;
+    docId: string;
+    docType: 'company' | 'cleaner';
+  }>({ open: false, docId: '', docType: 'company' });
+  const [docRejectReason, setDocRejectReason] = useState('');
+
   const { data, loading } = useQuery(COMPANY, { variables: { id } });
 
   const { data: financialData, loading: financialLoading } = useQuery(COMPANY_FINANCIAL_SUMMARY, {
@@ -153,6 +213,18 @@ export default function CompanyDetailPage() {
       { query: COMPANY, variables: { id } },
       { query: PENDING_COMPANY_APPLICATIONS },
     ],
+  });
+
+  const [reviewCompanyDoc, { loading: reviewingCompanyDoc }] = useMutation(REVIEW_COMPANY_DOCUMENT, {
+    refetchQueries: [{ query: COMPANY, variables: { id } }],
+  });
+
+  const [reviewCleanerDoc, { loading: reviewingCleanerDoc }] = useMutation(REVIEW_CLEANER_DOCUMENT, {
+    refetchQueries: [{ query: COMPANY, variables: { id } }],
+  });
+
+  const [activateCleaner, { loading: activatingCleaner }] = useMutation(ACTIVATE_CLEANER, {
+    refetchQueries: [{ query: COMPANY, variables: { id } }],
   });
 
   const company = data?.company;
@@ -225,10 +297,49 @@ export default function CompanyDetailPage() {
     await updateStatus({ variables: { id, status: newStatus } });
   };
 
+  const handleApproveCompanyDoc = async (docId: string) => {
+    await reviewCompanyDoc({ variables: { id: docId, approved: true } });
+  };
+
+  const handleRejectCompanyDoc = (docId: string) => {
+    setDocRejectModal({ open: true, docId, docType: 'company' });
+  };
+
+  const handleApproveCleanerDoc = async (docId: string) => {
+    await reviewCleanerDoc({ variables: { id: docId, approved: true } });
+  };
+
+  const handleRejectCleanerDoc = (docId: string) => {
+    setDocRejectModal({ open: true, docId, docType: 'cleaner' });
+  };
+
+  const handleConfirmDocReject = async () => {
+    if (!docRejectReason.trim()) return;
+    if (docRejectModal.docType === 'company') {
+      await reviewCompanyDoc({
+        variables: { id: docRejectModal.docId, approved: false, rejectionReason: docRejectReason.trim() },
+      });
+    } else {
+      await reviewCleanerDoc({
+        variables: { id: docRejectModal.docId, approved: false, rejectionReason: docRejectReason.trim() },
+      });
+    }
+    setDocRejectModal({ open: false, docId: '', docType: 'company' });
+    setDocRejectReason('');
+  };
+
+  const handleActivateCleaner = async (cleanerId: string) => {
+    await activateCleaner({ variables: { id: cleanerId } });
+  };
+
+  const companyDocuments: CompanyDocument[] = company?.documents ?? [];
+  const companyCleaner: CleanerWithDocs[] = company?.cleaners ?? [];
+
   const tabs: { key: DetailTab; label: string }[] = [
     { key: 'detalii', label: 'Detalii' },
     { key: 'financiar', label: 'Financiar' },
     { key: 'comenzi', label: 'Comenzi' },
+    { key: 'documente', label: 'Documente' },
   ];
 
   const financial = financialData?.companyFinancialSummary;
@@ -644,6 +755,158 @@ export default function CompanyDetailPage() {
           )}
         </div>
       )}
+
+      {/* Documente Tab */}
+      {activeTab === 'documente' && (
+        <div className="space-y-8">
+          {/* Section A - Company Documents */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold text-gray-900">Documente companie</h3>
+            </div>
+            {companyDocuments.length === 0 ? (
+              <p className="text-sm text-gray-400">Niciun document incarcat.</p>
+            ) : (
+              <div className="space-y-3">
+                {companyDocuments.map((doc) => (
+                  <DocumentCard
+                    key={doc.id}
+                    id={doc.id}
+                    documentType={doc.documentType}
+                    documentTypeLabel={companyDocTypeLabel[doc.documentType] ?? doc.documentType}
+                    fileName={doc.fileName}
+                    fileUrl={doc.fileUrl}
+                    status={doc.status}
+                    uploadedAt={doc.uploadedAt}
+                    rejectionReason={doc.rejectionReason}
+                    onApprove={handleApproveCompanyDoc}
+                    onReject={handleRejectCompanyDoc}
+                    reviewLoading={reviewingCompanyDoc}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section B - Team & Documents */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold text-gray-900">Echipa si documente</h3>
+            </div>
+            {companyCleaner.length === 0 ? (
+              <p className="text-sm text-gray-400">Niciun angajat inregistrat.</p>
+            ) : (
+              <div className="space-y-4">
+                {companyCleaner.map((cleaner) => {
+                  const allDocsApproved =
+                    cleaner.documents.length > 0 &&
+                    cleaner.documents.every((d) => d.status === 'APPROVED');
+                  const canActivate =
+                    cleaner.status === 'PENDING_REVIEW' && allDocsApproved;
+
+                  return (
+                    <Card key={cleaner.id}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-primary/10">
+                            <Users className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-gray-900">
+                                {cleaner.fullName}
+                              </h4>
+                              <Badge
+                                variant={
+                                  cleanerStatusVariant[cleaner.status] ?? 'default'
+                                }
+                              >
+                                {cleanerStatusLabel[cleaner.status] ?? cleaner.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-500">{cleaner.email}</p>
+                          </div>
+                        </div>
+                        {canActivate && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleActivateCleaner(cleaner.id)}
+                            loading={activatingCleaner}
+                          >
+                            <ShieldCheck className="h-4 w-4 mr-1.5" />
+                            Activeaza
+                          </Button>
+                        )}
+                      </div>
+                      {cleaner.documents.length === 0 ? (
+                        <p className="text-sm text-gray-400">
+                          Niciun document incarcat.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {cleaner.documents.map((doc) => (
+                            <DocumentCard
+                              key={doc.id}
+                              id={doc.id}
+                              documentType={doc.documentType}
+                              documentTypeLabel={
+                                cleanerDocTypeLabel[doc.documentType] ?? doc.documentType
+                              }
+                              fileName={doc.fileName}
+                              fileUrl={doc.fileUrl}
+                              status={doc.status}
+                              uploadedAt={doc.uploadedAt}
+                              rejectionReason={doc.rejectionReason}
+                              onApprove={handleApproveCleanerDoc}
+                              onReject={handleRejectCleanerDoc}
+                              reviewLoading={reviewingCleanerDoc}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Document Reject Modal */}
+      <Modal
+        open={docRejectModal.open}
+        onClose={() => { setDocRejectModal({ open: false, docId: '', docType: 'company' }); setDocRejectReason(''); }}
+        title="Respinge document"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Motivul respingerii"
+            placeholder="Explica motivul respingerii documentului..."
+            value={docRejectReason}
+            onChange={(e) => setDocRejectReason(e.target.value)}
+          />
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => { setDocRejectModal({ open: false, docId: '', docType: 'company' }); setDocRejectReason(''); }}
+            >
+              Anuleaza
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDocReject}
+              loading={reviewingCompanyDoc || reviewingCleanerDoc}
+              disabled={!docRejectReason.trim()}
+            >
+              Respinge
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Reject Modal */}
       <Modal

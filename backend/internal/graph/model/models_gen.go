@@ -192,6 +192,17 @@ type CleanerDateOverride struct {
 	EndTime     string `json:"endTime"`
 }
 
+type CleanerDocument struct {
+	ID              string         `json:"id"`
+	DocumentType    string         `json:"documentType"`
+	FileURL         string         `json:"fileUrl"`
+	FileName        string         `json:"fileName"`
+	Status          DocumentStatus `json:"status"`
+	UploadedAt      time.Time      `json:"uploadedAt"`
+	ReviewedAt      *time.Time     `json:"reviewedAt,omitempty"`
+	RejectionReason *string        `json:"rejectionReason,omitempty"`
+}
+
 type CleanerPerformance struct {
 	CleanerID          string  `json:"cleanerId"`
 	FullName           string  `json:"fullName"`
@@ -217,6 +228,7 @@ type CleanerProfile struct {
 	InviteToken        *string             `json:"inviteToken,omitempty"`
 	RatingAvg          float64             `json:"ratingAvg"`
 	TotalJobsCompleted int                 `json:"totalJobsCompleted"`
+	Documents          []*CleanerDocument  `json:"documents"`
 	Availability       []*AvailabilitySlot `json:"availability"`
 	CreatedAt          time.Time           `json:"createdAt"`
 }
@@ -305,11 +317,14 @@ type CompanyConnection struct {
 }
 
 type CompanyDocument struct {
-	ID           string    `json:"id"`
-	DocumentType string    `json:"documentType"`
-	FileURL      string    `json:"fileUrl"`
-	FileName     string    `json:"fileName"`
-	UploadedAt   time.Time `json:"uploadedAt"`
+	ID              string         `json:"id"`
+	DocumentType    string         `json:"documentType"`
+	FileURL         string         `json:"fileUrl"`
+	FileName        string         `json:"fileName"`
+	Status          DocumentStatus `json:"status"`
+	UploadedAt      time.Time      `json:"uploadedAt"`
+	ReviewedAt      *time.Time     `json:"reviewedAt,omitempty"`
+	RejectionReason *string        `json:"rejectionReason,omitempty"`
 }
 
 type CompanyEarningsSummary struct {
@@ -906,14 +921,16 @@ func (e BookingStatus) MarshalJSON() ([]byte, error) {
 type CleanerStatus string
 
 const (
-	CleanerStatusInvited   CleanerStatus = "INVITED"
-	CleanerStatusActive    CleanerStatus = "ACTIVE"
-	CleanerStatusInactive  CleanerStatus = "INACTIVE"
-	CleanerStatusSuspended CleanerStatus = "SUSPENDED"
+	CleanerStatusInvited       CleanerStatus = "INVITED"
+	CleanerStatusPendingReview CleanerStatus = "PENDING_REVIEW"
+	CleanerStatusActive        CleanerStatus = "ACTIVE"
+	CleanerStatusInactive      CleanerStatus = "INACTIVE"
+	CleanerStatusSuspended     CleanerStatus = "SUSPENDED"
 )
 
 var AllCleanerStatus = []CleanerStatus{
 	CleanerStatusInvited,
+	CleanerStatusPendingReview,
 	CleanerStatusActive,
 	CleanerStatusInactive,
 	CleanerStatusSuspended,
@@ -921,7 +938,7 @@ var AllCleanerStatus = []CleanerStatus{
 
 func (e CleanerStatus) IsValid() bool {
 	switch e {
-	case CleanerStatusInvited, CleanerStatusActive, CleanerStatusInactive, CleanerStatusSuspended:
+	case CleanerStatusInvited, CleanerStatusPendingReview, CleanerStatusActive, CleanerStatusInactive, CleanerStatusSuspended:
 		return true
 	}
 	return false
@@ -1132,6 +1149,63 @@ func (e *ConnectOnboardingStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e ConnectOnboardingStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type DocumentStatus string
+
+const (
+	DocumentStatusPending  DocumentStatus = "PENDING"
+	DocumentStatusApproved DocumentStatus = "APPROVED"
+	DocumentStatusRejected DocumentStatus = "REJECTED"
+)
+
+var AllDocumentStatus = []DocumentStatus{
+	DocumentStatusPending,
+	DocumentStatusApproved,
+	DocumentStatusRejected,
+}
+
+func (e DocumentStatus) IsValid() bool {
+	switch e {
+	case DocumentStatusPending, DocumentStatusApproved, DocumentStatusRejected:
+		return true
+	}
+	return false
+}
+
+func (e DocumentStatus) String() string {
+	return string(e)
+}
+
+func (e *DocumentStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DocumentStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DocumentStatus", str)
+	}
+	return nil
+}
+
+func (e DocumentStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *DocumentStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e DocumentStatus) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

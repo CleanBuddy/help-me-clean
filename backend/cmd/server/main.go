@@ -27,6 +27,7 @@ import (
 	"helpmeclean-backend/internal/pubsub"
 	"helpmeclean-backend/internal/service/invoice"
 	"helpmeclean-backend/internal/service/payment"
+	"helpmeclean-backend/internal/storage"
 	"helpmeclean-backend/internal/webhook"
 )
 
@@ -77,9 +78,16 @@ func main() {
 	paymentSvc := payment.NewService(queries)
 	invoiceSvc := invoice.NewService(queries)
 
+	// File storage
+	uploadsBaseURL := fmt.Sprintf("http://localhost:%s/uploads", port)
+	store := storage.NewLocalStorage("./uploads", uploadsBaseURL)
+
 	// Stripe webhook (must be BEFORE auth middleware)
 	stripeWebhook := webhook.NewStripeHandler(paymentSvc)
 	r.Post("/webhook/stripe", stripeWebhook.ServeHTTP)
+
+	// Serve uploaded files
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
 	// GraphQL resolver
 	res := &resolver.Resolver{
@@ -88,6 +96,7 @@ func main() {
 		PubSub:         ps,
 		PaymentService: paymentSvc,
 		InvoiceService: invoiceSvc,
+		Storage:        store,
 	}
 
 	// Wire auto-confirm callback: when payment succeeds, create chat room.

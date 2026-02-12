@@ -148,17 +148,20 @@ func (r *mutationResolver) UploadCompanyDocument(ctx context.Context, companyID 
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	// For MVP, store with a placeholder URL.
-	placeholderURL := fmt.Sprintf("https://storage.helpmeclean.ro/documents/%s/%s", companyID, file.Filename)
+	subdir := fmt.Sprintf("companies/%s", companyID)
+	fileURL, err := r.Storage.Upload(ctx, subdir, file.Filename, file.File)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload file: %w", err)
+	}
 
 	doc, err := r.Queries.CreateCompanyDocument(ctx, db.CreateCompanyDocumentParams{
 		CompanyID:    stringToUUID(companyID),
 		DocumentType: documentType,
-		FileUrl:      placeholderURL,
+		FileUrl:      fileURL,
 		FileName:     file.Filename,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to upload company document: %w", err)
+		return nil, fmt.Errorf("failed to save company document: %w", err)
 	}
 
 	return dbCompanyDocToGQL(doc), nil
@@ -215,6 +218,36 @@ func (r *mutationResolver) SuspendCompany(ctx context.Context, id string, reason
 	return dbCompanyToGQL(company), nil
 }
 
+// ReviewCompanyDocument is the resolver for the reviewCompanyDocument field.
+func (r *mutationResolver) ReviewCompanyDocument(ctx context.Context, id string, approved bool, rejectionReason *string) (*model.CompanyDocument, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil || claims.Role != "admin" {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	status := "approved"
+	if !approved {
+		status = "rejected"
+	}
+
+	var reason pgtype.Text
+	if rejectionReason != nil {
+		reason = pgtype.Text{String: *rejectionReason, Valid: true}
+	}
+
+	doc, err := r.Queries.UpdateCompanyDocumentStatus(ctx, db.UpdateCompanyDocumentStatusParams{
+		ID:              stringToUUID(id),
+		Status:          status,
+		ReviewedBy:      stringToUUID(claims.UserID),
+		RejectionReason: reason,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to review document: %w", err)
+	}
+
+	return dbCompanyDocToGQL(doc), nil
+}
+
 // MyCompany is the resolver for the myCompany field.
 func (r *queryResolver) MyCompany(ctx context.Context) (*model.Company, error) {
 	claims := auth.GetUserFromContext(ctx)
@@ -225,7 +258,9 @@ func (r *queryResolver) MyCompany(ctx context.Context) (*model.Company, error) {
 	// Try finding company already linked to this user.
 	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
 	if err == nil {
-		return dbCompanyToGQL(company), nil
+		result := dbCompanyToGQL(company)
+		r.populateCompanyDocuments(ctx, result, company.ID)
+		return result, nil
 	}
 
 	// Auto-claim: find unclaimed company matching the user's email.
@@ -243,7 +278,9 @@ func (r *queryResolver) MyCompany(ctx context.Context) (*model.Company, error) {
 		return nil, fmt.Errorf("failed to claim company: %w", err)
 	}
 
-	return dbCompanyToGQL(company), nil
+	result := dbCompanyToGQL(company)
+	r.populateCompanyDocuments(ctx, result, company.ID)
+	return result, nil
 }
 
 // MyCompanyFinancialSummary is the resolver for the myCompanyFinancialSummary field.
@@ -374,7 +411,23 @@ func (r *queryResolver) Company(ctx context.Context, id string) (*model.Company,
 		return nil, fmt.Errorf("company not found: %w", err)
 	}
 
-	return dbCompanyToGQL(company), nil
+	result := dbCompanyToGQL(company)
+	r.populateCompanyDocuments(ctx, result, company.ID)
+
+	// Populate cleaners with their documents for admin view.
+	if cleaners, err := r.Queries.ListCleanersByCompany(ctx, company.ID); err == nil {
+		for _, c := range cleaners {
+			profile := dbCleanerToGQL(c)
+			if docs, err := r.Queries.ListCleanerDocuments(ctx, c.ID); err == nil {
+				for _, d := range docs {
+					profile.Documents = append(profile.Documents, dbCleanerDocToGQL(d))
+				}
+			}
+			result.Cleaners = append(result.Cleaners, profile)
+		}
+	}
+
+	return result, nil
 }
 
 // CompanyChatRooms is the resolver for the companyChatRooms field.
@@ -429,5 +482,24 @@ func (r *queryResolver) CompanyChatRooms(ctx context.Context) ([]*model.ChatRoom
 		result[i] = gqlRoom
 	}
 
+	return result, nil
+}
+
+// PendingCompanyDocuments is the resolver for the pendingCompanyDocuments field.
+func (r *queryResolver) PendingCompanyDocuments(ctx context.Context) ([]*model.CompanyDocument, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil || claims.Role != "admin" {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	docs, err := r.Queries.ListPendingCompanyDocuments(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pending documents: %w", err)
+	}
+
+	result := make([]*model.CompanyDocument, len(docs))
+	for i, d := range docs {
+		result[i] = dbCompanyDocToGQL(d)
+	}
 	return result, nil
 }

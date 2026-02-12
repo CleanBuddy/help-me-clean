@@ -22,7 +22,10 @@ SELECT * FROM cleaners WHERE status = 'active' ORDER BY full_name ASC;
 UPDATE cleaners SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *;
 
 -- name: LinkCleanerToUser :one
-UPDATE cleaners SET user_id = $2, status = 'active', updated_at = NOW() WHERE id = $1 RETURNING *;
+UPDATE cleaners SET user_id = $2, status = 'pending_review', updated_at = NOW() WHERE id = $1 RETURNING *;
+
+-- name: ActivateCleanerStatus :one
+UPDATE cleaners SET status = 'active', updated_at = NOW() WHERE id = $1 RETURNING *;
 
 -- name: UpdateCleanerOwnProfile :one
 UPDATE cleaners SET

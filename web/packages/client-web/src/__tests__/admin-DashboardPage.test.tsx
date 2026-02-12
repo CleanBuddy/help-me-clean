@@ -8,6 +8,8 @@ import {
   BOOKINGS_BY_STATUS,
   REVENUE_BY_MONTH,
   PENDING_COMPANY_APPLICATIONS,
+  PENDING_COMPANY_DOCUMENTS,
+  PENDING_CLEANER_DOCUMENTS,
 } from '@/graphql/operations';
 
 vi.mock('@helpmeclean/shared', () => ({
@@ -64,6 +66,15 @@ const mockStats = {
   },
 };
 
+const mockPendingCompanyDocs = [
+  { id: 'd1', documentType: 'cert', fileUrl: '/cert.pdf', fileName: 'cert.pdf', status: 'PENDING', uploadedAt: '2025-01-01' },
+  { id: 'd2', documentType: 'ins', fileUrl: '/ins.pdf', fileName: 'ins.pdf', status: 'PENDING', uploadedAt: '2025-01-01' },
+];
+
+const mockPendingCleanerDocs = [
+  { id: 'cd1', documentType: 'cazier', fileUrl: '/c.pdf', fileName: 'c.pdf', status: 'PENDING', uploadedAt: '2025-01-01' },
+];
+
 function renderDashboard() {
   return render(
     <MemoryRouter>
@@ -83,6 +94,10 @@ describe('Admin DashboardPage', () => {
         return { data: { revenueByMonth: [] }, loading: false } as ReturnType<typeof useQuery>;
       if (query === PENDING_COMPANY_APPLICATIONS)
         return { data: { pendingCompanyApplications: [] }, loading: false } as ReturnType<typeof useQuery>;
+      if (query === PENDING_COMPANY_DOCUMENTS)
+        return { data: { pendingCompanyDocuments: mockPendingCompanyDocs }, loading: false } as ReturnType<typeof useQuery>;
+      if (query === PENDING_CLEANER_DOCUMENTS)
+        return { data: { pendingCleanerDocuments: mockPendingCleanerDocs }, loading: false } as ReturnType<typeof useQuery>;
       return { data: null, loading: false } as ReturnType<typeof useQuery>;
     });
   });
@@ -113,5 +128,17 @@ describe('Admin DashboardPage', () => {
   it('shows "Aplicatii in asteptare" section', () => {
     renderDashboard();
     expect(screen.getByText('Aplicatii in asteptare')).toBeInTheDocument();
+  });
+
+  it('shows pending company documents count', () => {
+    renderDashboard();
+    expect(screen.getByText('Documente companie in asteptare')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('shows pending cleaner documents count', () => {
+    renderDashboard();
+    expect(screen.getByText('Documente lucratori in asteptare')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 });

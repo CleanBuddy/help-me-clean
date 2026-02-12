@@ -1,5 +1,6 @@
 enum CleanerStatus {
   INVITED
+  PENDING_REVIEW
   ACTIVE
   INACTIVE
   SUSPENDED
@@ -20,8 +21,20 @@ type CleanerProfile {
   inviteToken: String
   ratingAvg: Float!
   totalJobsCompleted: Int!
+  documents: [CleanerDocument!]!
   availability: [AvailabilitySlot!]!
   createdAt: DateTime!
+}
+
+type CleanerDocument {
+  id: ID!
+  documentType: String!
+  fileUrl: String!
+  fileName: String!
+  status: DocumentStatus!
+  uploadedAt: DateTime!
+  reviewedAt: DateTime
+  rejectionReason: String
 }
 
 type AvailabilitySlot {
@@ -76,6 +89,8 @@ extend type Query {
   myCleanerCompanySchedule: [CompanyWorkSchedule!]!
   myCleanerDateOverrides(from: String!, to: String!): [CleanerDateOverride!]!
   cleanerDateOverrides(cleanerId: ID!, from: String!, to: String!): [CleanerDateOverride!]!
+  cleanerDocuments(cleanerId: ID!): [CleanerDocument!]!
+  pendingCleanerDocuments: [CleanerDocument!]!
 }
 
 extend type Mutation {
@@ -88,6 +103,10 @@ extend type Mutation {
   updateCleanerProfile(input: UpdateCleanerProfileInput!): CleanerProfile!
   setCleanerDateOverride(date: String!, isAvailable: Boolean!, startTime: String!, endTime: String!): CleanerDateOverride!
   setCleanerDateOverrideByAdmin(cleanerId: ID!, date: String!, isAvailable: Boolean!, startTime: String!, endTime: String!): CleanerDateOverride!
+  uploadCleanerDocument(cleanerId: ID!, documentType: String!, file: Upload!): CleanerDocument!
+  deleteCleanerDocument(id: ID!): Boolean!
+  reviewCleanerDocument(id: ID!, approved: Boolean!, rejectionReason: String): CleanerDocument!
+  activateCleaner(id: ID!): CleanerProfile!
 }
 
 input InviteCleanerInput {

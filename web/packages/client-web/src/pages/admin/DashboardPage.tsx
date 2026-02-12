@@ -7,6 +7,7 @@ import {
   TrendingUp,
   Star,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import {
   BarChart,
@@ -25,6 +26,8 @@ import {
   BOOKINGS_BY_STATUS,
   REVENUE_BY_MONTH,
   PENDING_COMPANY_APPLICATIONS,
+  PENDING_COMPANY_DOCUMENTS,
+  PENDING_CLEANER_DOCUMENTS,
 } from '@/graphql/operations';
 import { useNavigate } from 'react-router-dom';
 
@@ -110,11 +113,15 @@ export default function DashboardPage() {
     variables: { months: 6 },
   });
   const { data: pendingData } = useQuery(PENDING_COMPANY_APPLICATIONS);
+  const { data: pendingCompanyDocsData } = useQuery(PENDING_COMPANY_DOCUMENTS);
+  const { data: pendingCleanerDocsData } = useQuery(PENDING_CLEANER_DOCUMENTS);
 
   const stats = statsData?.platformStats;
   const bookingStatuses = statusData?.bookingsByStatus ?? [];
   const revenueMonths = revenueData?.revenueByMonth ?? [];
   const pendingApps = pendingData?.pendingCompanyApplications ?? [];
+  const pendingCompanyDocs = pendingCompanyDocsData?.pendingCompanyDocuments ?? [];
+  const pendingCleanerDocs = pendingCleanerDocsData?.pendingCleanerDocuments ?? [];
 
   return (
     <div>
@@ -183,6 +190,24 @@ export default function DashboardPage() {
             label="Rating mediu"
             value={stats?.averageRating ? Number(stats.averageRating).toFixed(1) : '--'}
             color="primary"
+          />
+        </div>
+      )}
+
+      {/* Pending Documents */}
+      {!statsLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <StatCard
+            icon={FileText}
+            label="Documente companie in asteptare"
+            value={pendingCompanyDocs.length}
+            color="accent"
+          />
+          <StatCard
+            icon={FileText}
+            label="Documente lucratori in asteptare"
+            value={pendingCleanerDocs.length}
+            color="danger"
           />
         </div>
       )}

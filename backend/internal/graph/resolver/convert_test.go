@@ -1816,15 +1816,19 @@ func TestDbChatMessageToGQL(t *testing.T) {
 }
 
 func TestDbCompanyDocToGQL(t *testing.T) {
-	t.Run("converts company document", func(t *testing.T) {
+	t.Run("converts company document with approved status and all fields", func(t *testing.T) {
 		now := time.Now().UTC().Truncate(time.Microsecond)
+		reviewedAt := now.Add(2 * time.Hour)
 
 		dbDoc := db.CompanyDocument{
-			ID:           makeUUID(0xD3),
-			DocumentType: "registration_certificate",
-			FileUrl:      "https://example.com/docs/cert.pdf",
-			FileName:     "cert.pdf",
-			UploadedAt:   makeTimestamptz(now),
+			ID:              makeUUID(0xD3),
+			DocumentType:    "registration_certificate",
+			FileUrl:         "https://example.com/docs/cert.pdf",
+			FileName:        "cert.pdf",
+			Status:          "approved",
+			UploadedAt:      makeTimestamptz(now),
+			ReviewedAt:      makeTimestamptz(reviewedAt),
+			RejectionReason: makeText("N/A"),
 		}
 
 		result := dbCompanyDocToGQL(dbDoc)
@@ -1845,8 +1849,53 @@ func TestDbCompanyDocToGQL(t *testing.T) {
 		if result.FileName != "cert.pdf" {
 			t.Errorf("expected FileName 'cert.pdf', got %q", result.FileName)
 		}
+		if result.Status != model.DocumentStatusApproved {
+			t.Errorf("expected Status APPROVED, got %q", result.Status)
+		}
 		if !result.UploadedAt.Equal(now) {
 			t.Errorf("expected UploadedAt %v, got %v", now, result.UploadedAt)
+		}
+		if result.ReviewedAt == nil {
+			t.Fatal("expected non-nil ReviewedAt")
+		}
+		if !result.ReviewedAt.Equal(reviewedAt) {
+			t.Errorf("expected ReviewedAt %v, got %v", reviewedAt, *result.ReviewedAt)
+		}
+		if result.RejectionReason == nil {
+			t.Fatal("expected non-nil RejectionReason")
+		}
+		if *result.RejectionReason != "N/A" {
+			t.Errorf("expected RejectionReason 'N/A', got %q", *result.RejectionReason)
+		}
+	})
+
+	t.Run("converts company document with pending status and null optional fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+
+		dbDoc := db.CompanyDocument{
+			ID:              makeUUID(0xD4),
+			DocumentType:    "fiscal_certificate",
+			FileUrl:         "https://example.com/docs/fiscal.pdf",
+			FileName:        "fiscal.pdf",
+			Status:          "pending",
+			UploadedAt:      makeTimestamptz(now),
+			ReviewedAt:      pgtype.Timestamptz{Valid: false},
+			RejectionReason: pgtype.Text{Valid: false},
+		}
+
+		result := dbCompanyDocToGQL(dbDoc)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		if result.Status != model.DocumentStatusPending {
+			t.Errorf("expected Status PENDING, got %q", result.Status)
+		}
+		if result.ReviewedAt != nil {
+			t.Errorf("expected nil ReviewedAt, got %v", *result.ReviewedAt)
+		}
+		if result.RejectionReason != nil {
+			t.Errorf("expected nil RejectionReason, got %q", *result.RejectionReason)
 		}
 	})
 }
@@ -2891,4 +2940,161 @@ func TestValidateStatusTransition(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Document status converter
+// ---------------------------------------------------------------------------
+
+func TestDbDocStatusToGQL(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected model.DocumentStatus
+	}{
+		{"pending maps to PENDING", "pending", model.DocumentStatusPending},
+		{"approved maps to APPROVED", "approved", model.DocumentStatusApproved},
+		{"rejected maps to REJECTED", "rejected", model.DocumentStatusRejected},
+		{"unknown defaults to PENDING", "unknown", model.DocumentStatusPending},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := dbDocStatusToGQL(tt.input)
+			if result != tt.expected {
+				t.Errorf("dbDocStatusToGQL(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Cleaner document converter
+// ---------------------------------------------------------------------------
+
+func TestDbCleanerDocToGQL(t *testing.T) {
+	t.Run("converts cleaner document with all fields populated", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+		reviewedAt := now.Add(3 * time.Hour)
+
+		dbDoc := db.CleanerDocument{
+			ID:              makeUUID(0xC1),
+			CleanerID:       makeUUID(0xC2),
+			DocumentType:    "identity_card",
+			FileUrl:         "https://example.com/docs/id_card.pdf",
+			FileName:        "id_card.pdf",
+			Status:          "approved",
+			UploadedAt:      makeTimestamptz(now),
+			ReviewedAt:      makeTimestamptz(reviewedAt),
+			RejectionReason: makeText("Photo too blurry"),
+		}
+
+		result := dbCleanerDocToGQL(dbDoc)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0xC1))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		if result.DocumentType != "identity_card" {
+			t.Errorf("expected DocumentType 'identity_card', got %q", result.DocumentType)
+		}
+		if result.FileURL != "https://example.com/docs/id_card.pdf" {
+			t.Errorf("expected FileURL, got %q", result.FileURL)
+		}
+		if result.FileName != "id_card.pdf" {
+			t.Errorf("expected FileName 'id_card.pdf', got %q", result.FileName)
+		}
+		if result.Status != model.DocumentStatusApproved {
+			t.Errorf("expected Status APPROVED, got %q", result.Status)
+		}
+		if !result.UploadedAt.Equal(now) {
+			t.Errorf("expected UploadedAt %v, got %v", now, result.UploadedAt)
+		}
+		if result.ReviewedAt == nil {
+			t.Fatal("expected non-nil ReviewedAt")
+		}
+		if !result.ReviewedAt.Equal(reviewedAt) {
+			t.Errorf("expected ReviewedAt %v, got %v", reviewedAt, *result.ReviewedAt)
+		}
+		if result.RejectionReason == nil {
+			t.Fatal("expected non-nil RejectionReason")
+		}
+		if *result.RejectionReason != "Photo too blurry" {
+			t.Errorf("expected RejectionReason 'Photo too blurry', got %q", *result.RejectionReason)
+		}
+	})
+
+	t.Run("converts cleaner document with null optional fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+
+		dbDoc := db.CleanerDocument{
+			ID:              makeUUID(0xC3),
+			CleanerID:       makeUUID(0xC4),
+			DocumentType:    "criminal_record",
+			FileUrl:         "https://example.com/docs/record.pdf",
+			FileName:        "record.pdf",
+			Status:          "pending",
+			UploadedAt:      makeTimestamptz(now),
+			ReviewedAt:      pgtype.Timestamptz{Valid: false},
+			RejectionReason: pgtype.Text{Valid: false},
+		}
+
+		result := dbCleanerDocToGQL(dbDoc)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		if result.Status != model.DocumentStatusPending {
+			t.Errorf("expected Status PENDING, got %q", result.Status)
+		}
+		if !result.UploadedAt.Equal(now) {
+			t.Errorf("expected UploadedAt %v, got %v", now, result.UploadedAt)
+		}
+		if result.ReviewedAt != nil {
+			t.Errorf("expected nil ReviewedAt, got %v", *result.ReviewedAt)
+		}
+		if result.RejectionReason != nil {
+			t.Errorf("expected nil RejectionReason, got %q", *result.RejectionReason)
+		}
+	})
+
+	t.Run("converts cleaner document with rejected status", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+		reviewedAt := now.Add(time.Hour)
+
+		dbDoc := db.CleanerDocument{
+			ID:              makeUUID(0xC5),
+			CleanerID:       makeUUID(0xC6),
+			DocumentType:    "medical_certificate",
+			FileUrl:         "https://example.com/docs/med.pdf",
+			FileName:        "med.pdf",
+			Status:          "rejected",
+			UploadedAt:      makeTimestamptz(now),
+			ReviewedAt:      makeTimestamptz(reviewedAt),
+			RejectionReason: makeText("Document expired"),
+		}
+
+		result := dbCleanerDocToGQL(dbDoc)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		if result.Status != model.DocumentStatusRejected {
+			t.Errorf("expected Status REJECTED, got %q", result.Status)
+		}
+		if result.ReviewedAt == nil {
+			t.Fatal("expected non-nil ReviewedAt")
+		}
+		if !result.ReviewedAt.Equal(reviewedAt) {
+			t.Errorf("expected ReviewedAt %v, got %v", reviewedAt, *result.ReviewedAt)
+		}
+		if result.RejectionReason == nil {
+			t.Fatal("expected non-nil RejectionReason")
+		}
+		if *result.RejectionReason != "Document expired" {
+			t.Errorf("expected RejectionReason 'Document expired', got %q", *result.RejectionReason)
+		}
+	})
 }

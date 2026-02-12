@@ -6,6 +6,8 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import FileUpload from '@/components/ui/FileUpload';
+import DocumentCard from '@/components/ui/DocumentCard';
 import { cn } from '@helpmeclean/shared';
 import {
   MY_COMPANY,
@@ -17,6 +19,7 @@ import {
   MY_CONNECT_STATUS,
   INITIATE_CONNECT_ONBOARDING,
   REFRESH_CONNECT_ONBOARDING,
+  UPLOAD_COMPANY_DOCUMENT,
 } from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -42,13 +45,17 @@ interface CompanyDocument {
   documentType: string;
   fileName: string;
   fileUrl: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   uploadedAt: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
 }
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-}
+const REQUIRED_COMPANY_DOCS: { type: string; label: string }[] = [
+  { type: 'certificat_constatator', label: 'Certificat Constatator' },
+  { type: 'asigurare_raspundere_civila', label: 'Asigurare Raspundere Civila' },
+  { type: 'cui_document', label: 'Document CUI' },
+];
 
 // ─── Service Area Types ──────────────────────────────────────────────────────
 
@@ -114,6 +121,30 @@ export default function SettingsPage() {
   const [connectSuccess, setConnectSuccess] = useState('');
 
   const connectStatus = connectData?.myConnectStatus;
+
+  // Document upload
+  const [uploadDocument, { loading: uploading }] = useMutation(UPLOAD_COMPANY_DOCUMENT, {
+    refetchQueries: [{ query: MY_COMPANY }],
+  });
+  const [uploadingType, setUploadingType] = useState('');
+
+  const handleUploadDocument = async (file: File, documentType: string) => {
+    if (!company) return;
+    setUploadingType(documentType);
+    try {
+      await uploadDocument({
+        variables: {
+          companyId: company.id,
+          documentType,
+          file,
+        },
+      });
+    } catch {
+      // Error handled by Apollo
+    } finally {
+      setUploadingType('');
+    }
+  };
 
   // Handle Stripe redirect query params
   useEffect(() => {
@@ -624,26 +655,64 @@ export default function SettingsPage() {
           <FileText className="h-5 w-5 text-gray-500" />
           <h2 className="text-lg font-semibold text-gray-900">Documente firma</h2>
         </div>
-        {documents.length > 0 ? (
-          <ul className="divide-y divide-gray-100">
-            {documents.map((doc) => (
-              <li key={doc.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <FileText className="h-4 w-4 text-gray-400 shrink-0" />
-                  <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-sm font-medium text-blue-600 hover:underline truncate">
-                    {doc.fileName}
-                  </a>
-                </div>
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  <Badge variant="info">{doc.documentType}</Badge>
-                  <span className="text-xs text-gray-500">{formatDate(doc.uploadedAt)}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-gray-500 py-4 text-center">Nu exista documente incarcate.</p>
+        <p className="text-sm text-gray-500 mb-5">
+          Incarca documentele necesare pentru aprobarea firmei tale. Toate documentele vor fi verificate de administrator.
+        </p>
+
+        <div className="space-y-4">
+          {REQUIRED_COMPANY_DOCS.map((reqDoc) => {
+            const existingDoc = documents.find((d) => d.documentType === reqDoc.type);
+            return (
+              <div key={reqDoc.type}>
+                {existingDoc ? (
+                  <DocumentCard
+                    id={existingDoc.id}
+                    documentType={existingDoc.documentType}
+                    documentTypeLabel={reqDoc.label}
+                    fileName={existingDoc.fileName}
+                    fileUrl={existingDoc.fileUrl}
+                    status={existingDoc.status}
+                    uploadedAt={existingDoc.uploadedAt}
+                    rejectionReason={existingDoc.rejectionReason}
+                  />
+                ) : (
+                  <div className="p-4 rounded-xl border border-dashed border-gray-300 bg-gray-50">
+                    <p className="text-sm font-medium text-gray-700 mb-3">{reqDoc.label}</p>
+                    <FileUpload
+                      onFileSelect={(file) => handleUploadDocument(file, reqDoc.type)}
+                      loading={uploading && uploadingType === reqDoc.type}
+                      disabled={uploading}
+                      label={`Incarca ${reqDoc.label}`}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Show any extra docs not in required list */}
+        {documents.filter((d) => !REQUIRED_COMPANY_DOCS.some((r) => r.type === d.documentType)).length > 0 && (
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Alte documente</h3>
+            <div className="space-y-3">
+              {documents
+                .filter((d) => !REQUIRED_COMPANY_DOCS.some((r) => r.type === d.documentType))
+                .map((doc) => (
+                  <DocumentCard
+                    key={doc.id}
+                    id={doc.id}
+                    documentType={doc.documentType}
+                    documentTypeLabel={doc.documentType}
+                    fileName={doc.fileName}
+                    fileUrl={doc.fileUrl}
+                    status={doc.status}
+                    uploadedAt={doc.uploadedAt}
+                    rejectionReason={doc.rejectionReason}
+                  />
+                ))}
+            </div>
+          </div>
         )}
       </Card>
 

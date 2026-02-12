@@ -39,10 +39,13 @@ const defaultCompany = {
   documents: [
     {
       id: 'doc1',
-      documentType: 'CUI',
+      documentType: 'cui_document',
       fileName: 'certificat_cui.pdf',
       fileUrl: 'https://example.com/cert.pdf',
+      status: 'APPROVED',
       uploadedAt: '2025-01-15T10:00:00Z',
+      reviewedAt: '2025-01-16T10:00:00Z',
+      rejectionReason: null,
     },
   ],
   createdAt: '2025-01-01',
@@ -127,10 +130,10 @@ describe('SettingsPage', () => {
     expect(screen.getByText('certificat_cui.pdf')).toBeInTheDocument();
   });
 
-  it('shows empty documents message when no documents', () => {
+  it('shows upload zones when no documents exist', () => {
     mockQuery({ data: { myCompany: { ...defaultCompany, documents: [] } } });
     renderPage();
-    expect(screen.getByText('Nu exista documente incarcate.')).toBeInTheDocument();
+    expect(screen.getByText(/Incarca Certificat Constatator/)).toBeInTheDocument();
   });
 
   it('shows coverage zone section', () => {

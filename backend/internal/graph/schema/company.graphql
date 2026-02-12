@@ -35,12 +35,21 @@ type Company {
   createdAt: DateTime!
 }
 
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 type CompanyDocument {
   id: ID!
   documentType: String!
   fileUrl: String!
   fileName: String!
+  status: DocumentStatus!
   uploadedAt: DateTime!
+  reviewedAt: DateTime
+  rejectionReason: String
 }
 
 type CompanyApplicationResult {
@@ -69,6 +78,7 @@ extend type Query {
   companies(status: CompanyStatus, first: Int, after: String): CompanyConnection!
   company(id: ID!): Company!
   companyChatRooms: [ChatRoom!]!
+  pendingCompanyDocuments: [CompanyDocument!]!
 }
 
 extend type Mutation {
@@ -79,6 +89,7 @@ extend type Mutation {
   approveCompany(id: ID!): Company!
   rejectCompany(id: ID!, reason: String!): Company!
   suspendCompany(id: ID!, reason: String!): Company!
+  reviewCompanyDocument(id: ID!, approved: Boolean!, rejectionReason: String): CompanyDocument!
 }
 
 input CompanyApplicationInput {

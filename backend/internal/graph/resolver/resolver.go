@@ -13,6 +13,7 @@ import (
 	"helpmeclean-backend/internal/pubsub"
 	"helpmeclean-backend/internal/service/invoice"
 	"helpmeclean-backend/internal/service/payment"
+	"helpmeclean-backend/internal/storage"
 )
 
 // Resolver is the root resolver struct.
@@ -22,9 +23,10 @@ type Resolver struct {
 	PubSub         *pubsub.PubSub
 	PaymentService *payment.Service
 	InvoiceService *invoice.Service
+	Storage        *storage.Storage
 }
 
-// cleanerWithCompany loads a cleaner's company and returns the full CleanerProfile.
+// cleanerWithCompany loads a cleaner's company and documents, returns the full CleanerProfile.
 func (r *Resolver) cleanerWithCompany(ctx context.Context, c db.Cleaner) (*model.CleanerProfile, error) {
 	profile := dbCleanerToGQL(c)
 	company, err := r.Queries.GetCompanyByID(ctx, c.CompanyID)
@@ -32,6 +34,14 @@ func (r *Resolver) cleanerWithCompany(ctx context.Context, c db.Cleaner) (*model
 		return nil, fmt.Errorf("failed to load company: %w", err)
 	}
 	profile.Company = dbCompanyToGQL(company)
+
+	// Load cleaner documents.
+	if docs, err := r.Queries.ListCleanerDocuments(ctx, c.ID); err == nil {
+		for _, d := range docs {
+			profile.Documents = append(profile.Documents, dbCleanerDocToGQL(d))
+		}
+	}
+
 	return profile, nil
 }
 
@@ -134,6 +144,15 @@ func (r *Resolver) copyCompanyAreasToCleanerHelper(ctx context.Context, companyI
 		})
 		if err != nil {
 			log.Printf("copyCompanyAreasToCleanerHelper: failed to insert area %s: %v", area.AreaName, err)
+		}
+	}
+}
+
+// populateCompanyDocuments fetches and attaches documents to a Company GQL model.
+func (r *Resolver) populateCompanyDocuments(ctx context.Context, company *model.Company, companyID pgtype.UUID) {
+	if docs, err := r.Queries.ListCompanyDocuments(ctx, companyID); err == nil {
+		for _, d := range docs {
+			company.Documents = append(company.Documents, dbCompanyDocToGQL(d))
 		}
 	}
 }

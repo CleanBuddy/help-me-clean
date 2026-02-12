@@ -522,7 +522,10 @@ export const MY_COMPANY = gql`
         documentType
         fileName
         fileUrl
+        status
         uploadedAt
+        reviewedAt
+        rejectionReason
       }
       createdAt
     }
@@ -861,6 +864,33 @@ export const COMPANY = gql`
       ratingAvg
       totalJobsCompleted
       createdAt
+      documents {
+        id
+        documentType
+        fileUrl
+        fileName
+        status
+        uploadedAt
+        reviewedAt
+        rejectionReason
+      }
+      cleaners {
+        id
+        fullName
+        email
+        phone
+        status
+        documents {
+          id
+          documentType
+          fileUrl
+          fileName
+          status
+          uploadedAt
+          reviewedAt
+          rejectionReason
+        }
+      }
     }
   }
 `;
@@ -1611,6 +1641,15 @@ export const MY_CLEANER_PROFILE = gql`
       company {
         id
         companyName
+      }
+      documents {
+        id
+        documentType
+        fileUrl
+        fileName
+        status
+        uploadedAt
+        rejectionReason
       }
     }
   }
@@ -2589,6 +2628,168 @@ export const INVOICE_ANALYTICS = gql`
         count
         totalAmount
       }
+    }
+  }
+`;
+
+// ─── Company Documents ────────────────────────────────────────────────────────
+
+export const COMPANY_DOCUMENTS = gql`
+  query CompanyDocuments($companyId: ID!) {
+    company(id: $companyId) {
+      id
+      documents {
+        id
+        documentType
+        fileUrl
+        fileName
+        status
+        uploadedAt
+        reviewedAt
+        rejectionReason
+      }
+    }
+  }
+`;
+
+export const MY_COMPANY_DOCUMENTS = gql`
+  query MyCompanyDocuments {
+    myCompany {
+      id
+      documents {
+        id
+        documentType
+        fileUrl
+        fileName
+        status
+        uploadedAt
+        reviewedAt
+        rejectionReason
+      }
+    }
+  }
+`;
+
+export const UPLOAD_COMPANY_DOCUMENT = gql`
+  mutation UploadCompanyDocument($companyId: ID!, $documentType: String!, $file: Upload!) {
+    uploadCompanyDocument(companyId: $companyId, documentType: $documentType, file: $file) {
+      id
+      documentType
+      fileUrl
+      fileName
+      status
+      uploadedAt
+    }
+  }
+`;
+
+export const REVIEW_COMPANY_DOCUMENT = gql`
+  mutation ReviewCompanyDocument($id: ID!, $approved: Boolean!, $rejectionReason: String) {
+    reviewCompanyDocument(id: $id, approved: $approved, rejectionReason: $rejectionReason) {
+      id
+      status
+      reviewedAt
+      rejectionReason
+    }
+  }
+`;
+
+export const PENDING_COMPANY_DOCUMENTS = gql`
+  query PendingCompanyDocuments {
+    pendingCompanyDocuments {
+      id
+      documentType
+      fileUrl
+      fileName
+      status
+      uploadedAt
+    }
+  }
+`;
+
+// ─── Cleaner Documents ────────────────────────────────────────────────────────
+
+export const CLEANER_DOCUMENTS = gql`
+  query CleanerDocuments($cleanerId: ID!) {
+    cleanerDocuments(cleanerId: $cleanerId) {
+      id
+      documentType
+      fileUrl
+      fileName
+      status
+      uploadedAt
+      reviewedAt
+      rejectionReason
+    }
+  }
+`;
+
+export const MY_CLEANER_DOCUMENTS = gql`
+  query MyCleanerDocuments {
+    myCleanerProfile {
+      id
+      documents {
+        id
+        documentType
+        fileUrl
+        fileName
+        status
+        uploadedAt
+        reviewedAt
+        rejectionReason
+      }
+    }
+  }
+`;
+
+export const UPLOAD_CLEANER_DOCUMENT = gql`
+  mutation UploadCleanerDocument($cleanerId: ID!, $documentType: String!, $file: Upload!) {
+    uploadCleanerDocument(cleanerId: $cleanerId, documentType: $documentType, file: $file) {
+      id
+      documentType
+      fileUrl
+      fileName
+      status
+      uploadedAt
+    }
+  }
+`;
+
+export const DELETE_CLEANER_DOCUMENT = gql`
+  mutation DeleteCleanerDocument($id: ID!) {
+    deleteCleanerDocument(id: $id)
+  }
+`;
+
+export const REVIEW_CLEANER_DOCUMENT = gql`
+  mutation ReviewCleanerDocument($id: ID!, $approved: Boolean!, $rejectionReason: String) {
+    reviewCleanerDocument(id: $id, approved: $approved, rejectionReason: $rejectionReason) {
+      id
+      status
+      reviewedAt
+      rejectionReason
+    }
+  }
+`;
+
+export const PENDING_CLEANER_DOCUMENTS = gql`
+  query PendingCleanerDocuments {
+    pendingCleanerDocuments {
+      id
+      documentType
+      fileUrl
+      fileName
+      status
+      uploadedAt
+    }
+  }
+`;
+
+export const ACTIVATE_CLEANER = gql`
+  mutation ActivateCleaner($id: ID!) {
+    activateCleaner(id: $id) {
+      id
+      status
     }
   }
 `;

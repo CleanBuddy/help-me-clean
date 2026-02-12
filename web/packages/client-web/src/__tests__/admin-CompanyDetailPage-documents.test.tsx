@@ -1,0 +1,238 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { useQuery, useMutation } from '@apollo/client';
+import CompanyDetailPage from '@/pages/admin/CompanyDetailPage';
+import {
+  COMPANY,
+  COMPANY_FINANCIAL_SUMMARY,
+  ALL_BOOKINGS,
+  PENDING_COMPANY_APPLICATIONS,
+} from '@/graphql/operations';
+
+vi.mock('@helpmeclean/shared', () => ({
+  cn: (...args: unknown[]) =>
+    args
+      .flat()
+      .filter((a) => typeof a === 'string' && a.length > 0)
+      .join(' '),
+}));
+
+vi.mock('@apollo/client', async () => {
+  const actual = await vi.importActual('@apollo/client');
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+    useMutation: vi.fn(),
+  };
+});
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useParams: () => ({ id: 'comp-1' }),
+    useNavigate: () => mockNavigate,
+  };
+});
+
+const mockCompanyWithDocs = {
+  company: {
+    id: 'comp-1',
+    companyName: 'CleanCo SRL',
+    cui: 'RO12345',
+    companyType: 'SRL',
+    legalRepresentative: 'Ion Popescu',
+    contactEmail: 'contact@cleanco.ro',
+    contactPhone: '0712345678',
+    address: 'Str. Exemplu 1',
+    city: 'Bucuresti',
+    county: 'Bucuresti',
+    description: 'O firma de curatenie',
+    logoUrl: null,
+    status: 'APPROVED',
+    rejectionReason: null,
+    maxServiceRadiusKm: 20,
+    ratingAvg: 4.5,
+    totalJobsCompleted: 50,
+    createdAt: '2025-01-01T00:00:00Z',
+    documents: [
+      {
+        id: 'doc-1',
+        documentType: 'certificat_constatator',
+        fileUrl: '/uploads/companies/comp-1/cert.pdf',
+        fileName: 'cert.pdf',
+        status: 'PENDING',
+        uploadedAt: '2025-06-01T00:00:00Z',
+        reviewedAt: null,
+        rejectionReason: null,
+      },
+      {
+        id: 'doc-2',
+        documentType: 'asigurare_raspundere_civila',
+        fileUrl: '/uploads/companies/comp-1/insurance.pdf',
+        fileName: 'insurance.pdf',
+        status: 'APPROVED',
+        uploadedAt: '2025-06-01T00:00:00Z',
+        reviewedAt: '2025-06-02T00:00:00Z',
+        rejectionReason: null,
+      },
+    ],
+    cleaners: [
+      {
+        id: 'cl-1',
+        fullName: 'Maria Ionescu',
+        email: 'maria@test.com',
+        phone: '0722111222',
+        status: 'PENDING_REVIEW',
+        documents: [
+          {
+            id: 'cdoc-1',
+            documentType: 'cazier_judiciar',
+            fileUrl: '/uploads/cleaners/cl-1/cazier.pdf',
+            fileName: 'cazier.pdf',
+            status: 'APPROVED',
+            uploadedAt: '2025-06-01T00:00:00Z',
+            reviewedAt: '2025-06-02T00:00:00Z',
+            rejectionReason: null,
+          },
+          {
+            id: 'cdoc-2',
+            documentType: 'contract_munca',
+            fileUrl: '/uploads/cleaners/cl-1/contract.pdf',
+            fileName: 'contract.pdf',
+            status: 'APPROVED',
+            uploadedAt: '2025-06-01T00:00:00Z',
+            reviewedAt: '2025-06-02T00:00:00Z',
+            rejectionReason: null,
+          },
+        ],
+      },
+    ],
+  },
+};
+
+function setupMocks(companyData = mockCompanyWithDocs) {
+  const mockMutationFn = vi.fn();
+  vi.mocked(useMutation).mockReturnValue([mockMutationFn, { loading: false }] as unknown as ReturnType<typeof useMutation>);
+
+  vi.mocked(useQuery).mockImplementation((query: unknown) => {
+    if (query === COMPANY) return { data: companyData, loading: false } as ReturnType<typeof useQuery>;
+    if (query === COMPANY_FINANCIAL_SUMMARY) return { data: null, loading: false } as ReturnType<typeof useQuery>;
+    if (query === ALL_BOOKINGS) return { data: null, loading: false } as ReturnType<typeof useQuery>;
+    if (query === PENDING_COMPANY_APPLICATIONS) return { data: null, loading: false } as ReturnType<typeof useQuery>;
+    return { data: null, loading: false } as ReturnType<typeof useQuery>;
+  });
+
+  return { mockMutationFn };
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <CompanyDetailPage />
+    </MemoryRouter>,
+  );
+}
+
+describe('CompanyDetailPage - Documente tab', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows Documente tab in tab bar', () => {
+    setupMocks();
+    renderPage();
+
+    expect(screen.getByText('Detalii')).toBeInTheDocument();
+    expect(screen.getByText('Financiar')).toBeInTheDocument();
+    expect(screen.getByText('Comenzi')).toBeInTheDocument();
+    expect(screen.getByText('Documente')).toBeInTheDocument();
+  });
+
+  it('shows company documents when Documente tab is clicked', async () => {
+    setupMocks();
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Documente'));
+
+    expect(screen.getByText('Documente companie')).toBeInTheDocument();
+  });
+
+  it('shows company document cards', async () => {
+    setupMocks();
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Documente'));
+
+    expect(screen.getByText('cert.pdf')).toBeInTheDocument();
+    expect(screen.getByText('insurance.pdf')).toBeInTheDocument();
+    expect(screen.getByText('Certificat Constatator')).toBeInTheDocument();
+    expect(screen.getByText('Asigurare Raspundere Civila')).toBeInTheDocument();
+  });
+
+  it('shows "Echipa si documente" section', async () => {
+    setupMocks();
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Documente'));
+
+    expect(screen.getByText('Echipa si documente')).toBeInTheDocument();
+  });
+
+  it('shows cleaner name and status', async () => {
+    setupMocks();
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Documente'));
+
+    expect(screen.getByText('Maria Ionescu')).toBeInTheDocument();
+    expect(screen.getByText('maria@test.com')).toBeInTheDocument();
+    // Cleaner status PENDING_REVIEW maps to "In asteptare" label
+    // Multiple "In asteptare" badges exist (document PENDING + cleaner PENDING_REVIEW)
+    const allInAsteptare = screen.getAllByText('In asteptare');
+    expect(allInAsteptare.length).toBeGreaterThanOrEqual(1);
+    // Verify the cleaner status badge specifically - it is a sibling of the cleaner name
+    const cleanerName = screen.getByText('Maria Ionescu');
+    const cleanerHeader = cleanerName.closest('.flex.items-center.gap-2');
+    expect(cleanerHeader).not.toBeNull();
+    expect(cleanerHeader!.textContent).toContain('In asteptare');
+  });
+
+  it('shows "Activeaza" button when all cleaner docs are approved and cleaner is PENDING_REVIEW', async () => {
+    setupMocks();
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Documente'));
+
+    expect(screen.getByText('Activeaza')).toBeInTheDocument();
+  });
+
+  it('does not show Activeaza button when cleaner status is ACTIVE', async () => {
+    const dataWithActiveCleaner = {
+      company: {
+        ...mockCompanyWithDocs.company,
+        cleaners: [
+          {
+            ...mockCompanyWithDocs.company.cleaners[0],
+            status: 'ACTIVE',
+          },
+        ],
+      },
+    };
+    setupMocks(dataWithActiveCleaner);
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Documente'));
+
+    expect(screen.queryByText('Activeaza')).not.toBeInTheDocument();
+  });
+});
