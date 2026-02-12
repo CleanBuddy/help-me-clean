@@ -94,6 +94,25 @@ func (r *Resolver) createBookingChat(ctx context.Context, booking db.Booking, co
 	r.PubSub.Publish(room.ID.String(), gqlMsg)
 }
 
+// copyCompanyAreasToCleanerHelper copies all company service areas to a newly created cleaner.
+// Errors are logged but not propagated (best-effort).
+func (r *Resolver) copyCompanyAreasToCleanerHelper(ctx context.Context, companyID pgtype.UUID, cleanerID pgtype.UUID) {
+	areas, err := r.Queries.ListCompanyServiceAreas(ctx, companyID)
+	if err != nil {
+		log.Printf("copyCompanyAreasToCleanerHelper: failed to list company areas: %v", err)
+		return
+	}
+	for _, area := range areas {
+		_, err := r.Queries.InsertCleanerServiceArea(ctx, db.InsertCleanerServiceAreaParams{
+			CleanerID:  cleanerID,
+			CityAreaID: area.CityAreaID,
+		})
+		if err != nil {
+			log.Printf("copyCompanyAreasToCleanerHelper: failed to insert area %s: %v", area.AreaName, err)
+		}
+	}
+}
+
 // enrichBooking populates related entities (client, address, serviceName, company, cleaner)
 // on a GQL booking from the DB booking's foreign keys.
 func (r *Resolver) enrichBooking(ctx context.Context, dbB db.Booking, gqlB *model.Booking) {
@@ -122,6 +141,18 @@ func (r *Resolver) enrichBooking(ctx context.Context, dbB db.Booking, gqlB *mode
 			if profile, err := r.cleanerWithCompany(ctx, cleaner); err == nil {
 				gqlB.Cleaner = profile
 			}
+		}
+	}
+	// Load time slots.
+	if slots, err := r.Queries.ListBookingTimeSlots(ctx, dbB.ID); err == nil {
+		for _, slot := range slots {
+			gqlB.TimeSlots = append(gqlB.TimeSlots, &model.BookingTimeSlot{
+				ID:         uuidToString(slot.ID),
+				SlotDate:   dateToString(slot.SlotDate),
+				StartTime:  timeToString(slot.StartTime),
+				EndTime:    timeToString(slot.EndTime),
+				IsSelected: slot.IsSelected,
+			})
 		}
 	}
 	// Load review if one exists for this booking.

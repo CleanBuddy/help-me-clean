@@ -15,20 +15,22 @@ SELECT * FROM service_definitions ORDER BY name_ro;
 
 -- name: UpdateServiceDefinition :one
 UPDATE service_definitions SET name_ro = $2, name_en = $3, base_price_per_hour = $4,
-    min_hours = $5, is_active = $6
+    min_hours = $5, hours_per_room = $6, hours_per_bathroom = $7, hours_per_100_sqm = $8,
+    house_multiplier = $9, pet_duration_minutes = $10, is_active = $11
 WHERE id = $1 RETURNING *;
 
 -- name: ListAllExtras :many
 SELECT * FROM service_extras ORDER BY name_ro;
 
 -- name: UpdateServiceExtra :one
-UPDATE service_extras SET name_ro = $2, name_en = $3, price = $4, is_active = $5
+UPDATE service_extras SET name_ro = $2, name_en = $3, price = $4, duration_minutes = $5, is_active = $6
 WHERE id = $1 RETURNING *;
 
 -- name: CreateServiceDefinition :one
-INSERT INTO service_definitions (service_type, name_ro, name_en, base_price_per_hour, min_hours, is_active)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
+INSERT INTO service_definitions (service_type, name_ro, name_en, base_price_per_hour, min_hours,
+    hours_per_room, hours_per_bathroom, hours_per_100_sqm, house_multiplier, pet_duration_minutes, is_active)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;
 
 -- name: CreateServiceExtra :one
-INSERT INTO service_extras (name_ro, name_en, price, is_active)
-VALUES ($1, $2, $3, $4) RETURNING *;
+INSERT INTO service_extras (name_ro, name_en, price, duration_minutes, is_active)
+VALUES ($1, $2, $3, $4, $5) RETURNING *;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { Settings, Package, Sparkles, Pencil, Check, X, Plus } from 'lucide-react';
+import { Settings, Package, Sparkles, MapPin, Pencil, Check, X, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -17,11 +17,16 @@ import {
   CREATE_SERVICE_DEFINITION,
   UPDATE_SERVICE_EXTRA,
   CREATE_SERVICE_EXTRA,
+  ALL_CITIES,
+  CREATE_CITY,
+  TOGGLE_CITY_ACTIVE,
+  CREATE_CITY_AREA,
+  DELETE_CITY_AREA,
 } from '@/graphql/operations';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type TabKey = 'general' | 'services' | 'extras';
+type TabKey = 'general' | 'services' | 'extras' | 'cities';
 
 interface PlatformSetting {
   key: string;
@@ -38,6 +43,11 @@ interface ServiceDef {
   nameEn: string;
   basePricePerHour: number;
   minHours: number;
+  hoursPerRoom: number;
+  hoursPerBathroom: number;
+  hoursPer100Sqm: number;
+  houseMultiplier: number;
+  petDurationMinutes: number;
   icon?: string;
   isActive: boolean;
 }
@@ -47,8 +57,24 @@ interface ExtraDef {
   nameRo: string;
   nameEn: string;
   price: number;
+  durationMinutes: number;
   icon?: string;
   isActive: boolean;
+}
+
+interface CityArea {
+  id: string;
+  name: string;
+  cityId: string;
+  cityName: string;
+}
+
+interface City {
+  id: string;
+  name: string;
+  county: string;
+  isActive: boolean;
+  areas: CityArea[];
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -57,6 +83,7 @@ const tabs: { key: TabKey; label: string; icon: typeof Settings }[] = [
   { key: 'general', label: 'Setari Generale', icon: Settings },
   { key: 'services', label: 'Servicii', icon: Package },
   { key: 'extras', label: 'Extra-uri', icon: Sparkles },
+  { key: 'cities', label: 'Orase', icon: MapPin },
 ];
 
 const SETTING_GROUPS: { title: string; keys: string[] }[] = [
@@ -278,25 +305,25 @@ function ServicesTab() {
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 0 });
+  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 0, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15 });
   const [showModal, setShowModal] = useState(false);
-  const [newService, setNewService] = useState({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, isActive: true });
+  const [newService, setNewService] = useState({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true });
   const [creating, setCreating] = useState(false);
 
   const services = data?.allServices ?? [];
 
   const startEdit = (s: ServiceDef) => {
     setEditingId(s.id);
-    setEditFields({ nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours });
+    setEditFields({ nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes });
   };
 
-  const saveEdit = async (id: string) => {
-    await updateService({ variables: { input: { id, ...editFields } } });
+  const saveEdit = async (s: ServiceDef) => {
+    await updateService({ variables: { input: { id: s.id, ...editFields, isActive: s.isActive } } });
     setEditingId(null);
   };
 
   const toggleActive = async (s: ServiceDef) => {
-    await updateService({ variables: { input: { id: s.id, isActive: !s.isActive } } });
+    await updateService({ variables: { input: { id: s.id, nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes, isActive: !s.isActive } } });
   };
 
   const handleCreate = async () => {
@@ -304,7 +331,7 @@ function ServicesTab() {
     try {
       await createService({ variables: { input: newService } });
       setShowModal(false);
-      setNewService({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, isActive: true });
+      setNewService({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true });
     } finally {
       setCreating(false);
     }
@@ -334,6 +361,11 @@ function ServicesTab() {
                   <th className="text-left font-medium text-gray-500 px-4 py-3">Nume EN</th>
                   <th className="text-right font-medium text-gray-500 px-4 py-3">Pret/Ora</th>
                   <th className="text-right font-medium text-gray-500 px-4 py-3">Ore Min.</th>
+                  <th className="text-right font-medium text-gray-500 px-4 py-3" title="Ore per camera">h/Cam</th>
+                  <th className="text-right font-medium text-gray-500 px-4 py-3" title="Ore per baie">h/Baie</th>
+                  <th className="text-right font-medium text-gray-500 px-4 py-3" title="Ore per 100mp">h/100mp</th>
+                  <th className="text-right font-medium text-gray-500 px-4 py-3" title="Multiplicator casa">Casa×</th>
+                  <th className="text-right font-medium text-gray-500 px-4 py-3" title="Minute animale">Pet(min)</th>
                   <th className="text-center font-medium text-gray-500 px-4 py-3">Activ</th>
                   <th className="px-4 py-3 w-10" />
                 </tr>
@@ -348,7 +380,7 @@ function ServicesTab() {
                           <input
                             value={editFields.nameRo}
                             onChange={(e) => setEditFields((f) => ({ ...f, nameRo: e.target.value }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s.id); if (e.key === 'Escape') setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }}
                             className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                             autoFocus
                           />
@@ -361,7 +393,7 @@ function ServicesTab() {
                           <input
                             value={editFields.nameEn}
                             onChange={(e) => setEditFields((f) => ({ ...f, nameEn: e.target.value }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s.id); if (e.key === 'Escape') setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }}
                             className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                           />
                         ) : (
@@ -374,7 +406,7 @@ function ServicesTab() {
                             type="number"
                             value={editFields.basePricePerHour}
                             onChange={(e) => setEditFields((f) => ({ ...f, basePricePerHour: Number(e.target.value) }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s.id); if (e.key === 'Escape') setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }}
                             className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30"
                           />
                         ) : (
@@ -387,11 +419,46 @@ function ServicesTab() {
                             type="number"
                             value={editFields.minHours}
                             onChange={(e) => setEditFields((f) => ({ ...f, minHours: Number(e.target.value) }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s.id); if (e.key === 'Escape') setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }}
                             className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30"
                           />
                         ) : (
                           <span className="text-gray-600">{s.minHours}h</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {isEditing ? (
+                          <input type="number" step="0.05" value={editFields.hoursPerRoom} onChange={(e) => setEditFields((f) => ({ ...f, hoursPerRoom: Number(e.target.value) }))} onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }} className="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        ) : (
+                          <span className="text-gray-600">{s.hoursPerRoom}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {isEditing ? (
+                          <input type="number" step="0.05" value={editFields.hoursPerBathroom} onChange={(e) => setEditFields((f) => ({ ...f, hoursPerBathroom: Number(e.target.value) }))} onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }} className="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        ) : (
+                          <span className="text-gray-600">{s.hoursPerBathroom}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {isEditing ? (
+                          <input type="number" step="0.1" value={editFields.hoursPer100Sqm} onChange={(e) => setEditFields((f) => ({ ...f, hoursPer100Sqm: Number(e.target.value) }))} onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }} className="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        ) : (
+                          <span className="text-gray-600">{s.hoursPer100Sqm}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {isEditing ? (
+                          <input type="number" step="0.05" value={editFields.houseMultiplier} onChange={(e) => setEditFields((f) => ({ ...f, houseMultiplier: Number(e.target.value) }))} onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }} className="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        ) : (
+                          <span className="text-gray-600">{s.houseMultiplier}×</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {isEditing ? (
+                          <input type="number" value={editFields.petDurationMinutes} onChange={(e) => setEditFields((f) => ({ ...f, petDurationMinutes: Number(e.target.value) }))} onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(s); if (e.key === 'Escape') setEditingId(null); }} className="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        ) : (
+                          <span className="text-gray-600">{s.petDurationMinutes}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -400,7 +467,7 @@ function ServicesTab() {
                       <td className="px-4 py-3">
                         {isEditing ? (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => saveEdit(s.id)} className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-50 transition cursor-pointer">
+                            <button onClick={() => saveEdit(s)} className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-50 transition cursor-pointer">
                               <Check className="h-4 w-4" />
                             </button>
                             <button onClick={() => setEditingId(null)} className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 transition cursor-pointer">
@@ -454,6 +521,45 @@ function ServicesTab() {
               onChange={(e) => setNewService((s) => ({ ...s, minHours: Number(e.target.value) }))}
             />
           </div>
+          <p className="text-xs font-medium text-gray-500 mt-2">Configurare durata estimata</p>
+          <div className="grid grid-cols-3 gap-3">
+            <Input
+              label="h/Camera"
+              type="number"
+              step={0.05}
+              value={newService.hoursPerRoom}
+              onChange={(e) => setNewService((s) => ({ ...s, hoursPerRoom: Number(e.target.value) }))}
+            />
+            <Input
+              label="h/Baie"
+              type="number"
+              step={0.05}
+              value={newService.hoursPerBathroom}
+              onChange={(e) => setNewService((s) => ({ ...s, hoursPerBathroom: Number(e.target.value) }))}
+            />
+            <Input
+              label="h/100mp"
+              type="number"
+              step={0.1}
+              value={newService.hoursPer100Sqm}
+              onChange={(e) => setNewService((s) => ({ ...s, hoursPer100Sqm: Number(e.target.value) }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Multiplicator casa"
+              type="number"
+              step={0.05}
+              value={newService.houseMultiplier}
+              onChange={(e) => setNewService((s) => ({ ...s, houseMultiplier: Number(e.target.value) }))}
+            />
+            <Input
+              label="Min. animale"
+              type="number"
+              value={newService.petDurationMinutes}
+              onChange={(e) => setNewService((s) => ({ ...s, petDurationMinutes: Number(e.target.value) }))}
+            />
+          </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -491,25 +597,25 @@ function ExtrasTab() {
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', price: 0 });
+  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0 });
   const [showModal, setShowModal] = useState(false);
-  const [newExtra, setNewExtra] = useState({ nameRo: '', nameEn: '', price: 0, isActive: true });
+  const [newExtra, setNewExtra] = useState({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0, isActive: true });
   const [creating, setCreating] = useState(false);
 
   const extras = data?.allExtras ?? [];
 
   const startEdit = (e: ExtraDef) => {
     setEditingId(e.id);
-    setEditFields({ nameRo: e.nameRo, nameEn: e.nameEn, price: e.price });
+    setEditFields({ nameRo: e.nameRo, nameEn: e.nameEn, price: e.price, durationMinutes: e.durationMinutes });
   };
 
-  const saveEdit = async (id: string) => {
-    await updateExtra({ variables: { input: { id, ...editFields } } });
+  const saveEdit = async (ex: ExtraDef) => {
+    await updateExtra({ variables: { input: { id: ex.id, ...editFields, isActive: ex.isActive } } });
     setEditingId(null);
   };
 
   const toggleActive = async (e: ExtraDef) => {
-    await updateExtra({ variables: { input: { id: e.id, isActive: !e.isActive } } });
+    await updateExtra({ variables: { input: { id: e.id, nameRo: e.nameRo, nameEn: e.nameEn, price: e.price, durationMinutes: e.durationMinutes, isActive: !e.isActive } } });
   };
 
   const handleCreate = async () => {
@@ -517,7 +623,7 @@ function ExtrasTab() {
     try {
       await createExtra({ variables: { input: newExtra } });
       setShowModal(false);
-      setNewExtra({ nameRo: '', nameEn: '', price: 0, isActive: true });
+      setNewExtra({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0, isActive: true });
     } finally {
       setCreating(false);
     }
@@ -546,6 +652,7 @@ function ExtrasTab() {
                   <th className="text-left font-medium text-gray-500 px-4 py-3">Nume RO</th>
                   <th className="text-left font-medium text-gray-500 px-4 py-3">Nume EN</th>
                   <th className="text-right font-medium text-gray-500 px-4 py-3">Pret (RON)</th>
+                  <th className="text-right font-medium text-gray-500 px-4 py-3" title="Durata adaugata (minute)">Durata(min)</th>
                   <th className="text-center font-medium text-gray-500 px-4 py-3">Activ</th>
                   <th className="px-4 py-3 w-10" />
                 </tr>
@@ -560,7 +667,7 @@ function ExtrasTab() {
                           <input
                             value={editFields.nameRo}
                             onChange={(e) => setEditFields((f) => ({ ...f, nameRo: e.target.value }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(ex.id); if (e.key === 'Escape') setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(ex); if (e.key === 'Escape') setEditingId(null); }}
                             className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                             autoFocus
                           />
@@ -573,7 +680,7 @@ function ExtrasTab() {
                           <input
                             value={editFields.nameEn}
                             onChange={(e) => setEditFields((f) => ({ ...f, nameEn: e.target.value }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(ex.id); if (e.key === 'Escape') setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(ex); if (e.key === 'Escape') setEditingId(null); }}
                             className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                           />
                         ) : (
@@ -586,11 +693,24 @@ function ExtrasTab() {
                             type="number"
                             value={editFields.price}
                             onChange={(e) => setEditFields((f) => ({ ...f, price: Number(e.target.value) }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(ex.id); if (e.key === 'Escape') setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(ex); if (e.key === 'Escape') setEditingId(null); }}
                             className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30"
                           />
                         ) : (
                           <span className="text-gray-900">{ex.price} RON</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editFields.durationMinutes}
+                            onChange={(e) => setEditFields((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(ex); if (e.key === 'Escape') setEditingId(null); }}
+                            className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                        ) : (
+                          <span className="text-gray-600">{ex.durationMinutes} min</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -599,7 +719,7 @@ function ExtrasTab() {
                       <td className="px-4 py-3">
                         {isEditing ? (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => saveEdit(ex.id)} className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-50 transition cursor-pointer">
+                            <button onClick={() => saveEdit(ex)} className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-50 transition cursor-pointer">
                               <Check className="h-4 w-4" />
                             </button>
                             <button onClick={() => setEditingId(null)} className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 transition cursor-pointer">
@@ -633,12 +753,20 @@ function ExtrasTab() {
             value={newExtra.nameEn}
             onChange={(e) => setNewExtra((s) => ({ ...s, nameEn: e.target.value }))}
           />
-          <Input
-            label="Pret (RON)"
-            type="number"
-            value={newExtra.price}
-            onChange={(e) => setNewExtra((s) => ({ ...s, price: Number(e.target.value) }))}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Pret (RON)"
+              type="number"
+              value={newExtra.price}
+              onChange={(e) => setNewExtra((s) => ({ ...s, price: Number(e.target.value) }))}
+            />
+            <Input
+              label="Durata (min)"
+              type="number"
+              value={newExtra.durationMinutes}
+              onChange={(e) => setNewExtra((s) => ({ ...s, durationMinutes: Number(e.target.value) }))}
+            />
+          </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -664,6 +792,275 @@ function ExtrasTab() {
   );
 }
 
+// ─── Tab: Orase ─────────────────────────────────────────────────────────────
+
+function CitiesTab() {
+  const { data, loading } = useQuery<{ allCities: City[] }>(ALL_CITIES);
+  const [createCity] = useMutation(CREATE_CITY, {
+    refetchQueries: [{ query: ALL_CITIES }],
+  });
+  const [toggleCityActive] = useMutation(TOGGLE_CITY_ACTIVE, {
+    refetchQueries: [{ query: ALL_CITIES }],
+  });
+  const [createCityArea] = useMutation(CREATE_CITY_AREA, {
+    refetchQueries: [{ query: ALL_CITIES }],
+  });
+  const [deleteCityArea] = useMutation(DELETE_CITY_AREA, {
+    refetchQueries: [{ query: ALL_CITIES }],
+  });
+
+  const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [newCity, setNewCity] = useState({ name: '', county: '' });
+  const [creatingCity, setCreatingCity] = useState(false);
+  const [showAreaModal, setShowAreaModal] = useState(false);
+  const [areaCityId, setAreaCityId] = useState<string | null>(null);
+  const [newAreaName, setNewAreaName] = useState('');
+  const [creatingArea, setCreatingArea] = useState(false);
+  const [deletingAreaId, setDeletingAreaId] = useState<string | null>(null);
+  const [confirmDeleteAreaId, setConfirmDeleteAreaId] = useState<string | null>(null);
+
+  const cities = data?.allCities ?? [];
+
+  const toggleExpanded = (cityId: string) => {
+    setExpandedCities((prev) => {
+      const next = new Set(prev);
+      if (next.has(cityId)) {
+        next.delete(cityId);
+      } else {
+        next.add(cityId);
+      }
+      return next;
+    });
+  };
+
+  const handleCreateCity = async () => {
+    setCreatingCity(true);
+    try {
+      await createCity({ variables: { name: newCity.name, county: newCity.county } });
+      setShowCityModal(false);
+      setNewCity({ name: '', county: '' });
+    } finally {
+      setCreatingCity(false);
+    }
+  };
+
+  const handleToggleActive = async (city: City) => {
+    await toggleCityActive({ variables: { id: city.id, isActive: !city.isActive } });
+  };
+
+  const openAreaModal = (cityId: string) => {
+    setAreaCityId(cityId);
+    setNewAreaName('');
+    setShowAreaModal(true);
+  };
+
+  const handleCreateArea = async () => {
+    if (!areaCityId) return;
+    setCreatingArea(true);
+    try {
+      await createCityArea({ variables: { cityId: areaCityId, name: newAreaName } });
+      setShowAreaModal(false);
+      setNewAreaName('');
+      setAreaCityId(null);
+    } finally {
+      setCreatingArea(false);
+    }
+  };
+
+  const handleDeleteArea = async (areaId: string) => {
+    setDeletingAreaId(areaId);
+    try {
+      await deleteCityArea({ variables: { id: areaId } });
+    } finally {
+      setDeletingAreaId(null);
+      setConfirmDeleteAreaId(null);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-500">{cities.length} orase definite</p>
+        <Button size="sm" onClick={() => setShowCityModal(true)}>
+          <Plus className="h-4 w-4" />
+          Adauga oras
+        </Button>
+      </div>
+
+      <Card padding={false}>
+        {loading ? (
+          <TableSkeleton />
+        ) : cities.length === 0 ? (
+          <p className="text-center text-gray-400 py-12">Niciun oras definit.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50/50">
+                  <th className="text-left font-medium text-gray-500 px-4 py-3 w-10" />
+                  <th className="text-left font-medium text-gray-500 px-4 py-3">Oras</th>
+                  <th className="text-left font-medium text-gray-500 px-4 py-3">Judet</th>
+                  <th className="text-center font-medium text-gray-500 px-4 py-3">Activ</th>
+                  <th className="text-center font-medium text-gray-500 px-4 py-3">Zone</th>
+                  <th className="px-4 py-3 w-10" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {cities.map((city) => {
+                  const isExpanded = expandedCities.has(city.id);
+                  return (
+                    <tr key={city.id} className="group">
+                      <td colSpan={6} className="p-0">
+                        <div>
+                          {/* City row */}
+                          <div className="flex items-center hover:bg-gray-50/50 transition-colors">
+                            <div className="px-4 py-3 w-10">
+                              <button
+                                onClick={() => toggleExpanded(city.id)}
+                                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                            <div className="flex-1 px-4 py-3">
+                              <span className="font-medium text-gray-900">{city.name}</span>
+                            </div>
+                            <div className="px-4 py-3" style={{ minWidth: '120px' }}>
+                              <span className="text-gray-600">{city.county}</span>
+                            </div>
+                            <div className="px-4 py-3 text-center" style={{ minWidth: '80px' }}>
+                              <Toggle checked={city.isActive} onChange={() => handleToggleActive(city)} />
+                            </div>
+                            <div className="px-4 py-3 text-center" style={{ minWidth: '80px' }}>
+                              <Badge variant={city.areas.length > 0 ? 'info' : 'default'}>
+                                {city.areas.length}
+                              </Badge>
+                            </div>
+                            <div className="px-4 py-3 w-10">
+                              <button
+                                onClick={() => openAreaModal(city.id)}
+                                className="p-1 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5 transition cursor-pointer"
+                                title="Adauga zona"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expanded areas */}
+                          {isExpanded && (
+                            <div className="px-14 pb-4 pt-1">
+                              {city.areas.length === 0 ? (
+                                <p className="text-xs text-gray-400 italic">Nicio zona definita.</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {city.areas.map((area) => (
+                                    <span
+                                      key={area.id}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium"
+                                    >
+                                      {area.name}
+                                      {confirmDeleteAreaId === area.id ? (
+                                        <span className="inline-flex items-center gap-1 ml-1">
+                                          <button
+                                            onClick={() => handleDeleteArea(area.id)}
+                                            disabled={deletingAreaId === area.id}
+                                            className="text-red-600 hover:text-red-800 font-semibold transition cursor-pointer text-xs"
+                                          >
+                                            Da
+                                          </button>
+                                          <span className="text-gray-400">/</span>
+                                          <button
+                                            onClick={() => setConfirmDeleteAreaId(null)}
+                                            className="text-gray-500 hover:text-gray-700 font-semibold transition cursor-pointer text-xs"
+                                          >
+                                            Nu
+                                          </button>
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => setConfirmDeleteAreaId(area.id)}
+                                          className="text-blue-400 hover:text-red-500 transition cursor-pointer"
+                                          title="Sterge zona"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Modal: Adauga oras */}
+      <Modal open={showCityModal} onClose={() => setShowCityModal(false)} title="Adauga oras">
+        <div className="space-y-4">
+          <Input
+            label="Nume oras"
+            value={newCity.name}
+            onChange={(e) => setNewCity((s) => ({ ...s, name: e.target.value }))}
+            placeholder="ex: Cluj-Napoca"
+          />
+          <Input
+            label="Judet"
+            value={newCity.county}
+            onChange={(e) => setNewCity((s) => ({ ...s, county: e.target.value }))}
+            placeholder="ex: Cluj"
+          />
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => setShowCityModal(false)}>Anuleaza</Button>
+            <Button
+              onClick={handleCreateCity}
+              loading={creatingCity}
+              disabled={!newCity.name.trim() || !newCity.county.trim()}
+            >
+              Creeaza
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Adauga zona */}
+      <Modal open={showAreaModal} onClose={() => setShowAreaModal(false)} title="Adauga zona">
+        <div className="space-y-4">
+          <Input
+            label="Nume zona"
+            value={newAreaName}
+            onChange={(e) => setNewAreaName(e.target.value)}
+            placeholder="ex: Centru, Manastur, Marasti"
+          />
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => setShowAreaModal(false)}>Anuleaza</Button>
+            <Button
+              onClick={handleCreateArea}
+              loading={creatingArea}
+              disabled={!newAreaName.trim()}
+            >
+              Creeaza
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -673,7 +1070,7 @@ export default function SettingsPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Setari Platforma</h1>
-        <p className="text-gray-500 mt-1">Configuratii generale, servicii si extra-uri.</p>
+        <p className="text-gray-500 mt-1">Configuratii generale, servicii, extra-uri si orase.</p>
       </div>
 
       {/* Tab Bar */}
@@ -702,6 +1099,7 @@ export default function SettingsPage() {
       {activeTab === 'general' && <GeneralTab />}
       {activeTab === 'services' && <ServicesTab />}
       {activeTab === 'extras' && <ExtrasTab />}
+      {activeTab === 'cities' && <CitiesTab />}
     </div>
   );
 }

@@ -345,6 +345,32 @@ export default function CompanyDetailPage() {
               )}
             </Card>
 
+            {/* Zone de serviciu */}
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Zone de serviciu</h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {company.city && (
+                  <Badge variant="info">{company.city}</Badge>
+                )}
+                {company.county && (
+                  <Badge variant="default">{company.county}</Badge>
+                )}
+                {company.maxServiceRadiusKm != null && (
+                  <Badge variant="success">
+                    Raza: {company.maxServiceRadiusKm} km
+                  </Badge>
+                )}
+              </div>
+              {!company.city && !company.county && (
+                <p className="text-sm text-gray-400 mb-3">
+                  Nu exista informatii despre zona de serviciu.
+                </p>
+              )}
+              <p className="text-xs text-gray-400">
+                Zonele de serviciu sunt gestionate de administratorul firmei.
+              </p>
+            </Card>
+
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
               <Card>

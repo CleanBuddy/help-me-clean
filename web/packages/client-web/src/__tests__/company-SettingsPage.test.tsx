@@ -136,6 +136,6 @@ describe('SettingsPage', () => {
   it('shows coverage zone section', () => {
     mockQuery();
     renderPage();
-    expect(screen.getByText('Zona de acoperire')).toBeInTheDocument();
+    expect(screen.getByText('Zone de acoperire')).toBeInTheDocument();
   });
 });

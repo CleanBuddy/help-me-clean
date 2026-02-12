@@ -18,6 +18,7 @@ import {
   MessageCircle,
   CreditCard,
   Star,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
@@ -49,6 +50,14 @@ interface BookingCleaner {
   phone?: string;
 }
 
+interface BookingTimeSlot {
+  id: string;
+  slotDate: string;
+  startTime: string;
+  endTime: string;
+  isSelected: boolean;
+}
+
 interface BookingReview {
   id: string;
   rating: number;
@@ -77,6 +86,7 @@ interface BookingData {
   address: BookingAddress;
   company?: BookingCompany;
   cleaner?: BookingCleaner;
+  timeSlots?: BookingTimeSlot[];
   review?: BookingReview;
 }
 
@@ -323,6 +333,47 @@ export default function BookingDetailPage() {
                 )}
               </div>
             </Card>
+
+            {/* Time Slots */}
+            {booking.timeSlots && booking.timeSlots.length > 0 && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Intervale propuse
+                </h2>
+                <div className="space-y-3">
+                  {booking.timeSlots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border ${
+                        slot.isSelected
+                          ? 'border-blue-200 bg-blue-50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        slot.isSelected ? 'bg-blue-100' : 'bg-primary/10'
+                      }`}>
+                        <Calendar className={`h-5 w-5 ${slot.isSelected ? 'text-blue-600' : 'text-primary'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatDate(slot.slotDate)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                        </div>
+                      </div>
+                      {slot.isSelected && (
+                        <div className="flex items-center gap-1.5 text-blue-600">
+                          <Check className="h-4 w-4" />
+                          <span className="text-xs font-semibold">Confirmat</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Address */}
             <Card>

@@ -70,38 +70,39 @@ type AvailabilitySlotInput struct {
 }
 
 type Booking struct {
-	ID                     string          `json:"id"`
-	ReferenceCode          string          `json:"referenceCode"`
-	Client                 *User           `json:"client,omitempty"`
-	Company                *Company        `json:"company,omitempty"`
-	Cleaner                *CleanerProfile `json:"cleaner,omitempty"`
-	Address                *Address        `json:"address,omitempty"`
-	ServiceType            ServiceType     `json:"serviceType"`
-	ServiceName            string          `json:"serviceName"`
-	ScheduledDate          string          `json:"scheduledDate"`
-	ScheduledStartTime     string          `json:"scheduledStartTime"`
-	EstimatedDurationHours float64         `json:"estimatedDurationHours"`
-	PropertyType           *string         `json:"propertyType,omitempty"`
-	NumRooms               *int            `json:"numRooms,omitempty"`
-	NumBathrooms           *int            `json:"numBathrooms,omitempty"`
-	AreaSqm                *int            `json:"areaSqm,omitempty"`
-	HasPets                *bool           `json:"hasPets,omitempty"`
-	SpecialInstructions    *string         `json:"specialInstructions,omitempty"`
-	HourlyRate             float64         `json:"hourlyRate"`
-	EstimatedTotal         float64         `json:"estimatedTotal"`
-	FinalTotal             *float64        `json:"finalTotal,omitempty"`
-	PlatformCommissionPct  float64         `json:"platformCommissionPct"`
-	Extras                 []*BookingExtra `json:"extras"`
-	Status                 BookingStatus   `json:"status"`
-	StartedAt              *time.Time      `json:"startedAt,omitempty"`
-	CompletedAt            *time.Time      `json:"completedAt,omitempty"`
-	CancelledAt            *time.Time      `json:"cancelledAt,omitempty"`
-	CancellationReason     *string         `json:"cancellationReason,omitempty"`
-	PaymentStatus          string          `json:"paymentStatus"`
-	PaidAt                 *time.Time      `json:"paidAt,omitempty"`
-	Review                 *Review         `json:"review,omitempty"`
-	ChatRoom               *ChatRoom       `json:"chatRoom,omitempty"`
-	CreatedAt              time.Time       `json:"createdAt"`
+	ID                     string             `json:"id"`
+	ReferenceCode          string             `json:"referenceCode"`
+	Client                 *User              `json:"client,omitempty"`
+	Company                *Company           `json:"company,omitempty"`
+	Cleaner                *CleanerProfile    `json:"cleaner,omitempty"`
+	Address                *Address           `json:"address,omitempty"`
+	ServiceType            ServiceType        `json:"serviceType"`
+	ServiceName            string             `json:"serviceName"`
+	ScheduledDate          string             `json:"scheduledDate"`
+	ScheduledStartTime     string             `json:"scheduledStartTime"`
+	EstimatedDurationHours float64            `json:"estimatedDurationHours"`
+	PropertyType           *string            `json:"propertyType,omitempty"`
+	NumRooms               *int               `json:"numRooms,omitempty"`
+	NumBathrooms           *int               `json:"numBathrooms,omitempty"`
+	AreaSqm                *int               `json:"areaSqm,omitempty"`
+	HasPets                *bool              `json:"hasPets,omitempty"`
+	SpecialInstructions    *string            `json:"specialInstructions,omitempty"`
+	HourlyRate             float64            `json:"hourlyRate"`
+	EstimatedTotal         float64            `json:"estimatedTotal"`
+	FinalTotal             *float64           `json:"finalTotal,omitempty"`
+	PlatformCommissionPct  float64            `json:"platformCommissionPct"`
+	Extras                 []*BookingExtra    `json:"extras"`
+	Status                 BookingStatus      `json:"status"`
+	StartedAt              *time.Time         `json:"startedAt,omitempty"`
+	CompletedAt            *time.Time         `json:"completedAt,omitempty"`
+	CancelledAt            *time.Time         `json:"cancelledAt,omitempty"`
+	CancellationReason     *string            `json:"cancellationReason,omitempty"`
+	PaymentStatus          string             `json:"paymentStatus"`
+	PaidAt                 *time.Time         `json:"paidAt,omitempty"`
+	TimeSlots              []*BookingTimeSlot `json:"timeSlots"`
+	Review                 *Review            `json:"review,omitempty"`
+	ChatRoom               *ChatRoom          `json:"chatRoom,omitempty"`
+	CreatedAt              time.Time          `json:"createdAt"`
 }
 
 type BookingConnection struct {
@@ -114,6 +115,14 @@ type BookingExtra struct {
 	Extra    *ServiceExtra `json:"extra"`
 	Price    float64       `json:"price"`
 	Quantity int           `json:"quantity"`
+}
+
+type BookingTimeSlot struct {
+	ID         string `json:"id"`
+	SlotDate   string `json:"slotDate"`
+	StartTime  string `json:"startTime"`
+	EndTime    string `json:"endTime"`
+	IsSelected bool   `json:"isSelected"`
 }
 
 type BookingsByStatus struct {
@@ -148,6 +157,13 @@ type ChatRoom struct {
 	Messages     *ChatMessageConnection `json:"messages"`
 	LastMessage  *ChatMessage           `json:"lastMessage,omitempty"`
 	CreatedAt    time.Time              `json:"createdAt"`
+}
+
+type CityArea struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	CityID   string `json:"cityId"`
+	CityName string `json:"cityName"`
 }
 
 type CleanerDailyEarnings struct {
@@ -198,6 +214,18 @@ type CleanerStats struct {
 	TotalReviews       int     `json:"totalReviews"`
 	ThisMonthJobs      int     `json:"thisMonthJobs"`
 	ThisMonthEarnings  float64 `json:"thisMonthEarnings"`
+}
+
+type CleanerSuggestion struct {
+	Cleaner            *CleanerProfile `json:"cleaner"`
+	Company            *Company        `json:"company"`
+	AvailabilityStatus string          `json:"availabilityStatus"`
+	AvailableFrom      *string         `json:"availableFrom,omitempty"`
+	AvailableTo        *string         `json:"availableTo,omitempty"`
+	SuggestedStartTime *string         `json:"suggestedStartTime,omitempty"`
+	SuggestedEndTime   *string         `json:"suggestedEndTime,omitempty"`
+	SuggestedSlotIndex *int            `json:"suggestedSlotIndex,omitempty"`
+	MatchScore         float64         `json:"matchScore"`
 }
 
 type Company struct {
@@ -288,8 +316,9 @@ type CreateBookingInput struct {
 	AddressID           *string          `json:"addressId,omitempty"`
 	Address             *AddAddressInput `json:"address,omitempty"`
 	ServiceType         ServiceType      `json:"serviceType"`
-	ScheduledDate       string           `json:"scheduledDate"`
-	ScheduledStartTime  string           `json:"scheduledStartTime"`
+	ScheduledDate       *string          `json:"scheduledDate,omitempty"`
+	ScheduledStartTime  *string          `json:"scheduledStartTime,omitempty"`
+	TimeSlots           []*TimeSlotInput `json:"timeSlots,omitempty"`
 	PropertyType        *string          `json:"propertyType,omitempty"`
 	NumRooms            int              `json:"numRooms"`
 	NumBathrooms        int              `json:"numBathrooms"`
@@ -300,22 +329,30 @@ type CreateBookingInput struct {
 	GuestEmail          *string          `json:"guestEmail,omitempty"`
 	GuestName           *string          `json:"guestName,omitempty"`
 	GuestPhone          *string          `json:"guestPhone,omitempty"`
+	PreferredCleanerID  *string          `json:"preferredCleanerId,omitempty"`
+	SuggestedStartTime  *string          `json:"suggestedStartTime,omitempty"`
 }
 
 type CreateServiceDefinitionInput struct {
-	ServiceType      ServiceType `json:"serviceType"`
-	NameRo           string      `json:"nameRo"`
-	NameEn           string      `json:"nameEn"`
-	BasePricePerHour float64     `json:"basePricePerHour"`
-	MinHours         float64     `json:"minHours"`
-	IsActive         bool        `json:"isActive"`
+	ServiceType        ServiceType `json:"serviceType"`
+	NameRo             string      `json:"nameRo"`
+	NameEn             string      `json:"nameEn"`
+	BasePricePerHour   float64     `json:"basePricePerHour"`
+	MinHours           float64     `json:"minHours"`
+	HoursPerRoom       float64     `json:"hoursPerRoom"`
+	HoursPerBathroom   float64     `json:"hoursPerBathroom"`
+	HoursPer100Sqm     float64     `json:"hoursPer100Sqm"`
+	HouseMultiplier    float64     `json:"houseMultiplier"`
+	PetDurationMinutes int         `json:"petDurationMinutes"`
+	IsActive           bool        `json:"isActive"`
 }
 
 type CreateServiceExtraInput struct {
-	NameRo   string  `json:"nameRo"`
-	NameEn   string  `json:"nameEn"`
-	Price    float64 `json:"price"`
-	IsActive bool    `json:"isActive"`
+	NameRo          string  `json:"nameRo"`
+	NameEn          string  `json:"nameEn"`
+	Price           float64 `json:"price"`
+	DurationMinutes int     `json:"durationMinutes"`
+	IsActive        bool    `json:"isActive"`
 }
 
 type DailyRevenue struct {
@@ -323,6 +360,14 @@ type DailyRevenue struct {
 	BookingCount int     `json:"bookingCount"`
 	Revenue      float64 `json:"revenue"`
 	Commission   float64 `json:"commission"`
+}
+
+type EnabledCity struct {
+	ID       string      `json:"id"`
+	Name     string      `json:"name"`
+	County   string      `json:"county"`
+	IsActive bool        `json:"isActive"`
+	Areas    []*CityArea `json:"areas"`
 }
 
 type ExtraInput struct {
@@ -405,11 +450,13 @@ type PlatformTotals struct {
 }
 
 type PriceEstimate struct {
-	HourlyRate     float64          `json:"hourlyRate"`
-	EstimatedHours float64          `json:"estimatedHours"`
-	Subtotal       float64          `json:"subtotal"`
-	Extras         []*ExtraLineItem `json:"extras"`
-	Total          float64          `json:"total"`
+	HourlyRate         float64          `json:"hourlyRate"`
+	EstimatedHours     float64          `json:"estimatedHours"`
+	PropertyMultiplier float64          `json:"propertyMultiplier"`
+	PetsSurcharge      float64          `json:"petsSurcharge"`
+	Subtotal           float64          `json:"subtotal"`
+	Extras             []*ExtraLineItem `json:"extras"`
+	Total              float64          `json:"total"`
 }
 
 type PriceEstimateInput struct {
@@ -417,6 +464,8 @@ type PriceEstimateInput struct {
 	NumRooms     int           `json:"numRooms"`
 	NumBathrooms int           `json:"numBathrooms"`
 	AreaSqm      *int          `json:"areaSqm,omitempty"`
+	PropertyType *string       `json:"propertyType,omitempty"`
+	HasPets      *bool         `json:"hasPets,omitempty"`
 	Extras       []*ExtraInput `json:"extras,omitempty"`
 }
 
@@ -446,25 +495,31 @@ type ReviewConnection struct {
 }
 
 type ServiceDefinition struct {
-	ID               string      `json:"id"`
-	ServiceType      ServiceType `json:"serviceType"`
-	NameRo           string      `json:"nameRo"`
-	NameEn           string      `json:"nameEn"`
-	DescriptionRo    *string     `json:"descriptionRo,omitempty"`
-	DescriptionEn    *string     `json:"descriptionEn,omitempty"`
-	BasePricePerHour float64     `json:"basePricePerHour"`
-	MinHours         float64     `json:"minHours"`
-	Icon             *string     `json:"icon,omitempty"`
-	IsActive         bool        `json:"isActive"`
+	ID                 string      `json:"id"`
+	ServiceType        ServiceType `json:"serviceType"`
+	NameRo             string      `json:"nameRo"`
+	NameEn             string      `json:"nameEn"`
+	DescriptionRo      *string     `json:"descriptionRo,omitempty"`
+	DescriptionEn      *string     `json:"descriptionEn,omitempty"`
+	BasePricePerHour   float64     `json:"basePricePerHour"`
+	MinHours           float64     `json:"minHours"`
+	HoursPerRoom       float64     `json:"hoursPerRoom"`
+	HoursPerBathroom   float64     `json:"hoursPerBathroom"`
+	HoursPer100Sqm     float64     `json:"hoursPer100Sqm"`
+	HouseMultiplier    float64     `json:"houseMultiplier"`
+	PetDurationMinutes int         `json:"petDurationMinutes"`
+	Icon               *string     `json:"icon,omitempty"`
+	IsActive           bool        `json:"isActive"`
 }
 
 type ServiceExtra struct {
-	ID       string  `json:"id"`
-	NameRo   string  `json:"nameRo"`
-	NameEn   string  `json:"nameEn"`
-	Price    float64 `json:"price"`
-	Icon     *string `json:"icon,omitempty"`
-	IsActive bool    `json:"isActive"`
+	ID              string  `json:"id"`
+	NameRo          string  `json:"nameRo"`
+	NameEn          string  `json:"nameEn"`
+	Price           float64 `json:"price"`
+	DurationMinutes int     `json:"durationMinutes"`
+	Icon            *string `json:"icon,omitempty"`
+	IsActive        bool    `json:"isActive"`
 }
 
 type ServiceRevenue struct {
@@ -480,6 +535,12 @@ type SubmitReviewInput struct {
 }
 
 type Subscription struct {
+}
+
+type TimeSlotInput struct {
+	Date      string `json:"date"`
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
 }
 
 type TopCompany struct {
@@ -525,20 +586,26 @@ type UpdateProfileInput struct {
 }
 
 type UpdateServiceDefinitionInput struct {
-	ID               string  `json:"id"`
-	NameRo           string  `json:"nameRo"`
-	NameEn           string  `json:"nameEn"`
-	BasePricePerHour float64 `json:"basePricePerHour"`
-	MinHours         float64 `json:"minHours"`
-	IsActive         bool    `json:"isActive"`
+	ID                 string  `json:"id"`
+	NameRo             string  `json:"nameRo"`
+	NameEn             string  `json:"nameEn"`
+	BasePricePerHour   float64 `json:"basePricePerHour"`
+	MinHours           float64 `json:"minHours"`
+	HoursPerRoom       float64 `json:"hoursPerRoom"`
+	HoursPerBathroom   float64 `json:"hoursPerBathroom"`
+	HoursPer100Sqm     float64 `json:"hoursPer100Sqm"`
+	HouseMultiplier    float64 `json:"houseMultiplier"`
+	PetDurationMinutes int     `json:"petDurationMinutes"`
+	IsActive           bool    `json:"isActive"`
 }
 
 type UpdateServiceExtraInput struct {
-	ID       string  `json:"id"`
-	NameRo   string  `json:"nameRo"`
-	NameEn   string  `json:"nameEn"`
-	Price    float64 `json:"price"`
-	IsActive bool    `json:"isActive"`
+	ID              string  `json:"id"`
+	NameRo          string  `json:"nameRo"`
+	NameEn          string  `json:"nameEn"`
+	Price           float64 `json:"price"`
+	DurationMinutes int     `json:"durationMinutes"`
+	IsActive        bool    `json:"isActive"`
 }
 
 type UploadResult struct {

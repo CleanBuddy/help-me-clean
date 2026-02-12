@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import {
   Users, UserPlus, Mail, Phone, Star, Copy, Check,
   ChevronDown, ChevronUp, Briefcase, TrendingUp, Calendar, DollarSign,
+  MapPin, CheckCircle,
 } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
@@ -12,6 +13,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import {
   MY_CLEANERS, INVITE_CLEANER, UPDATE_CLEANER_STATUS, CLEANER_PERFORMANCE,
+  MY_COMPANY_SERVICE_AREAS, CLEANER_SERVICE_AREAS, UPDATE_CLEANER_SERVICE_AREAS,
 } from '@/graphql/operations';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -34,6 +36,13 @@ interface CleanerPerformance {
   cleanerId: string; fullName: string; ratingAvg: number;
   totalCompletedJobs: number; thisMonthCompleted: number;
   totalEarnings: number; thisMonthEarnings: number;
+}
+
+interface CityArea {
+  id: string;
+  name: string;
+  cityId: string;
+  cityName: string;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -132,6 +141,271 @@ function PerformancePanel({ cleanerId, availability }: { cleanerId: string; avai
   );
 }
 
+// ─── AreaManagementModal ────────────────────────────────────────────────────
+
+function AreaManagementModal({
+  cleaner,
+  open,
+  onClose,
+}: {
+  cleaner: Cleaner | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [selectedAreaIds, setSelectedAreaIds] = useState<Set<string>>(new Set());
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const { data: companyAreasData, loading: loadingCompanyAreas } = useQuery<{
+    myCompanyServiceAreas: CityArea[];
+  }>(MY_COMPANY_SERVICE_AREAS, { skip: !open });
+
+  const [fetchCleanerAreas, { loading: loadingCleanerAreas }] = useLazyQuery<{
+    cleanerServiceAreas: CityArea[];
+  }>(CLEANER_SERVICE_AREAS);
+
+  const [updateCleanerAreas, { loading: saving }] = useMutation(UPDATE_CLEANER_SERVICE_AREAS);
+
+  const companyAreas: CityArea[] = companyAreasData?.myCompanyServiceAreas ?? [];
+
+  // Group areas by city for display
+  const areasByCity = companyAreas.reduce<Record<string, { cityName: string; areas: CityArea[] }>>((acc, area) => {
+    if (!acc[area.cityId]) {
+      acc[area.cityId] = { cityName: area.cityName, areas: [] };
+    }
+    acc[area.cityId].areas.push(area);
+    return acc;
+  }, {});
+
+  // Load cleaner areas when the modal opens with a specific cleaner
+  useEffect(() => {
+    if (open && cleaner) {
+      setSaveSuccess(false);
+      fetchCleanerAreas({ variables: { cleanerId: cleaner.id } }).then((res) => {
+        const areas = res.data?.cleanerServiceAreas ?? [];
+        if (areas.length > 0) {
+          setSelectedAreaIds(new Set(areas.map((a) => a.id)));
+        } else {
+          // Default: all company areas selected for new cleaners
+          setSelectedAreaIds(new Set(companyAreas.map((a) => a.id)));
+        }
+      });
+    }
+  }, [open, cleaner, fetchCleanerAreas, companyAreas]);
+
+  const toggleArea = (areaId: string) => {
+    setSelectedAreaIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(areaId)) {
+        next.delete(areaId);
+      } else {
+        next.add(areaId);
+      }
+      return next;
+    });
+    setSaveSuccess(false);
+  };
+
+  const toggleAllForCity = (cityId: string) => {
+    const cityAreas = areasByCity[cityId]?.areas ?? [];
+    const allSelected = cityAreas.every((a) => selectedAreaIds.has(a.id));
+    setSelectedAreaIds((prev) => {
+      const next = new Set(prev);
+      for (const area of cityAreas) {
+        if (allSelected) {
+          next.delete(area.id);
+        } else {
+          next.add(area.id);
+        }
+      }
+      return next;
+    });
+    setSaveSuccess(false);
+  };
+
+  const handleSave = async () => {
+    if (!cleaner) return;
+    try {
+      await updateCleanerAreas({
+        variables: {
+          cleanerId: cleaner.id,
+          areaIds: Array.from(selectedAreaIds),
+        },
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch {
+      /* Apollo error handling */
+    }
+  };
+
+  const isLoading = loadingCompanyAreas || loadingCleanerAreas;
+
+  return (
+    <Modal open={open} onClose={onClose} title="Zone de lucru" className="max-w-xl">
+      <div className="space-y-5">
+        {/* Worker info header */}
+        {cleaner && (
+          <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+            <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-base font-semibold text-primary">
+                {cleaner.fullName?.charAt(0)?.toUpperCase()}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900 truncate">{cleaner.fullName}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Badge variant={statusBadgeVariant[cleaner.status || 'PENDING']}>
+                  {statusLabel[cleaner.status || 'PENDING'] || cleaner.status}
+                </Badge>
+                {cleaner.ratingAvg && (
+                  <span className="flex items-center gap-0.5 text-xs text-gray-500">
+                    <Star className="h-3 w-3 text-accent" />
+                    {Number(cleaner.ratingAvg).toFixed(1)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Area selection */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="h-4 w-4 text-primary" />
+            <p className="text-sm font-medium text-gray-900">
+              Selecteaza zonele in care lucreaza
+            </p>
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
+                  <div className="h-8 bg-gray-100 rounded w-full" />
+                </div>
+              ))}
+            </div>
+          ) : companyAreas.length === 0 ? (
+            <div className="text-center py-6 bg-gray-50 rounded-xl">
+              <MapPin className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">
+                Firma ta nu are zone de lucru configurate.
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Adauga zone in pagina de setari a firmei.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
+              {Object.entries(areasByCity).map(([cityId, { cityName, areas }]) => {
+                const allSelected = areas.every((a) => selectedAreaIds.has(a.id));
+                const someSelected = areas.some((a) => selectedAreaIds.has(a.id));
+                return (
+                  <div key={cityId}>
+                    {/* City header with select all */}
+                    <button
+                      type="button"
+                      onClick={() => toggleAllForCity(cityId)}
+                      className="flex items-center gap-2 mb-2 group cursor-pointer w-full text-left"
+                    >
+                      <div className={cn(
+                        'h-4 w-4 rounded border-2 flex items-center justify-center transition-colors shrink-0',
+                        allSelected
+                          ? 'bg-primary border-primary'
+                          : someSelected
+                            ? 'bg-primary/30 border-primary'
+                            : 'border-gray-300 group-hover:border-primary/50',
+                      )}>
+                        {(allSelected || someSelected) && (
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        )}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                        {cityName}
+                      </span>
+                      <span className="text-xs text-gray-400 ml-auto">
+                        {areas.filter((a) => selectedAreaIds.has(a.id)).length}/{areas.length}
+                      </span>
+                    </button>
+
+                    {/* Area checkboxes */}
+                    <div className="grid grid-cols-2 gap-1.5 pl-1">
+                      {areas.map((area) => {
+                        const checked = selectedAreaIds.has(area.id);
+                        return (
+                          <button
+                            key={area.id}
+                            type="button"
+                            onClick={() => toggleArea(area.id)}
+                            className={cn(
+                              'flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all cursor-pointer',
+                              checked
+                                ? 'border-primary/30 bg-primary/5'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                            )}
+                          >
+                            <div className={cn(
+                              'h-3.5 w-3.5 rounded border-2 flex items-center justify-center transition-colors shrink-0',
+                              checked
+                                ? 'bg-primary border-primary'
+                                : 'border-gray-300',
+                            )}>
+                              {checked && <Check className="h-2 w-2 text-white" />}
+                            </div>
+                            <span className={cn(
+                              'text-sm truncate',
+                              checked ? 'text-gray-900 font-medium' : 'text-gray-600',
+                            )}>
+                              {area.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Summary */}
+        {companyAreas.length > 0 && !isLoading && (
+          <p className="text-xs text-gray-400">
+            {selectedAreaIds.size} din {companyAreas.length} zone selectate
+          </p>
+        )}
+
+        {/* Success message */}
+        {saveSuccess && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-lg">
+            <CheckCircle className="h-4 w-4 text-secondary shrink-0" />
+            <p className="text-sm text-emerald-700 font-medium">
+              Zonele de lucru au fost salvate cu succes!
+            </p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
+          <Button variant="ghost" onClick={onClose} className="flex-1">
+            Inchide
+          </Button>
+          <Button
+            onClick={handleSave}
+            loading={saving}
+            disabled={companyAreas.length === 0}
+            className="flex-1"
+          >
+            Salveaza
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function TeamPage() {
@@ -145,6 +419,7 @@ export default function TeamPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statusModal, setStatusModal] = useState<{ cleaner: Cleaner; newStatus: MutableStatus } | null>(null);
   const [deactivateModal, setDeactivateModal] = useState<Cleaner | null>(null);
+  const [areasCleaner, setAreasCleaner] = useState<Cleaner | null>(null);
 
   const { data, loading, refetch } = useQuery(MY_CLEANERS);
   const [inviteCleaner, { loading: inviting }] = useMutation(INVITE_CLEANER);
@@ -307,6 +582,11 @@ export default function TeamPage() {
                       {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                       Detalii
                     </button>
+                    <button type="button" onClick={() => setAreasCleaner(c)}
+                      className="flex items-center gap-1 text-xs font-medium text-primary hover:text-blue-700 transition-colors cursor-pointer">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Zone
+                    </button>
                     {c.status === 'ACTIVE' && (
                       <button type="button" onClick={() => setDeactivateModal(c)}
                         className="ml-auto text-xs font-medium text-red-500 hover:text-red-700 transition-colors cursor-pointer">
@@ -322,6 +602,13 @@ export default function TeamPage() {
           })}
         </div>
       )}
+
+      {/* Area Management Modal */}
+      <AreaManagementModal
+        cleaner={areasCleaner}
+        open={areasCleaner !== null}
+        onClose={() => setAreasCleaner(null)}
+      />
 
       {/* Status Change Modal */}
       <Modal open={statusModal !== null} onClose={() => setStatusModal(null)} title="Schimba status">

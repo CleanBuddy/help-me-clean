@@ -48,6 +48,7 @@ type Booking {
   cancellationReason: String
   paymentStatus: String!
   paidAt: DateTime
+  timeSlots: [BookingTimeSlot!]!
   review: Review
   chatRoom: ChatRoom
   createdAt: DateTime!
@@ -57,6 +58,20 @@ type BookingExtra {
   extra: ServiceExtra!
   price: Float!
   quantity: Int!
+}
+
+type BookingTimeSlot {
+  id: ID!
+  slotDate: String!
+  startTime: String!
+  endTime: String!
+  isSelected: Boolean!
+}
+
+input TimeSlotInput {
+  date: String!
+  startTime: String!
+  endTime: String!
 }
 
 type BookingConnection {
@@ -84,14 +99,16 @@ extend type Mutation {
   confirmBooking(id: ID!): Booking!
   startJob(id: ID!): Booking!
   completeJob(id: ID!): Booking!
+  selectBookingTimeSlot(bookingId: ID!, timeSlotId: ID!): Booking!
 }
 
 input CreateBookingInput {
   addressId: ID
   address: AddAddressInput
   serviceType: ServiceType!
-  scheduledDate: String!
-  scheduledStartTime: String!
+  scheduledDate: String
+  scheduledStartTime: String
+  timeSlots: [TimeSlotInput!]
   propertyType: String
   numRooms: Int!
   numBathrooms: Int!
@@ -102,6 +119,8 @@ input CreateBookingInput {
   guestEmail: String
   guestName: String
   guestPhone: String
+  preferredCleanerId: ID
+  suggestedStartTime: String
 }
 
 input ExtraInput {

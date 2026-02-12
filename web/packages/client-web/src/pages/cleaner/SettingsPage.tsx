@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { Phone, FileText, Building2, Star, Briefcase, TrendingUp, Check } from 'lucide-react';
+import { Phone, FileText, Building2, Star, Briefcase, TrendingUp, Check, MapPin, Info } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -12,6 +12,7 @@ import {
   MY_CLEANER_STATS,
   UPDATE_CLEANER_PROFILE,
   ACCEPT_INVITATION,
+  MY_CLEANER_SERVICE_AREAS,
 } from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -37,9 +38,12 @@ const statusLabel: Record<string, string> = {
 export default function SettingsPage() {
   const { data: profileData, loading: profileLoading } = useQuery(MY_CLEANER_PROFILE);
   const { data: statsData, loading: statsLoading } = useQuery(MY_CLEANER_STATS);
+  const { data: areasData, loading: areasLoading } = useQuery(MY_CLEANER_SERVICE_AREAS);
 
   const profile = profileData?.myCleanerProfile;
   const stats = statsData?.myCleanerStats;
+  const serviceAreas: { id: string; name: string; cityId: string; cityName: string }[] =
+    areasData?.myCleanerServiceAreas ?? [];
   const loading = profileLoading || statsLoading;
 
   // ─── Editable form state ────────────────────────────────────────────────
@@ -180,6 +184,57 @@ export default function SettingsPage() {
           </Card>
         </div>
       )}
+
+      {/* Work Areas (read-only) */}
+      <Card className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <MapPin className="h-5 w-5 text-blue-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Zonele mele de lucru</h2>
+        </div>
+
+        {areasLoading ? (
+          <p className="text-sm text-gray-400">Se incarca zonele...</p>
+        ) : serviceAreas.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="p-3 rounded-full bg-gray-100 mb-3">
+              <MapPin className="h-6 w-6 text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-500">Nicio zona atribuita inca.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {Object.entries(
+              serviceAreas.reduce<Record<string, { id: string; name: string }[]>>(
+                (acc, area) => {
+                  const city = area.cityName || 'Necunoscut';
+                  if (!acc[city]) acc[city] = [];
+                  acc[city].push({ id: area.id, name: area.name });
+                  return acc;
+                },
+                {},
+              ),
+            ).map(([city, areas]) => (
+              <div key={city}>
+                <p className="text-sm font-medium text-gray-700 mb-2">{city}</p>
+                <div className="flex flex-wrap gap-2">
+                  {areas.map((area) => (
+                    <Badge key={area.id} variant="info">
+                      {area.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-start gap-2 mt-4 p-3 rounded-xl bg-blue-50 border border-blue-100">
+          <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-blue-700">
+            Zonele de lucru sunt gestionate de administratorul firmei tale.
+          </p>
+        </div>
+      </Card>
 
       {/* Editable Profile Form */}
       <Card className="mb-6">

@@ -1,0 +1,69 @@
+type EnabledCity {
+  id: ID!
+  name: String!
+  county: String!
+  isActive: Boolean!
+  areas: [CityArea!]!
+}
+
+type CityArea {
+  id: ID!
+  name: String!
+  cityId: ID!
+  cityName: String!
+}
+
+type CleanerSuggestion {
+  cleaner: CleanerProfile!
+  company: Company!
+  availabilityStatus: String!
+  availableFrom: String
+  availableTo: String
+  suggestedStartTime: String
+  suggestedEndTime: String
+  suggestedSlotIndex: Int
+  matchScore: Float!
+}
+
+extend type Query {
+  # Public
+  activeCities: [EnabledCity!]!
+  cityAreas(cityId: ID!): [CityArea!]!
+
+  # Admin
+  allCities: [EnabledCity!]!
+
+  # Company admin
+  myCompanyServiceAreas: [CityArea!]!
+
+  # Company admin (per-cleaner read)
+  cleanerServiceAreas(cleanerId: ID!): [CityArea!]!
+
+  # Worker (read-only)
+  myCleanerServiceAreas: [CityArea!]!
+
+  # Match-making (client booking flow)
+  suggestCleaners(
+    cityId: ID!
+    areaId: ID!
+    timeSlots: [TimeSlotInput!]!
+    estimatedDurationHours: Float!
+  ): [CleanerSuggestion!]!
+
+  # Validate city is supported
+  isCitySupported(city: String!): Boolean!
+}
+
+extend type Mutation {
+  # Admin
+  createCity(name: String!, county: String!): EnabledCity!
+  toggleCityActive(id: ID!, isActive: Boolean!): EnabledCity!
+  createCityArea(cityId: ID!, name: String!): CityArea!
+  deleteCityArea(id: ID!): Boolean!
+
+  # Company admin
+  updateCompanyServiceAreas(areaIds: [ID!]!): [CityArea!]!
+
+  # Company admin (per-cleaner)
+  updateCleanerServiceAreas(cleanerId: ID!, areaIds: [ID!]!): [CityArea!]!
+}

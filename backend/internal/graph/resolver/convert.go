@@ -254,27 +254,33 @@ func dbUserToGQL(u db.User) *model.User {
 
 func dbServiceDefToGQL(s db.ServiceDefinition) *model.ServiceDefinition {
 	return &model.ServiceDefinition{
-		ID:               uuidToString(s.ID),
-		ServiceType:      dbServiceTypeToGQL(s.ServiceType),
-		NameRo:           s.NameRo,
-		NameEn:           s.NameEn,
-		DescriptionRo:    textPtr(s.DescriptionRo),
-		DescriptionEn:    textPtr(s.DescriptionEn),
-		BasePricePerHour: numericToFloat(s.BasePricePerHour),
-		MinHours:         numericToFloat(s.MinHours),
-		Icon:             textPtr(s.Icon),
-		IsActive:         boolVal(s.IsActive),
+		ID:                 uuidToString(s.ID),
+		ServiceType:        dbServiceTypeToGQL(s.ServiceType),
+		NameRo:             s.NameRo,
+		NameEn:             s.NameEn,
+		DescriptionRo:      textPtr(s.DescriptionRo),
+		DescriptionEn:      textPtr(s.DescriptionEn),
+		BasePricePerHour:   numericToFloat(s.BasePricePerHour),
+		MinHours:           numericToFloat(s.MinHours),
+		HoursPerRoom:       numericToFloat(s.HoursPerRoom),
+		HoursPerBathroom:   numericToFloat(s.HoursPerBathroom),
+		HoursPer100Sqm:     numericToFloat(s.HoursPer100Sqm),
+		HouseMultiplier:    numericToFloat(s.HouseMultiplier),
+		PetDurationMinutes: int(s.PetDurationMinutes),
+		Icon:               textPtr(s.Icon),
+		IsActive:           boolVal(s.IsActive),
 	}
 }
 
 func dbServiceExtraToGQL(e db.ServiceExtra) *model.ServiceExtra {
 	return &model.ServiceExtra{
-		ID:       uuidToString(e.ID),
-		NameRo:   e.NameRo,
-		NameEn:   e.NameEn,
-		Price:    numericToFloat(e.Price),
-		Icon:     textPtr(e.Icon),
-		IsActive: boolVal(e.IsActive),
+		ID:              uuidToString(e.ID),
+		NameRo:          e.NameRo,
+		NameEn:          e.NameEn,
+		Price:           numericToFloat(e.Price),
+		DurationMinutes: int(e.DurationMinutes),
+		Icon:            textPtr(e.Icon),
+		IsActive:        boolVal(e.IsActive),
 	}
 }
 
@@ -311,6 +317,7 @@ func dbBookingToGQL(b db.Booking) *model.Booking {
 		CompletedAt:           timestamptzToTimePtr(b.CompletedAt),
 		CancelledAt:           timestamptzToTimePtr(b.CancelledAt),
 		CancellationReason:    textPtr(b.CancellationReason),
+		TimeSlots:             []*model.BookingTimeSlot{},
 		PaymentStatus:         paymentStatus,
 		PaidAt:                timestamptzToTimePtr(b.PaidAt),
 		CreatedAt:             timestamptzToTime(b.CreatedAt),

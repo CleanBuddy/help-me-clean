@@ -122,6 +122,10 @@ SELECT COUNT(*) FROM bookings WHERE
     AND (@date_from::date = '0001-01-01' OR scheduled_date >= @date_from::date)
     AND (@date_to::date = '0001-01-01' OR scheduled_date <= @date_to::date);
 
+-- name: SetBookingPreferredCleaner :one
+UPDATE bookings SET company_id = $2, cleaner_id = $3, updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
 -- name: SearchCleanerBookings :many
 SELECT * FROM bookings WHERE
     cleaner_id = $1
@@ -138,3 +142,7 @@ SELECT COUNT(*) FROM bookings WHERE
     AND (@status_filter::text = '' OR status::text = @status_filter::text OR (@status_filter::text = 'cancelled' AND status::text LIKE 'cancelled%'))
     AND (@date_from::date = '0001-01-01' OR scheduled_date >= @date_from::date)
     AND (@date_to::date = '0001-01-01' OR scheduled_date <= @date_to::date);
+
+-- name: UpdateBookingSchedule :one
+UPDATE bookings SET scheduled_date = $2, scheduled_start_time = $3, updated_at = NOW()
+WHERE id = $1 RETURNING *;

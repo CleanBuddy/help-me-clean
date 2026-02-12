@@ -17,6 +17,7 @@ import {
   UserPlus,
   Star,
   Search,
+  Check,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -275,6 +276,43 @@ export default function BookingDetailPage() {
                     </p>
                   )}
                 </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Time Slots */}
+          {booking.timeSlots && booking.timeSlots.length > 0 && (
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Intervale de timp</h3>
+              <div className="space-y-3">
+                {booking.timeSlots.map((slot: { id: string; slotDate: string; startTime: string; endTime: string; isSelected: boolean }) => (
+                  <div
+                    key={slot.id}
+                    className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      slot.isSelected
+                        ? 'border-blue-200 bg-blue-50'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <Calendar className={`h-4 w-4 mt-0.5 shrink-0 ${slot.isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900">
+                        {formatDate(slot.slotDate)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
+                      </p>
+                    </div>
+                    {slot.isSelected ? (
+                      <Badge variant="success">
+                        <Check className="h-3 w-3 mr-1" />
+                        Selectat
+                      </Badge>
+                    ) : (
+                      <Badge variant="default">Propus</Badge>
+                    )}
+                  </div>
+                ))}
               </div>
             </Card>
           )}

@@ -11,7 +11,7 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
-	"math"
+	"log"
 	"strings"
 	"time"
 
@@ -90,6 +90,21 @@ func (r *mutationResolver) CreateBookingRequest(ctx context.Context, input model
 		return nil, fmt.Errorf("either addressId or address input is required")
 	}
 
+	// Validate city is supported (enabled and active).
+	var addrCity string
+	if input.AddressID != nil {
+		addr, _ := r.Queries.GetAddressByID(ctx, addressID)
+		addrCity = addr.City
+	} else if input.Address != nil {
+		addrCity = input.Address.City
+	}
+	if addrCity != "" {
+		_, cityErr := r.Queries.GetCityByName(ctx, strings.TrimSpace(addrCity))
+		if cityErr != nil {
+			return nil, fmt.Errorf("ne pare rau, nu suntem inca activi in %s", addrCity)
+		}
+	}
+
 	// Look up service definition for pricing.
 	dbServiceType := gqlServiceTypeToDb(input.ServiceType)
 	serviceDef, err := r.Queries.GetServiceByType(ctx, dbServiceType)
@@ -98,41 +113,74 @@ func (r *mutationResolver) CreateBookingRequest(ctx context.Context, input model
 	}
 
 	hourlyRate := numericToFloat(serviceDef.BasePricePerHour)
-	minHours := numericToFloat(serviceDef.MinHours)
 
-	// Estimate hours.
-	estimatedHours := float64(input.NumRooms)*0.5 + float64(input.NumBathrooms)*0.5
-	if input.AreaSqm != nil {
-		estimatedHours += float64(*input.AreaSqm) / 100.0
+	// Fetch extras for duration and pricing.
+	var extrasDuration []struct {
+		DurationMinutes int32
+		Quantity        int
 	}
-	if estimatedHours < minHours {
-		estimatedHours = minHours
-	}
-	estimatedHours = math.Round(estimatedHours*2) / 2
-
-	estimatedTotal := hourlyRate * estimatedHours
-
-	// Add extras cost.
+	extrasTotal := 0.0
 	if input.Extras != nil {
 		for _, extraInput := range input.Extras {
 			extra, err := r.Queries.GetExtraByID(ctx, stringToUUID(extraInput.ExtraID))
 			if err != nil {
 				return nil, fmt.Errorf("extra not found: %w", err)
 			}
-			estimatedTotal += numericToFloat(extra.Price) * float64(extraInput.Quantity)
+			extrasTotal += numericToFloat(extra.Price) * float64(extraInput.Quantity)
+			extrasDuration = append(extrasDuration, struct {
+				DurationMinutes int32
+				Quantity        int
+			}{DurationMinutes: extra.DurationMinutes, Quantity: extraInput.Quantity})
 		}
 	}
 
-	// Parse scheduled date.
-	scheduledDate, err := time.Parse("2006-01-02", input.ScheduledDate)
-	if err != nil {
-		return nil, fmt.Errorf("invalid scheduled date format: %w", err)
+	// Estimate duration using DB-driven parameters.
+	estimatedHours := estimateDuration(serviceDef, input.NumRooms, input.NumBathrooms, input.AreaSqm, input.PropertyType, input.HasPets, extrasDuration)
+
+	subtotal := hourlyRate * estimatedHours
+
+	// Pets surcharge (flat fee).
+	petsSurcharge := 0.0
+	if input.HasPets != nil && *input.HasPets {
+		petsSurcharge = 15.0
 	}
 
-	// Parse scheduled start time.
-	scheduledTime, err := time.Parse("15:04", input.ScheduledStartTime)
-	if err != nil {
-		return nil, fmt.Errorf("invalid scheduled start time format: %w", err)
+	estimatedTotal := subtotal + extrasTotal + petsSurcharge
+
+	// Resolve scheduled date/time from timeSlots or legacy fields.
+	var scheduledDate time.Time
+	var scheduledTime time.Time
+
+	if input.TimeSlots != nil && len(input.TimeSlots) > 0 {
+		// Use first time slot.
+		scheduledDate, err = time.Parse("2006-01-02", input.TimeSlots[0].Date)
+		if err != nil {
+			return nil, fmt.Errorf("invalid time slot date format: %w", err)
+		}
+		scheduledTime, err = time.Parse("15:04", input.TimeSlots[0].StartTime)
+		if err != nil {
+			return nil, fmt.Errorf("invalid time slot start time format: %w", err)
+		}
+	} else if input.ScheduledDate != nil && input.ScheduledStartTime != nil {
+		// Legacy single date/time.
+		scheduledDate, err = time.Parse("2006-01-02", *input.ScheduledDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid scheduled date format: %w", err)
+		}
+		scheduledTime, err = time.Parse("15:04", *input.ScheduledStartTime)
+		if err != nil {
+			return nil, fmt.Errorf("invalid scheduled start time format: %w", err)
+		}
+	} else {
+		return nil, fmt.Errorf("either timeSlots or scheduledDate+scheduledStartTime is required")
+	}
+
+	// Override with system-optimized start time from matchmaking if provided.
+	if input.SuggestedStartTime != nil && *input.SuggestedStartTime != "" {
+		suggested, parseErr := time.Parse("15:04", *input.SuggestedStartTime)
+		if parseErr == nil {
+			scheduledTime = suggested
+		}
 	}
 
 	referenceCode := fmt.Sprintf("HMC-%d", time.Now().UnixNano()%1000000)
@@ -164,7 +212,42 @@ func (r *mutationResolver) CreateBookingRequest(ctx context.Context, input model
 		return nil, fmt.Errorf("failed to create booking: %w", err)
 	}
 
-	return dbBookingToGQL(booking), nil
+	// Insert time slots if provided.
+	if input.TimeSlots != nil && len(input.TimeSlots) > 0 {
+		for i, slot := range input.TimeSlots {
+			slotDate, _ := time.Parse("2006-01-02", slot.Date)
+			slotStartTime := parseHHMMToTime(slot.StartTime)
+			slotEndTime := parseHHMMToTime(slot.EndTime)
+
+			_, tsErr := r.Queries.CreateBookingTimeSlot(ctx, db.CreateBookingTimeSlotParams{
+				BookingID:  booking.ID,
+				SlotDate:   pgtype.Date{Time: slotDate, Valid: true},
+				StartTime:  slotStartTime,
+				EndTime:    slotEndTime,
+				IsSelected: i == 0,
+			})
+			if tsErr != nil {
+				log.Printf("failed to create time slot %d: %v", i, tsErr)
+			}
+		}
+	}
+
+	// If preferred cleaner was selected, set company_id and cleaner_id (status stays pending).
+	if input.PreferredCleanerID != nil && *input.PreferredCleanerID != "" {
+		cleanerUUID := stringToUUID(*input.PreferredCleanerID)
+		cleaner, err := r.Queries.GetCleanerByID(ctx, cleanerUUID)
+		if err == nil {
+			booking, _ = r.Queries.SetBookingPreferredCleaner(ctx, db.SetBookingPreferredCleanerParams{
+				ID:        booking.ID,
+				CompanyID: cleaner.CompanyID,
+				CleanerID: cleanerUUID,
+			})
+		}
+	}
+
+	gqlBooking := dbBookingToGQL(booking)
+	r.enrichBooking(ctx, booking, gqlBooking)
+	return gqlBooking, nil
 }
 
 // CancelBooking is the resolver for the cancelBooking field.
@@ -353,6 +436,46 @@ func (r *mutationResolver) CompleteJob(ctx context.Context, id string) (*model.B
 	}
 
 	return dbBookingToGQL(booking), nil
+}
+
+// SelectBookingTimeSlot is the resolver for the selectBookingTimeSlot field.
+func (r *mutationResolver) SelectBookingTimeSlot(ctx context.Context, bookingID string, timeSlotID string) (*model.Booking, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	bID := stringToUUID(bookingID)
+
+	// Deselect all slots first.
+	if err := r.Queries.DeselectAllBookingTimeSlots(ctx, bID); err != nil {
+		return nil, fmt.Errorf("failed to deselect slots: %w", err)
+	}
+
+	// Select the chosen slot.
+	slot, err := r.Queries.SelectBookingTimeSlot(ctx, stringToUUID(timeSlotID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to select slot: %w", err)
+	}
+
+	// Update booking's scheduled_date and scheduled_start_time to match.
+	_, err = r.Queries.UpdateBookingSchedule(ctx, db.UpdateBookingScheduleParams{
+		ID:                 bID,
+		ScheduledDate:      slot.SlotDate,
+		ScheduledStartTime: slot.StartTime,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update booking schedule: %w", err)
+	}
+
+	booking, err := r.Queries.GetBookingByID(ctx, bID)
+	if err != nil {
+		return nil, fmt.Errorf("booking not found: %w", err)
+	}
+
+	result := dbBookingToGQL(booking)
+	r.enrichBooking(ctx, booking, result)
+	return result, nil
 }
 
 // MyBookings is the resolver for the myBookings field.

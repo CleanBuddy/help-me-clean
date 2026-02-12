@@ -107,6 +107,8 @@ export const ESTIMATE_PRICE = gql`
     estimatePrice(input: $input) {
       hourlyRate
       estimatedHours
+      propertyMultiplier
+      petsSurcharge
       subtotal
       extras {
         extra {
@@ -201,6 +203,13 @@ export const CLIENT_BOOKING_DETAIL = gql`
         id
         fullName
         phone
+      }
+      timeSlots {
+        id
+        slotDate
+        startTime
+        endTime
+        isSelected
       }
       review {
         id
@@ -683,6 +692,10 @@ export const COMPANY_BOOKING_DETAIL = gql`
         email
         phone
       }
+      company {
+        id
+        companyName
+      }
       address {
         streetAddress
         city
@@ -694,6 +707,13 @@ export const COMPANY_BOOKING_DETAIL = gql`
         id
         fullName
         phone
+      }
+      timeSlots {
+        id
+        slotDate
+        startTime
+        endTime
+        isSelected
       }
     }
   }
@@ -925,6 +945,31 @@ export const ADMIN_BOOKING_DETAIL = gql`
         floor
         apartment
       }
+      timeSlots {
+        id
+        slotDate
+        startTime
+        endTime
+        isSelected
+      }
+    }
+  }
+`;
+
+export const SELECT_BOOKING_TIME_SLOT = gql`
+  mutation SelectBookingTimeSlot($bookingId: ID!, $timeSlotId: ID!) {
+    selectBookingTimeSlot(bookingId: $bookingId, timeSlotId: $timeSlotId) {
+      id
+      scheduledDate
+      scheduledStartTime
+      status
+      timeSlots {
+        id
+        slotDate
+        startTime
+        endTime
+        isSelected
+      }
     }
   }
 `;
@@ -1041,6 +1086,11 @@ export const ALL_SERVICES = gql`
       nameEn
       basePricePerHour
       minHours
+      hoursPerRoom
+      hoursPerBathroom
+      hoursPer100Sqm
+      houseMultiplier
+      petDurationMinutes
       icon
       isActive
     }
@@ -1054,6 +1104,7 @@ export const ALL_EXTRAS = gql`
       nameRo
       nameEn
       price
+      durationMinutes
       icon
       isActive
     }
@@ -1068,6 +1119,11 @@ export const UPDATE_SERVICE_DEFINITION = gql`
       nameEn
       basePricePerHour
       minHours
+      hoursPerRoom
+      hoursPerBathroom
+      hoursPer100Sqm
+      houseMultiplier
+      petDurationMinutes
       isActive
     }
   }
@@ -1082,6 +1138,11 @@ export const CREATE_SERVICE_DEFINITION = gql`
       nameEn
       basePricePerHour
       minHours
+      hoursPerRoom
+      hoursPerBathroom
+      hoursPer100Sqm
+      houseMultiplier
+      petDurationMinutes
       isActive
     }
   }
@@ -1094,6 +1155,7 @@ export const UPDATE_SERVICE_EXTRA = gql`
       nameRo
       nameEn
       price
+      durationMinutes
       isActive
     }
   }
@@ -1106,6 +1168,7 @@ export const CREATE_SERVICE_EXTRA = gql`
       nameRo
       nameEn
       price
+      durationMinutes
       isActive
     }
   }
@@ -1772,6 +1835,184 @@ export const UPDATE_CLEANER_PROFILE = gql`
         id
         companyName
       }
+    }
+  }
+`;
+
+// ─── Cities, Areas & Location ──────────────────────────────────────────────
+
+export const ACTIVE_CITIES = gql`
+  query ActiveCities {
+    activeCities {
+      id
+      name
+      county
+      isActive
+      areas {
+        id
+        name
+        cityId
+        cityName
+      }
+    }
+  }
+`;
+
+export const ALL_CITIES = gql`
+  query AllCities {
+    allCities {
+      id
+      name
+      county
+      isActive
+      areas {
+        id
+        name
+        cityId
+        cityName
+      }
+    }
+  }
+`;
+
+export const CITY_AREAS = gql`
+  query CityAreas($cityId: ID!) {
+    cityAreas(cityId: $cityId) {
+      id
+      name
+      cityId
+      cityName
+    }
+  }
+`;
+
+export const CREATE_CITY = gql`
+  mutation CreateCity($name: String!, $county: String!) {
+    createCity(name: $name, county: $county) {
+      id
+      name
+      county
+      isActive
+      areas {
+        id
+        name
+        cityId
+        cityName
+      }
+    }
+  }
+`;
+
+export const TOGGLE_CITY_ACTIVE = gql`
+  mutation ToggleCityActive($id: ID!, $isActive: Boolean!) {
+    toggleCityActive(id: $id, isActive: $isActive) {
+      id
+      name
+      county
+      isActive
+    }
+  }
+`;
+
+export const CREATE_CITY_AREA = gql`
+  mutation CreateCityArea($cityId: ID!, $name: String!) {
+    createCityArea(cityId: $cityId, name: $name) {
+      id
+      name
+      cityId
+      cityName
+    }
+  }
+`;
+
+export const DELETE_CITY_AREA = gql`
+  mutation DeleteCityArea($id: ID!) {
+    deleteCityArea(id: $id)
+  }
+`;
+
+export const IS_CITY_SUPPORTED = gql`
+  query IsCitySupported($city: String!) {
+    isCitySupported(city: $city)
+  }
+`;
+
+export const SUGGEST_CLEANERS = gql`
+  query SuggestCleaners($cityId: ID!, $areaId: ID!, $timeSlots: [TimeSlotInput!]!, $estimatedDurationHours: Float!) {
+    suggestCleaners(cityId: $cityId, areaId: $areaId, timeSlots: $timeSlots, estimatedDurationHours: $estimatedDurationHours) {
+      cleaner {
+        id
+        fullName
+        avatarUrl
+        ratingAvg
+        totalJobsCompleted
+      }
+      company {
+        id
+        companyName
+      }
+      availabilityStatus
+      availableFrom
+      availableTo
+      suggestedStartTime
+      suggestedEndTime
+      suggestedSlotIndex
+      matchScore
+    }
+  }
+`;
+
+export const MY_COMPANY_SERVICE_AREAS = gql`
+  query MyCompanyServiceAreas {
+    myCompanyServiceAreas {
+      id
+      name
+      cityId
+      cityName
+    }
+  }
+`;
+
+export const UPDATE_COMPANY_SERVICE_AREAS = gql`
+  mutation UpdateCompanyServiceAreas($areaIds: [ID!]!) {
+    updateCompanyServiceAreas(areaIds: $areaIds) {
+      id
+      name
+      cityId
+      cityName
+    }
+  }
+`;
+
+export const CLEANER_SERVICE_AREAS = gql`
+  query CleanerServiceAreas($cleanerId: ID!) {
+    cleanerServiceAreas(cleanerId: $cleanerId) {
+      id
+      name
+      cityId
+      cityName
+    }
+  }
+`;
+
+export const MY_CLEANER_SERVICE_AREAS = gql`
+  query MyCleanerServiceAreas {
+    myCleanerServiceAreas {
+      id
+      name
+      cityId
+      cityName
+    }
+  }
+`;
+
+export const UPDATE_CLEANER_SERVICE_AREAS = gql`
+  mutation UpdateCleanerServiceAreas($cleanerId: ID!, $areaIds: [ID!]!) {
+    updateCleanerServiceAreas(cleanerId: $cleanerId, areaIds: $areaIds) {
+      id
+      name
+      cityId
+      cityName
     }
   }
 `;

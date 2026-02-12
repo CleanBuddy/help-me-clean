@@ -111,6 +111,7 @@ type ComplexityRoot struct {
 		SpecialInstructions    func(childComplexity int) int
 		StartedAt              func(childComplexity int) int
 		Status                 func(childComplexity int) int
+		TimeSlots              func(childComplexity int) int
 	}
 
 	BookingConnection struct {
@@ -123,6 +124,14 @@ type ComplexityRoot struct {
 		Extra    func(childComplexity int) int
 		Price    func(childComplexity int) int
 		Quantity func(childComplexity int) int
+	}
+
+	BookingTimeSlot struct {
+		EndTime    func(childComplexity int) int
+		ID         func(childComplexity int) int
+		IsSelected func(childComplexity int) int
+		SlotDate   func(childComplexity int) int
+		StartTime  func(childComplexity int) int
 	}
 
 	BookingsByStatus struct {
@@ -157,6 +166,13 @@ type ComplexityRoot struct {
 		Messages     func(childComplexity int, first *int, after *string) int
 		Participants func(childComplexity int) int
 		RoomType     func(childComplexity int) int
+	}
+
+	CityArea struct {
+		CityID   func(childComplexity int) int
+		CityName func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Name     func(childComplexity int) int
 	}
 
 	CleanerDailyEarnings struct {
@@ -207,6 +223,18 @@ type ComplexityRoot struct {
 		ThisMonthJobs      func(childComplexity int) int
 		TotalJobsCompleted func(childComplexity int) int
 		TotalReviews       func(childComplexity int) int
+	}
+
+	CleanerSuggestion struct {
+		AvailabilityStatus func(childComplexity int) int
+		AvailableFrom      func(childComplexity int) int
+		AvailableTo        func(childComplexity int) int
+		Cleaner            func(childComplexity int) int
+		Company            func(childComplexity int) int
+		MatchScore         func(childComplexity int) int
+		SuggestedEndTime   func(childComplexity int) int
+		SuggestedSlotIndex func(childComplexity int) int
+		SuggestedStartTime func(childComplexity int) int
 	}
 
 	Company struct {
@@ -287,6 +315,14 @@ type ComplexityRoot struct {
 		Revenue      func(childComplexity int) int
 	}
 
+	EnabledCity struct {
+		Areas    func(childComplexity int) int
+		County   func(childComplexity int) int
+		ID       func(childComplexity int) int
+		IsActive func(childComplexity int) int
+		Name     func(childComplexity int) int
+	}
+
 	ExtraLineItem struct {
 		Extra     func(childComplexity int) int
 		LineTotal func(childComplexity int) int
@@ -310,9 +346,12 @@ type ComplexityRoot struct {
 		ConfirmBooking                func(childComplexity int, id string) int
 		CreateAdminChatRoom           func(childComplexity int, userIds []string) int
 		CreateBookingRequest          func(childComplexity int, input model.CreateBookingInput) int
+		CreateCity                    func(childComplexity int, name string, county string) int
+		CreateCityArea                func(childComplexity int, cityID string, name string) int
 		CreateServiceDefinition       func(childComplexity int, input model.CreateServiceDefinitionInput) int
 		CreateServiceExtra            func(childComplexity int, input model.CreateServiceExtraInput) int
 		DeleteAddress                 func(childComplexity int, id string) int
+		DeleteCityArea                func(childComplexity int, id string) int
 		DeletePaymentMethod           func(childComplexity int, id string) int
 		DeleteReview                  func(childComplexity int, id string) int
 		InviteCleaner                 func(childComplexity int, input model.InviteCleanerInput) int
@@ -326,6 +365,7 @@ type ComplexityRoot struct {
 		RefreshToken                  func(childComplexity int) int
 		RegisterDeviceToken           func(childComplexity int, token string) int
 		RejectCompany                 func(childComplexity int, id string, reason string) int
+		SelectBookingTimeSlot         func(childComplexity int, bookingID string, timeSlotID string) int
 		SendMessage                   func(childComplexity int, roomID string, content string, messageType *string) int
 		SetCleanerDateOverride        func(childComplexity int, date string, isAvailable bool, startTime string, endTime string) int
 		SetCleanerDateOverrideByAdmin func(childComplexity int, cleanerID string, date string, isAvailable bool, startTime string, endTime string) int
@@ -336,12 +376,15 @@ type ComplexityRoot struct {
 		SubmitReview                  func(childComplexity int, input model.SubmitReviewInput) int
 		SuspendCompany                func(childComplexity int, id string, reason string) int
 		SuspendUser                   func(childComplexity int, id string, reason string) int
+		ToggleCityActive              func(childComplexity int, id string, isActive bool) int
 		UpdateAddress                 func(childComplexity int, id string, input model.UpdateAddressInput) int
 		UpdateAvailability            func(childComplexity int, slots []*model.AvailabilitySlotInput) int
 		UpdateCleanerAvailability     func(childComplexity int, cleanerID string, slots []*model.AvailabilitySlotInput) int
 		UpdateCleanerProfile          func(childComplexity int, input model.UpdateCleanerProfileInput) int
+		UpdateCleanerServiceAreas     func(childComplexity int, cleanerID string, areaIds []string) int
 		UpdateCleanerStatus           func(childComplexity int, id string, status model.CleanerStatus) int
 		UpdateCompanyProfile          func(childComplexity int, input model.UpdateCompanyInput) int
+		UpdateCompanyServiceAreas     func(childComplexity int, areaIds []string) int
 		UpdatePlatformSetting         func(childComplexity int, key string, value string) int
 		UpdateProfile                 func(childComplexity int, input model.UpdateProfileInput) int
 		UpdateServiceDefinition       func(childComplexity int, input model.UpdateServiceDefinitionInput) int
@@ -411,16 +454,20 @@ type ComplexityRoot struct {
 	}
 
 	PriceEstimate struct {
-		EstimatedHours func(childComplexity int) int
-		Extras         func(childComplexity int) int
-		HourlyRate     func(childComplexity int) int
-		Subtotal       func(childComplexity int) int
-		Total          func(childComplexity int) int
+		EstimatedHours     func(childComplexity int) int
+		Extras             func(childComplexity int) int
+		HourlyRate         func(childComplexity int) int
+		PetsSurcharge      func(childComplexity int) int
+		PropertyMultiplier func(childComplexity int) int
+		Subtotal           func(childComplexity int) int
+		Total              func(childComplexity int) int
 	}
 
 	Query struct {
+		ActiveCities                 func(childComplexity int) int
 		AllBookings                  func(childComplexity int, status *model.BookingStatus, companyID *string, dateFrom *string, dateTo *string, first *int, after *string) int
 		AllChatRooms                 func(childComplexity int) int
+		AllCities                    func(childComplexity int) int
 		AllCleaners                  func(childComplexity int) int
 		AllExtras                    func(childComplexity int) int
 		AllReviews                   func(childComplexity int, limit *int, offset *int) int
@@ -431,9 +478,11 @@ type ComplexityRoot struct {
 		Booking                      func(childComplexity int, id string) int
 		BookingsByStatus             func(childComplexity int) int
 		ChatRoom                     func(childComplexity int, id string) int
+		CityAreas                    func(childComplexity int, cityID string) int
 		CleanerDateOverrides         func(childComplexity int, cleanerID string, from string, to string) int
 		CleanerEarningsByDateRange   func(childComplexity int, from string, to string) int
 		CleanerPerformance           func(childComplexity int, cleanerID string) int
+		CleanerServiceAreas          func(childComplexity int, cleanerID string) int
 		Companies                    func(childComplexity int, status *model.CompanyStatus, first *int, after *string) int
 		Company                      func(childComplexity int, id string) int
 		CompanyBookings              func(childComplexity int, status *model.BookingStatus, first *int, after *string) int
@@ -443,6 +492,7 @@ type ComplexityRoot struct {
 		CompanyPerformance           func(childComplexity int, first *int) int
 		CompanyRevenueByDateRange    func(childComplexity int, from string, to string) int
 		EstimatePrice                func(childComplexity int, input model.PriceEstimateInput) int
+		IsCitySupported              func(childComplexity int, city string) int
 		Me                           func(childComplexity int) int
 		MyAddresses                  func(childComplexity int) int
 		MyAssignedJobs               func(childComplexity int, status *model.BookingStatus) int
@@ -454,10 +504,12 @@ type ComplexityRoot struct {
 		MyCleanerDateOverrides       func(childComplexity int, from string, to string) int
 		MyCleanerProfile             func(childComplexity int) int
 		MyCleanerReviews             func(childComplexity int, limit *int, offset *int) int
+		MyCleanerServiceAreas        func(childComplexity int) int
 		MyCleanerStats               func(childComplexity int) int
 		MyCleaners                   func(childComplexity int) int
 		MyCompany                    func(childComplexity int) int
 		MyCompanyFinancialSummary    func(childComplexity int) int
+		MyCompanyServiceAreas        func(childComplexity int) int
 		MyCompanyWorkSchedule        func(childComplexity int) int
 		MyNotifications              func(childComplexity int, first *int, after *string, unreadOnly *bool) int
 		MyPaymentMethods             func(childComplexity int) int
@@ -473,6 +525,7 @@ type ComplexityRoot struct {
 		SearchCompanies              func(childComplexity int, query *string, status *model.CompanyStatus, limit *int, offset *int) int
 		SearchCompanyBookings        func(childComplexity int, query *string, status *string, dateFrom *string, dateTo *string, limit *int, offset *int) int
 		SearchUsers                  func(childComplexity int, query *string, role *model.UserRole, status *model.UserStatus, limit *int, offset *int) int
+		SuggestCleaners              func(childComplexity int, cityID string, areaID string, timeSlots []*model.TimeSlotInput, estimatedDurationHours float64) int
 		TodaysJobs                   func(childComplexity int) int
 		TopCompaniesByRevenue        func(childComplexity int, from string, to string, limit *int) int
 		UnreadNotificationCount      func(childComplexity int) int
@@ -502,25 +555,31 @@ type ComplexityRoot struct {
 	}
 
 	ServiceDefinition struct {
-		BasePricePerHour func(childComplexity int) int
-		DescriptionEn    func(childComplexity int) int
-		DescriptionRo    func(childComplexity int) int
-		ID               func(childComplexity int) int
-		Icon             func(childComplexity int) int
-		IsActive         func(childComplexity int) int
-		MinHours         func(childComplexity int) int
-		NameEn           func(childComplexity int) int
-		NameRo           func(childComplexity int) int
-		ServiceType      func(childComplexity int) int
+		BasePricePerHour   func(childComplexity int) int
+		DescriptionEn      func(childComplexity int) int
+		DescriptionRo      func(childComplexity int) int
+		HoursPer100Sqm     func(childComplexity int) int
+		HoursPerBathroom   func(childComplexity int) int
+		HoursPerRoom       func(childComplexity int) int
+		HouseMultiplier    func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		Icon               func(childComplexity int) int
+		IsActive           func(childComplexity int) int
+		MinHours           func(childComplexity int) int
+		NameEn             func(childComplexity int) int
+		NameRo             func(childComplexity int) int
+		PetDurationMinutes func(childComplexity int) int
+		ServiceType        func(childComplexity int) int
 	}
 
 	ServiceExtra struct {
-		ID       func(childComplexity int) int
-		Icon     func(childComplexity int) int
-		IsActive func(childComplexity int) int
-		NameEn   func(childComplexity int) int
-		NameRo   func(childComplexity int) int
-		Price    func(childComplexity int) int
+		DurationMinutes func(childComplexity int) int
+		ID              func(childComplexity int) int
+		Icon            func(childComplexity int) int
+		IsActive        func(childComplexity int) int
+		NameEn          func(childComplexity int) int
+		NameRo          func(childComplexity int) int
+		Price           func(childComplexity int) int
 	}
 
 	ServiceRevenue struct {
@@ -584,6 +643,7 @@ type MutationResolver interface {
 	ConfirmBooking(ctx context.Context, id string) (*model.Booking, error)
 	StartJob(ctx context.Context, id string) (*model.Booking, error)
 	CompleteJob(ctx context.Context, id string) (*model.Booking, error)
+	SelectBookingTimeSlot(ctx context.Context, bookingID string, timeSlotID string) (*model.Booking, error)
 	SendMessage(ctx context.Context, roomID string, content string, messageType *string) (*model.ChatMessage, error)
 	MarkMessagesAsRead(ctx context.Context, roomID string) (bool, error)
 	CreateAdminChatRoom(ctx context.Context, userIds []string) (*model.ChatRoom, error)
@@ -611,6 +671,12 @@ type MutationResolver interface {
 	ApproveCompany(ctx context.Context, id string) (*model.Company, error)
 	RejectCompany(ctx context.Context, id string, reason string) (*model.Company, error)
 	SuspendCompany(ctx context.Context, id string, reason string) (*model.Company, error)
+	CreateCity(ctx context.Context, name string, county string) (*model.EnabledCity, error)
+	ToggleCityActive(ctx context.Context, id string, isActive bool) (*model.EnabledCity, error)
+	CreateCityArea(ctx context.Context, cityID string, name string) (*model.CityArea, error)
+	DeleteCityArea(ctx context.Context, id string) (bool, error)
+	UpdateCompanyServiceAreas(ctx context.Context, areaIds []string) ([]*model.CityArea, error)
+	UpdateCleanerServiceAreas(ctx context.Context, cleanerID string, areaIds []string) ([]*model.CityArea, error)
 	MarkNotificationRead(ctx context.Context, id string) (*model.Notification, error)
 	MarkAllNotificationsRead(ctx context.Context) (bool, error)
 	SubmitReview(ctx context.Context, input model.SubmitReviewInput) (*model.Review, error)
@@ -671,6 +737,14 @@ type QueryResolver interface {
 	Companies(ctx context.Context, status *model.CompanyStatus, first *int, after *string) (*model.CompanyConnection, error)
 	Company(ctx context.Context, id string) (*model.Company, error)
 	CompanyChatRooms(ctx context.Context) ([]*model.ChatRoom, error)
+	ActiveCities(ctx context.Context) ([]*model.EnabledCity, error)
+	CityAreas(ctx context.Context, cityID string) ([]*model.CityArea, error)
+	AllCities(ctx context.Context) ([]*model.EnabledCity, error)
+	MyCompanyServiceAreas(ctx context.Context) ([]*model.CityArea, error)
+	CleanerServiceAreas(ctx context.Context, cleanerID string) ([]*model.CityArea, error)
+	MyCleanerServiceAreas(ctx context.Context) ([]*model.CityArea, error)
+	SuggestCleaners(ctx context.Context, cityID string, areaID string, timeSlots []*model.TimeSlotInput, estimatedDurationHours float64) ([]*model.CleanerSuggestion, error)
+	IsCitySupported(ctx context.Context, city string) (bool, error)
 	MyNotifications(ctx context.Context, first *int, after *string, unreadOnly *bool) (*model.NotificationConnection, error)
 	UnreadNotificationCount(ctx context.Context) (int, error)
 	AvailableServices(ctx context.Context) ([]*model.ServiceDefinition, error)
@@ -1023,6 +1097,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.Status(childComplexity), true
+	case "Booking.timeSlots":
+		if e.complexity.Booking.TimeSlots == nil {
+			break
+		}
+
+		return e.complexity.Booking.TimeSlots(childComplexity), true
 
 	case "BookingConnection.edges":
 		if e.complexity.BookingConnection.Edges == nil {
@@ -1061,6 +1141,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.BookingExtra.Quantity(childComplexity), true
+
+	case "BookingTimeSlot.endTime":
+		if e.complexity.BookingTimeSlot.EndTime == nil {
+			break
+		}
+
+		return e.complexity.BookingTimeSlot.EndTime(childComplexity), true
+	case "BookingTimeSlot.id":
+		if e.complexity.BookingTimeSlot.ID == nil {
+			break
+		}
+
+		return e.complexity.BookingTimeSlot.ID(childComplexity), true
+	case "BookingTimeSlot.isSelected":
+		if e.complexity.BookingTimeSlot.IsSelected == nil {
+			break
+		}
+
+		return e.complexity.BookingTimeSlot.IsSelected(childComplexity), true
+	case "BookingTimeSlot.slotDate":
+		if e.complexity.BookingTimeSlot.SlotDate == nil {
+			break
+		}
+
+		return e.complexity.BookingTimeSlot.SlotDate(childComplexity), true
+	case "BookingTimeSlot.startTime":
+		if e.complexity.BookingTimeSlot.StartTime == nil {
+			break
+		}
+
+		return e.complexity.BookingTimeSlot.StartTime(childComplexity), true
 
 	case "BookingsByStatus.count":
 		if e.complexity.BookingsByStatus.Count == nil {
@@ -1185,6 +1296,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChatRoom.RoomType(childComplexity), true
+
+	case "CityArea.cityId":
+		if e.complexity.CityArea.CityID == nil {
+			break
+		}
+
+		return e.complexity.CityArea.CityID(childComplexity), true
+	case "CityArea.cityName":
+		if e.complexity.CityArea.CityName == nil {
+			break
+		}
+
+		return e.complexity.CityArea.CityName(childComplexity), true
+	case "CityArea.id":
+		if e.complexity.CityArea.ID == nil {
+			break
+		}
+
+		return e.complexity.CityArea.ID(childComplexity), true
+	case "CityArea.name":
+		if e.complexity.CityArea.Name == nil {
+			break
+		}
+
+		return e.complexity.CityArea.Name(childComplexity), true
 
 	case "CleanerDailyEarnings.amount":
 		if e.complexity.CleanerDailyEarnings.Amount == nil {
@@ -1400,6 +1536,61 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CleanerStats.TotalReviews(childComplexity), true
+
+	case "CleanerSuggestion.availabilityStatus":
+		if e.complexity.CleanerSuggestion.AvailabilityStatus == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.AvailabilityStatus(childComplexity), true
+	case "CleanerSuggestion.availableFrom":
+		if e.complexity.CleanerSuggestion.AvailableFrom == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.AvailableFrom(childComplexity), true
+	case "CleanerSuggestion.availableTo":
+		if e.complexity.CleanerSuggestion.AvailableTo == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.AvailableTo(childComplexity), true
+	case "CleanerSuggestion.cleaner":
+		if e.complexity.CleanerSuggestion.Cleaner == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.Cleaner(childComplexity), true
+	case "CleanerSuggestion.company":
+		if e.complexity.CleanerSuggestion.Company == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.Company(childComplexity), true
+	case "CleanerSuggestion.matchScore":
+		if e.complexity.CleanerSuggestion.MatchScore == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.MatchScore(childComplexity), true
+	case "CleanerSuggestion.suggestedEndTime":
+		if e.complexity.CleanerSuggestion.SuggestedEndTime == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.SuggestedEndTime(childComplexity), true
+	case "CleanerSuggestion.suggestedSlotIndex":
+		if e.complexity.CleanerSuggestion.SuggestedSlotIndex == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.SuggestedSlotIndex(childComplexity), true
+	case "CleanerSuggestion.suggestedStartTime":
+		if e.complexity.CleanerSuggestion.SuggestedStartTime == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.SuggestedStartTime(childComplexity), true
 
 	case "Company.address":
 		if e.complexity.Company.Address == nil {
@@ -1716,6 +1907,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.DailyRevenue.Revenue(childComplexity), true
 
+	case "EnabledCity.areas":
+		if e.complexity.EnabledCity.Areas == nil {
+			break
+		}
+
+		return e.complexity.EnabledCity.Areas(childComplexity), true
+	case "EnabledCity.county":
+		if e.complexity.EnabledCity.County == nil {
+			break
+		}
+
+		return e.complexity.EnabledCity.County(childComplexity), true
+	case "EnabledCity.id":
+		if e.complexity.EnabledCity.ID == nil {
+			break
+		}
+
+		return e.complexity.EnabledCity.ID(childComplexity), true
+	case "EnabledCity.isActive":
+		if e.complexity.EnabledCity.IsActive == nil {
+			break
+		}
+
+		return e.complexity.EnabledCity.IsActive(childComplexity), true
+	case "EnabledCity.name":
+		if e.complexity.EnabledCity.Name == nil {
+			break
+		}
+
+		return e.complexity.EnabledCity.Name(childComplexity), true
+
 	case "ExtraLineItem.extra":
 		if e.complexity.ExtraLineItem.Extra == nil {
 			break
@@ -1911,6 +2133,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateBookingRequest(childComplexity, args["input"].(model.CreateBookingInput)), true
+	case "Mutation.createCity":
+		if e.complexity.Mutation.CreateCity == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createCity_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateCity(childComplexity, args["name"].(string), args["county"].(string)), true
+	case "Mutation.createCityArea":
+		if e.complexity.Mutation.CreateCityArea == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createCityArea_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateCityArea(childComplexity, args["cityId"].(string), args["name"].(string)), true
 	case "Mutation.createServiceDefinition":
 		if e.complexity.Mutation.CreateServiceDefinition == nil {
 			break
@@ -1944,6 +2188,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteAddress(childComplexity, args["id"].(string)), true
+	case "Mutation.deleteCityArea":
+		if e.complexity.Mutation.DeleteCityArea == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteCityArea_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteCityArea(childComplexity, args["id"].(string)), true
 	case "Mutation.deletePaymentMethod":
 		if e.complexity.Mutation.DeletePaymentMethod == nil {
 			break
@@ -2072,6 +2327,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RejectCompany(childComplexity, args["id"].(string), args["reason"].(string)), true
+	case "Mutation.selectBookingTimeSlot":
+		if e.complexity.Mutation.SelectBookingTimeSlot == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_selectBookingTimeSlot_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SelectBookingTimeSlot(childComplexity, args["bookingId"].(string), args["timeSlotId"].(string)), true
 	case "Mutation.sendMessage":
 		if e.complexity.Mutation.SendMessage == nil {
 			break
@@ -2182,6 +2448,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SuspendUser(childComplexity, args["id"].(string), args["reason"].(string)), true
+	case "Mutation.toggleCityActive":
+		if e.complexity.Mutation.ToggleCityActive == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_toggleCityActive_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ToggleCityActive(childComplexity, args["id"].(string), args["isActive"].(bool)), true
 	case "Mutation.updateAddress":
 		if e.complexity.Mutation.UpdateAddress == nil {
 			break
@@ -2226,6 +2503,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateCleanerProfile(childComplexity, args["input"].(model.UpdateCleanerProfileInput)), true
+	case "Mutation.updateCleanerServiceAreas":
+		if e.complexity.Mutation.UpdateCleanerServiceAreas == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateCleanerServiceAreas_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateCleanerServiceAreas(childComplexity, args["cleanerId"].(string), args["areaIds"].([]string)), true
 	case "Mutation.updateCleanerStatus":
 		if e.complexity.Mutation.UpdateCleanerStatus == nil {
 			break
@@ -2248,6 +2536,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateCompanyProfile(childComplexity, args["input"].(model.UpdateCompanyInput)), true
+	case "Mutation.updateCompanyServiceAreas":
+		if e.complexity.Mutation.UpdateCompanyServiceAreas == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateCompanyServiceAreas_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateCompanyServiceAreas(childComplexity, args["areaIds"].([]string)), true
 	case "Mutation.updatePlatformSetting":
 		if e.complexity.Mutation.UpdatePlatformSetting == nil {
 			break
@@ -2579,6 +2878,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PriceEstimate.HourlyRate(childComplexity), true
+	case "PriceEstimate.petsSurcharge":
+		if e.complexity.PriceEstimate.PetsSurcharge == nil {
+			break
+		}
+
+		return e.complexity.PriceEstimate.PetsSurcharge(childComplexity), true
+	case "PriceEstimate.propertyMultiplier":
+		if e.complexity.PriceEstimate.PropertyMultiplier == nil {
+			break
+		}
+
+		return e.complexity.PriceEstimate.PropertyMultiplier(childComplexity), true
 	case "PriceEstimate.subtotal":
 		if e.complexity.PriceEstimate.Subtotal == nil {
 			break
@@ -2592,6 +2903,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PriceEstimate.Total(childComplexity), true
 
+	case "Query.activeCities":
+		if e.complexity.Query.ActiveCities == nil {
+			break
+		}
+
+		return e.complexity.Query.ActiveCities(childComplexity), true
 	case "Query.allBookings":
 		if e.complexity.Query.AllBookings == nil {
 			break
@@ -2609,6 +2926,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.AllChatRooms(childComplexity), true
+	case "Query.allCities":
+		if e.complexity.Query.AllCities == nil {
+			break
+		}
+
+		return e.complexity.Query.AllCities(childComplexity), true
 	case "Query.allCleaners":
 		if e.complexity.Query.AllCleaners == nil {
 			break
@@ -2684,6 +3007,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ChatRoom(childComplexity, args["id"].(string)), true
+	case "Query.cityAreas":
+		if e.complexity.Query.CityAreas == nil {
+			break
+		}
+
+		args, err := ec.field_Query_cityAreas_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CityAreas(childComplexity, args["cityId"].(string)), true
 	case "Query.cleanerDateOverrides":
 		if e.complexity.Query.CleanerDateOverrides == nil {
 			break
@@ -2717,6 +3051,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.CleanerPerformance(childComplexity, args["cleanerId"].(string)), true
+	case "Query.cleanerServiceAreas":
+		if e.complexity.Query.CleanerServiceAreas == nil {
+			break
+		}
+
+		args, err := ec.field_Query_cleanerServiceAreas_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CleanerServiceAreas(childComplexity, args["cleanerId"].(string)), true
 	case "Query.companies":
 		if e.complexity.Query.Companies == nil {
 			break
@@ -2811,6 +3156,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.EstimatePrice(childComplexity, args["input"].(model.PriceEstimateInput)), true
+	case "Query.isCitySupported":
+		if e.complexity.Query.IsCitySupported == nil {
+			break
+		}
+
+		args, err := ec.field_Query_isCitySupported_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.IsCitySupported(childComplexity, args["city"].(string)), true
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -2902,6 +3258,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyCleanerReviews(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.myCleanerServiceAreas":
+		if e.complexity.Query.MyCleanerServiceAreas == nil {
+			break
+		}
+
+		return e.complexity.Query.MyCleanerServiceAreas(childComplexity), true
 	case "Query.myCleanerStats":
 		if e.complexity.Query.MyCleanerStats == nil {
 			break
@@ -2926,6 +3288,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyCompanyFinancialSummary(childComplexity), true
+	case "Query.myCompanyServiceAreas":
+		if e.complexity.Query.MyCompanyServiceAreas == nil {
+			break
+		}
+
+		return e.complexity.Query.MyCompanyServiceAreas(childComplexity), true
 	case "Query.myCompanyWorkSchedule":
 		if e.complexity.Query.MyCompanyWorkSchedule == nil {
 			break
@@ -3066,6 +3434,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SearchUsers(childComplexity, args["query"].(*string), args["role"].(*model.UserRole), args["status"].(*model.UserStatus), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.suggestCleaners":
+		if e.complexity.Query.SuggestCleaners == nil {
+			break
+		}
+
+		args, err := ec.field_Query_suggestCleaners_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SuggestCleaners(childComplexity, args["cityId"].(string), args["areaId"].(string), args["timeSlots"].([]*model.TimeSlotInput), args["estimatedDurationHours"].(float64)), true
 	case "Query.todaysJobs":
 		if e.complexity.Query.TodaysJobs == nil {
 			break
@@ -3200,6 +3579,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ServiceDefinition.DescriptionRo(childComplexity), true
+	case "ServiceDefinition.hoursPer100Sqm":
+		if e.complexity.ServiceDefinition.HoursPer100Sqm == nil {
+			break
+		}
+
+		return e.complexity.ServiceDefinition.HoursPer100Sqm(childComplexity), true
+	case "ServiceDefinition.hoursPerBathroom":
+		if e.complexity.ServiceDefinition.HoursPerBathroom == nil {
+			break
+		}
+
+		return e.complexity.ServiceDefinition.HoursPerBathroom(childComplexity), true
+	case "ServiceDefinition.hoursPerRoom":
+		if e.complexity.ServiceDefinition.HoursPerRoom == nil {
+			break
+		}
+
+		return e.complexity.ServiceDefinition.HoursPerRoom(childComplexity), true
+	case "ServiceDefinition.houseMultiplier":
+		if e.complexity.ServiceDefinition.HouseMultiplier == nil {
+			break
+		}
+
+		return e.complexity.ServiceDefinition.HouseMultiplier(childComplexity), true
 	case "ServiceDefinition.id":
 		if e.complexity.ServiceDefinition.ID == nil {
 			break
@@ -3236,6 +3639,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ServiceDefinition.NameRo(childComplexity), true
+	case "ServiceDefinition.petDurationMinutes":
+		if e.complexity.ServiceDefinition.PetDurationMinutes == nil {
+			break
+		}
+
+		return e.complexity.ServiceDefinition.PetDurationMinutes(childComplexity), true
 	case "ServiceDefinition.serviceType":
 		if e.complexity.ServiceDefinition.ServiceType == nil {
 			break
@@ -3243,6 +3652,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ServiceDefinition.ServiceType(childComplexity), true
 
+	case "ServiceExtra.durationMinutes":
+		if e.complexity.ServiceExtra.DurationMinutes == nil {
+			break
+		}
+
+		return e.complexity.ServiceExtra.DurationMinutes(childComplexity), true
 	case "ServiceExtra.id":
 		if e.complexity.ServiceExtra.ID == nil {
 			break
@@ -3459,6 +3874,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputInviteCleanerInput,
 		ec.unmarshalInputPriceEstimateInput,
 		ec.unmarshalInputSubmitReviewInput,
+		ec.unmarshalInputTimeSlotInput,
 		ec.unmarshalInputUpdateAddressInput,
 		ec.unmarshalInputUpdateCleanerProfileInput,
 		ec.unmarshalInputUpdateCompanyInput,
@@ -3579,7 +3995,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/admin.graphql" "schema/analytics.graphql" "schema/auth.graphql" "schema/booking.graphql" "schema/chat.graphql" "schema/cleaner.graphql" "schema/client.graphql" "schema/company.graphql" "schema/notification.graphql" "schema/review.graphql" "schema/schema.graphql" "schema/service.graphql" "schema/settings.graphql" "schema/user.graphql"
+//go:embed "schema/admin.graphql" "schema/analytics.graphql" "schema/auth.graphql" "schema/booking.graphql" "schema/chat.graphql" "schema/cleaner.graphql" "schema/client.graphql" "schema/company.graphql" "schema/location.graphql" "schema/notification.graphql" "schema/review.graphql" "schema/schema.graphql" "schema/service.graphql" "schema/settings.graphql" "schema/user.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -3599,6 +4015,7 @@ var sources = []*ast.Source{
 	{Name: "schema/cleaner.graphql", Input: sourceData("schema/cleaner.graphql"), BuiltIn: false},
 	{Name: "schema/client.graphql", Input: sourceData("schema/client.graphql"), BuiltIn: false},
 	{Name: "schema/company.graphql", Input: sourceData("schema/company.graphql"), BuiltIn: false},
+	{Name: "schema/location.graphql", Input: sourceData("schema/location.graphql"), BuiltIn: false},
 	{Name: "schema/notification.graphql", Input: sourceData("schema/notification.graphql"), BuiltIn: false},
 	{Name: "schema/review.graphql", Input: sourceData("schema/review.graphql"), BuiltIn: false},
 	{Name: "schema/schema.graphql", Input: sourceData("schema/schema.graphql"), BuiltIn: false},
@@ -3834,6 +4251,38 @@ func (ec *executionContext) field_Mutation_createBookingRequest_args(ctx context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createCityArea_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cityId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cityId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createCity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "county", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["county"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createServiceDefinition_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3857,6 +4306,17 @@ func (ec *executionContext) field_Mutation_createServiceExtra_args(ctx context.C
 }
 
 func (ec *executionContext) field_Mutation_deleteAddress_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteCityArea_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
@@ -3984,6 +4444,22 @@ func (ec *executionContext) field_Mutation_rejectCompany_args(ctx context.Contex
 		return nil, err
 	}
 	args["reason"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_selectBookingTimeSlot_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bookingId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["bookingId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "timeSlotId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["timeSlotId"] = arg1
 	return args, nil
 }
 
@@ -4157,6 +4633,22 @@ func (ec *executionContext) field_Mutation_suspendUser_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_toggleCityActive_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "isActive", ec.unmarshalNBoolean2bool)
+	if err != nil {
+		return nil, err
+	}
+	args["isActive"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateAddress_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4211,6 +4703,22 @@ func (ec *executionContext) field_Mutation_updateCleanerProfile_args(ctx context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateCleanerServiceAreas_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "areaIds", ec.unmarshalNID2ᚕstringᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["areaIds"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateCleanerStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4235,6 +4743,17 @@ func (ec *executionContext) field_Mutation_updateCompanyProfile_args(ctx context
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateCompanyServiceAreas_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "areaIds", ec.unmarshalNID2ᚕstringᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["areaIds"] = arg0
 	return args, nil
 }
 
@@ -4425,6 +4944,17 @@ func (ec *executionContext) field_Query_chatRoom_args(ctx context.Context, rawAr
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_cityAreas_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cityId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cityId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_cleanerDateOverrides_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4463,6 +4993,17 @@ func (ec *executionContext) field_Query_cleanerEarningsByDateRange_args(ctx cont
 }
 
 func (ec *executionContext) field_Query_cleanerPerformance_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_cleanerServiceAreas_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
@@ -4588,6 +5129,17 @@ func (ec *executionContext) field_Query_estimatePrice_args(ctx context.Context, 
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_isCitySupported_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "city", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["city"] = arg0
 	return args, nil
 }
 
@@ -4903,6 +5455,32 @@ func (ec *executionContext) field_Query_searchUsers_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["offset"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_suggestCleaners_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cityId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cityId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "areaId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["areaId"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "timeSlots", ec.unmarshalNTimeSlotInput2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTimeSlotInputᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["timeSlots"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "estimatedDurationHours", ec.unmarshalNFloat2float64)
+	if err != nil {
+		return nil, err
+	}
+	args["estimatedDurationHours"] = arg3
 	return args, nil
 }
 
@@ -6591,6 +7169,47 @@ func (ec *executionContext) fieldContext_Booking_paidAt(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Booking_timeSlots(ctx context.Context, field graphql.CollectedField, obj *model.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_timeSlots,
+		func(ctx context.Context) (any, error) {
+			return obj.TimeSlots, nil
+		},
+		nil,
+		ec.marshalNBookingTimeSlot2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐBookingTimeSlotᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_timeSlots(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BookingTimeSlot_id(ctx, field)
+			case "slotDate":
+				return ec.fieldContext_BookingTimeSlot_slotDate(ctx, field)
+			case "startTime":
+				return ec.fieldContext_BookingTimeSlot_startTime(ctx, field)
+			case "endTime":
+				return ec.fieldContext_BookingTimeSlot_endTime(ctx, field)
+			case "isSelected":
+				return ec.fieldContext_BookingTimeSlot_isSelected(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BookingTimeSlot", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Booking_review(ctx context.Context, field graphql.CollectedField, obj *model.Booking) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6792,6 +7411,8 @@ func (ec *executionContext) fieldContext_BookingConnection_edges(_ context.Conte
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -6901,6 +7522,8 @@ func (ec *executionContext) fieldContext_BookingExtra_extra(_ context.Context, f
 				return ec.fieldContext_ServiceExtra_nameEn(ctx, field)
 			case "price":
 				return ec.fieldContext_ServiceExtra_price(ctx, field)
+			case "durationMinutes":
+				return ec.fieldContext_ServiceExtra_durationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
@@ -6965,6 +7588,151 @@ func (ec *executionContext) fieldContext_BookingExtra_quantity(_ context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingTimeSlot_id(ctx context.Context, field graphql.CollectedField, obj *model.BookingTimeSlot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingTimeSlot_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingTimeSlot_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingTimeSlot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingTimeSlot_slotDate(ctx context.Context, field graphql.CollectedField, obj *model.BookingTimeSlot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingTimeSlot_slotDate,
+		func(ctx context.Context) (any, error) {
+			return obj.SlotDate, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingTimeSlot_slotDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingTimeSlot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingTimeSlot_startTime(ctx context.Context, field graphql.CollectedField, obj *model.BookingTimeSlot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingTimeSlot_startTime,
+		func(ctx context.Context) (any, error) {
+			return obj.StartTime, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingTimeSlot_startTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingTimeSlot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingTimeSlot_endTime(ctx context.Context, field graphql.CollectedField, obj *model.BookingTimeSlot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingTimeSlot_endTime,
+		func(ctx context.Context) (any, error) {
+			return obj.EndTime, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingTimeSlot_endTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingTimeSlot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingTimeSlot_isSelected(ctx context.Context, field graphql.CollectedField, obj *model.BookingTimeSlot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingTimeSlot_isSelected,
+		func(ctx context.Context) (any, error) {
+			return obj.IsSelected, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingTimeSlot_isSelected(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingTimeSlot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7489,6 +8257,8 @@ func (ec *executionContext) fieldContext_ChatRoom_booking(_ context.Context, fie
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -7679,6 +8449,122 @@ func (ec *executionContext) fieldContext_ChatRoom_createdAt(_ context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CityArea_id(ctx context.Context, field graphql.CollectedField, obj *model.CityArea) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CityArea_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CityArea_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CityArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CityArea_name(ctx context.Context, field graphql.CollectedField, obj *model.CityArea) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CityArea_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CityArea_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CityArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CityArea_cityId(ctx context.Context, field graphql.CollectedField, obj *model.CityArea) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CityArea_cityId,
+		func(ctx context.Context) (any, error) {
+			return obj.CityID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CityArea_cityId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CityArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CityArea_cityName(ctx context.Context, field graphql.CollectedField, obj *model.CityArea) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CityArea_cityName,
+		func(ctx context.Context) (any, error) {
+			return obj.CityName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CityArea_cityName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CityArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8765,6 +9651,345 @@ func (ec *executionContext) _CleanerStats_thisMonthEarnings(ctx context.Context,
 func (ec *executionContext) fieldContext_CleanerStats_thisMonthEarnings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CleanerStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_cleaner(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_cleaner,
+		func(ctx context.Context) (any, error) {
+			return obj.Cleaner, nil
+		},
+		nil,
+		ec.marshalNCleanerProfile2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerProfile,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_cleaner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerProfile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_CleanerProfile_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_CleanerProfile_user(ctx, field)
+			case "company":
+				return ec.fieldContext_CleanerProfile_company(ctx, field)
+			case "fullName":
+				return ec.fieldContext_CleanerProfile_fullName(ctx, field)
+			case "phone":
+				return ec.fieldContext_CleanerProfile_phone(ctx, field)
+			case "email":
+				return ec.fieldContext_CleanerProfile_email(ctx, field)
+			case "bio":
+				return ec.fieldContext_CleanerProfile_bio(ctx, field)
+			case "avatarUrl":
+				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerProfile_status(ctx, field)
+			case "isCompanyAdmin":
+				return ec.fieldContext_CleanerProfile_isCompanyAdmin(ctx, field)
+			case "inviteToken":
+				return ec.fieldContext_CleanerProfile_inviteToken(ctx, field)
+			case "ratingAvg":
+				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
+			case "totalJobsCompleted":
+				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "availability":
+				return ec.fieldContext_CleanerProfile_availability(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_CleanerProfile_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerProfile", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_company(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_company,
+		func(ctx context.Context) (any, error) {
+			return obj.Company, nil
+		},
+		nil,
+		ec.marshalNCompany2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCompany,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_company(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Company_id(ctx, field)
+			case "companyName":
+				return ec.fieldContext_Company_companyName(ctx, field)
+			case "cui":
+				return ec.fieldContext_Company_cui(ctx, field)
+			case "companyType":
+				return ec.fieldContext_Company_companyType(ctx, field)
+			case "legalRepresentative":
+				return ec.fieldContext_Company_legalRepresentative(ctx, field)
+			case "contactEmail":
+				return ec.fieldContext_Company_contactEmail(ctx, field)
+			case "contactPhone":
+				return ec.fieldContext_Company_contactPhone(ctx, field)
+			case "address":
+				return ec.fieldContext_Company_address(ctx, field)
+			case "city":
+				return ec.fieldContext_Company_city(ctx, field)
+			case "county":
+				return ec.fieldContext_Company_county(ctx, field)
+			case "description":
+				return ec.fieldContext_Company_description(ctx, field)
+			case "logoUrl":
+				return ec.fieldContext_Company_logoUrl(ctx, field)
+			case "status":
+				return ec.fieldContext_Company_status(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_Company_rejectionReason(ctx, field)
+			case "maxServiceRadiusKm":
+				return ec.fieldContext_Company_maxServiceRadiusKm(ctx, field)
+			case "ratingAvg":
+				return ec.fieldContext_Company_ratingAvg(ctx, field)
+			case "totalJobsCompleted":
+				return ec.fieldContext_Company_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_Company_documents(ctx, field)
+			case "cleaners":
+				return ec.fieldContext_Company_cleaners(ctx, field)
+			case "admin":
+				return ec.fieldContext_Company_admin(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Company_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Company", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_availabilityStatus(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_availabilityStatus,
+		func(ctx context.Context) (any, error) {
+			return obj.AvailabilityStatus, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_availabilityStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_availableFrom(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_availableFrom,
+		func(ctx context.Context) (any, error) {
+			return obj.AvailableFrom, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_availableFrom(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_availableTo(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_availableTo,
+		func(ctx context.Context) (any, error) {
+			return obj.AvailableTo, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_availableTo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_suggestedStartTime(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_suggestedStartTime,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedStartTime, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_suggestedStartTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_suggestedEndTime(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_suggestedEndTime,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedEndTime, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_suggestedEndTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_suggestedSlotIndex(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_suggestedSlotIndex,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedSlotIndex, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_suggestedSlotIndex(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_matchScore(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_matchScore,
+		func(ctx context.Context) (any, error) {
+			return obj.MatchScore, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_matchScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -10458,6 +11683,161 @@ func (ec *executionContext) fieldContext_DailyRevenue_commission(_ context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _EnabledCity_id(ctx context.Context, field graphql.CollectedField, obj *model.EnabledCity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EnabledCity_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EnabledCity_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EnabledCity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EnabledCity_name(ctx context.Context, field graphql.CollectedField, obj *model.EnabledCity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EnabledCity_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EnabledCity_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EnabledCity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EnabledCity_county(ctx context.Context, field graphql.CollectedField, obj *model.EnabledCity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EnabledCity_county,
+		func(ctx context.Context) (any, error) {
+			return obj.County, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EnabledCity_county(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EnabledCity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EnabledCity_isActive(ctx context.Context, field graphql.CollectedField, obj *model.EnabledCity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EnabledCity_isActive,
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EnabledCity_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EnabledCity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EnabledCity_areas(ctx context.Context, field graphql.CollectedField, obj *model.EnabledCity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EnabledCity_areas,
+		func(ctx context.Context) (any, error) {
+			return obj.Areas, nil
+		},
+		nil,
+		ec.marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EnabledCity_areas(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EnabledCity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ExtraLineItem_extra(ctx context.Context, field graphql.CollectedField, obj *model.ExtraLineItem) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10490,6 +11870,8 @@ func (ec *executionContext) fieldContext_ExtraLineItem_extra(_ context.Context, 
 				return ec.fieldContext_ServiceExtra_nameEn(ctx, field)
 			case "price":
 				return ec.fieldContext_ServiceExtra_price(ctx, field)
+			case "durationMinutes":
+				return ec.fieldContext_ServiceExtra_durationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
@@ -10642,6 +12024,8 @@ func (ec *executionContext) fieldContext_Mutation_adminCancelBooking(ctx context
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11256,6 +12640,8 @@ func (ec *executionContext) fieldContext_Mutation_createBookingRequest(ctx conte
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11363,6 +12749,8 @@ func (ec *executionContext) fieldContext_Mutation_cancelBooking(ctx context.Cont
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11470,6 +12858,8 @@ func (ec *executionContext) fieldContext_Mutation_payForBooking(ctx context.Cont
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11577,6 +12967,8 @@ func (ec *executionContext) fieldContext_Mutation_assignCleanerToBooking(ctx con
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11684,6 +13076,8 @@ func (ec *executionContext) fieldContext_Mutation_confirmBooking(ctx context.Con
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11791,6 +13185,8 @@ func (ec *executionContext) fieldContext_Mutation_startJob(ctx context.Context, 
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11898,6 +13294,8 @@ func (ec *executionContext) fieldContext_Mutation_completeJob(ctx context.Contex
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -11916,6 +13314,115 @@ func (ec *executionContext) fieldContext_Mutation_completeJob(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_completeJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_selectBookingTimeSlot(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_selectBookingTimeSlot,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SelectBookingTimeSlot(ctx, fc.Args["bookingId"].(string), fc.Args["timeSlotId"].(string))
+		},
+		nil,
+		ec.marshalNBooking2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐBooking,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_selectBookingTimeSlot(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Booking_id(ctx, field)
+			case "referenceCode":
+				return ec.fieldContext_Booking_referenceCode(ctx, field)
+			case "client":
+				return ec.fieldContext_Booking_client(ctx, field)
+			case "company":
+				return ec.fieldContext_Booking_company(ctx, field)
+			case "cleaner":
+				return ec.fieldContext_Booking_cleaner(ctx, field)
+			case "address":
+				return ec.fieldContext_Booking_address(ctx, field)
+			case "serviceType":
+				return ec.fieldContext_Booking_serviceType(ctx, field)
+			case "serviceName":
+				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "scheduledDate":
+				return ec.fieldContext_Booking_scheduledDate(ctx, field)
+			case "scheduledStartTime":
+				return ec.fieldContext_Booking_scheduledStartTime(ctx, field)
+			case "estimatedDurationHours":
+				return ec.fieldContext_Booking_estimatedDurationHours(ctx, field)
+			case "propertyType":
+				return ec.fieldContext_Booking_propertyType(ctx, field)
+			case "numRooms":
+				return ec.fieldContext_Booking_numRooms(ctx, field)
+			case "numBathrooms":
+				return ec.fieldContext_Booking_numBathrooms(ctx, field)
+			case "areaSqm":
+				return ec.fieldContext_Booking_areaSqm(ctx, field)
+			case "hasPets":
+				return ec.fieldContext_Booking_hasPets(ctx, field)
+			case "specialInstructions":
+				return ec.fieldContext_Booking_specialInstructions(ctx, field)
+			case "hourlyRate":
+				return ec.fieldContext_Booking_hourlyRate(ctx, field)
+			case "estimatedTotal":
+				return ec.fieldContext_Booking_estimatedTotal(ctx, field)
+			case "finalTotal":
+				return ec.fieldContext_Booking_finalTotal(ctx, field)
+			case "platformCommissionPct":
+				return ec.fieldContext_Booking_platformCommissionPct(ctx, field)
+			case "extras":
+				return ec.fieldContext_Booking_extras(ctx, field)
+			case "status":
+				return ec.fieldContext_Booking_status(ctx, field)
+			case "startedAt":
+				return ec.fieldContext_Booking_startedAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Booking_completedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_Booking_cancelledAt(ctx, field)
+			case "cancellationReason":
+				return ec.fieldContext_Booking_cancellationReason(ctx, field)
+			case "paymentStatus":
+				return ec.fieldContext_Booking_paymentStatus(ctx, field)
+			case "paidAt":
+				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
+			case "review":
+				return ec.fieldContext_Booking_review(ctx, field)
+			case "chatRoom":
+				return ec.fieldContext_Booking_chatRoom(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Booking_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_selectBookingTimeSlot_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -13617,6 +15124,306 @@ func (ec *executionContext) fieldContext_Mutation_suspendCompany(ctx context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createCity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createCity,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateCity(ctx, fc.Args["name"].(string), fc.Args["county"].(string))
+		},
+		nil,
+		ec.marshalNEnabledCity2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCity,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createCity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EnabledCity_id(ctx, field)
+			case "name":
+				return ec.fieldContext_EnabledCity_name(ctx, field)
+			case "county":
+				return ec.fieldContext_EnabledCity_county(ctx, field)
+			case "isActive":
+				return ec.fieldContext_EnabledCity_isActive(ctx, field)
+			case "areas":
+				return ec.fieldContext_EnabledCity_areas(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EnabledCity", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createCity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_toggleCityActive(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_toggleCityActive,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ToggleCityActive(ctx, fc.Args["id"].(string), fc.Args["isActive"].(bool))
+		},
+		nil,
+		ec.marshalNEnabledCity2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCity,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_toggleCityActive(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EnabledCity_id(ctx, field)
+			case "name":
+				return ec.fieldContext_EnabledCity_name(ctx, field)
+			case "county":
+				return ec.fieldContext_EnabledCity_county(ctx, field)
+			case "isActive":
+				return ec.fieldContext_EnabledCity_isActive(ctx, field)
+			case "areas":
+				return ec.fieldContext_EnabledCity_areas(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EnabledCity", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_toggleCityActive_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createCityArea(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createCityArea,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateCityArea(ctx, fc.Args["cityId"].(string), fc.Args["name"].(string))
+		},
+		nil,
+		ec.marshalNCityArea2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityArea,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createCityArea(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createCityArea_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteCityArea(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteCityArea,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteCityArea(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteCityArea(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteCityArea_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateCompanyServiceAreas(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateCompanyServiceAreas,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateCompanyServiceAreas(ctx, fc.Args["areaIds"].([]string))
+		},
+		nil,
+		ec.marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateCompanyServiceAreas(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateCompanyServiceAreas_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateCleanerServiceAreas(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateCleanerServiceAreas,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateCleanerServiceAreas(ctx, fc.Args["cleanerId"].(string), fc.Args["areaIds"].([]string))
+		},
+		nil,
+		ec.marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateCleanerServiceAreas(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateCleanerServiceAreas_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_markNotificationRead(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -13801,6 +15608,16 @@ func (ec *executionContext) fieldContext_Mutation_updateServiceDefinition(ctx co
 				return ec.fieldContext_ServiceDefinition_basePricePerHour(ctx, field)
 			case "minHours":
 				return ec.fieldContext_ServiceDefinition_minHours(ctx, field)
+			case "hoursPerRoom":
+				return ec.fieldContext_ServiceDefinition_hoursPerRoom(ctx, field)
+			case "hoursPerBathroom":
+				return ec.fieldContext_ServiceDefinition_hoursPerBathroom(ctx, field)
+			case "hoursPer100Sqm":
+				return ec.fieldContext_ServiceDefinition_hoursPer100Sqm(ctx, field)
+			case "houseMultiplier":
+				return ec.fieldContext_ServiceDefinition_houseMultiplier(ctx, field)
+			case "petDurationMinutes":
+				return ec.fieldContext_ServiceDefinition_petDurationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
@@ -13864,6 +15681,16 @@ func (ec *executionContext) fieldContext_Mutation_createServiceDefinition(ctx co
 				return ec.fieldContext_ServiceDefinition_basePricePerHour(ctx, field)
 			case "minHours":
 				return ec.fieldContext_ServiceDefinition_minHours(ctx, field)
+			case "hoursPerRoom":
+				return ec.fieldContext_ServiceDefinition_hoursPerRoom(ctx, field)
+			case "hoursPerBathroom":
+				return ec.fieldContext_ServiceDefinition_hoursPerBathroom(ctx, field)
+			case "hoursPer100Sqm":
+				return ec.fieldContext_ServiceDefinition_hoursPer100Sqm(ctx, field)
+			case "houseMultiplier":
+				return ec.fieldContext_ServiceDefinition_houseMultiplier(ctx, field)
+			case "petDurationMinutes":
+				return ec.fieldContext_ServiceDefinition_petDurationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
@@ -13919,6 +15746,8 @@ func (ec *executionContext) fieldContext_Mutation_updateServiceExtra(ctx context
 				return ec.fieldContext_ServiceExtra_nameEn(ctx, field)
 			case "price":
 				return ec.fieldContext_ServiceExtra_price(ctx, field)
+			case "durationMinutes":
+				return ec.fieldContext_ServiceExtra_durationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
@@ -13974,6 +15803,8 @@ func (ec *executionContext) fieldContext_Mutation_createServiceExtra(ctx context
 				return ec.fieldContext_ServiceExtra_nameEn(ctx, field)
 			case "price":
 				return ec.fieldContext_ServiceExtra_price(ctx, field)
+			case "durationMinutes":
+				return ec.fieldContext_ServiceExtra_durationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
@@ -15414,6 +17245,64 @@ func (ec *executionContext) fieldContext_PriceEstimate_estimatedHours(_ context.
 	return fc, nil
 }
 
+func (ec *executionContext) _PriceEstimate_propertyMultiplier(ctx context.Context, field graphql.CollectedField, obj *model.PriceEstimate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceEstimate_propertyMultiplier,
+		func(ctx context.Context) (any, error) {
+			return obj.PropertyMultiplier, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceEstimate_propertyMultiplier(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceEstimate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceEstimate_petsSurcharge(ctx context.Context, field graphql.CollectedField, obj *model.PriceEstimate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceEstimate_petsSurcharge,
+		func(ctx context.Context) (any, error) {
+			return obj.PetsSurcharge, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceEstimate_petsSurcharge(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceEstimate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PriceEstimate_subtotal(ctx context.Context, field graphql.CollectedField, obj *model.PriceEstimate) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -16518,6 +18407,8 @@ func (ec *executionContext) fieldContext_Query_booking(ctx context.Context, fiel
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -16674,6 +18565,8 @@ func (ec *executionContext) fieldContext_Query_myAssignedJobs(ctx context.Contex
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -16780,6 +18673,8 @@ func (ec *executionContext) fieldContext_Query_todaysJobs(_ context.Context, fie
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -16925,6 +18820,8 @@ func (ec *executionContext) fieldContext_Query_companyBookingsByDateRange(ctx co
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -17448,6 +19345,8 @@ func (ec *executionContext) fieldContext_Query_myCleanerBookingsByDateRange(ctx 
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -18188,6 +20087,370 @@ func (ec *executionContext) fieldContext_Query_companyChatRooms(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_activeCities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_activeCities,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().ActiveCities(ctx)
+		},
+		nil,
+		ec.marshalNEnabledCity2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCityᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_activeCities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EnabledCity_id(ctx, field)
+			case "name":
+				return ec.fieldContext_EnabledCity_name(ctx, field)
+			case "county":
+				return ec.fieldContext_EnabledCity_county(ctx, field)
+			case "isActive":
+				return ec.fieldContext_EnabledCity_isActive(ctx, field)
+			case "areas":
+				return ec.fieldContext_EnabledCity_areas(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EnabledCity", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_cityAreas(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_cityAreas,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().CityAreas(ctx, fc.Args["cityId"].(string))
+		},
+		nil,
+		ec.marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_cityAreas(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_cityAreas_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allCities(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_allCities,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().AllCities(ctx)
+		},
+		nil,
+		ec.marshalNEnabledCity2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCityᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_allCities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EnabledCity_id(ctx, field)
+			case "name":
+				return ec.fieldContext_EnabledCity_name(ctx, field)
+			case "county":
+				return ec.fieldContext_EnabledCity_county(ctx, field)
+			case "isActive":
+				return ec.fieldContext_EnabledCity_isActive(ctx, field)
+			case "areas":
+				return ec.fieldContext_EnabledCity_areas(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EnabledCity", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myCompanyServiceAreas(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myCompanyServiceAreas,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyCompanyServiceAreas(ctx)
+		},
+		nil,
+		ec.marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myCompanyServiceAreas(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_cleanerServiceAreas(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_cleanerServiceAreas,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().CleanerServiceAreas(ctx, fc.Args["cleanerId"].(string))
+		},
+		nil,
+		ec.marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_cleanerServiceAreas(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_cleanerServiceAreas_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myCleanerServiceAreas(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myCleanerServiceAreas,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyCleanerServiceAreas(ctx)
+		},
+		nil,
+		ec.marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myCleanerServiceAreas(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CityArea_id(ctx, field)
+			case "name":
+				return ec.fieldContext_CityArea_name(ctx, field)
+			case "cityId":
+				return ec.fieldContext_CityArea_cityId(ctx, field)
+			case "cityName":
+				return ec.fieldContext_CityArea_cityName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CityArea", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_suggestCleaners(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_suggestCleaners,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().SuggestCleaners(ctx, fc.Args["cityId"].(string), fc.Args["areaId"].(string), fc.Args["timeSlots"].([]*model.TimeSlotInput), fc.Args["estimatedDurationHours"].(float64))
+		},
+		nil,
+		ec.marshalNCleanerSuggestion2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerSuggestionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_suggestCleaners(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cleaner":
+				return ec.fieldContext_CleanerSuggestion_cleaner(ctx, field)
+			case "company":
+				return ec.fieldContext_CleanerSuggestion_company(ctx, field)
+			case "availabilityStatus":
+				return ec.fieldContext_CleanerSuggestion_availabilityStatus(ctx, field)
+			case "availableFrom":
+				return ec.fieldContext_CleanerSuggestion_availableFrom(ctx, field)
+			case "availableTo":
+				return ec.fieldContext_CleanerSuggestion_availableTo(ctx, field)
+			case "suggestedStartTime":
+				return ec.fieldContext_CleanerSuggestion_suggestedStartTime(ctx, field)
+			case "suggestedEndTime":
+				return ec.fieldContext_CleanerSuggestion_suggestedEndTime(ctx, field)
+			case "suggestedSlotIndex":
+				return ec.fieldContext_CleanerSuggestion_suggestedSlotIndex(ctx, field)
+			case "matchScore":
+				return ec.fieldContext_CleanerSuggestion_matchScore(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerSuggestion", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_suggestCleaners_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_isCitySupported(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_isCitySupported,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().IsCitySupported(ctx, fc.Args["city"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_isCitySupported(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_isCitySupported_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_myNotifications(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -18306,6 +20569,16 @@ func (ec *executionContext) fieldContext_Query_availableServices(_ context.Conte
 				return ec.fieldContext_ServiceDefinition_basePricePerHour(ctx, field)
 			case "minHours":
 				return ec.fieldContext_ServiceDefinition_minHours(ctx, field)
+			case "hoursPerRoom":
+				return ec.fieldContext_ServiceDefinition_hoursPerRoom(ctx, field)
+			case "hoursPerBathroom":
+				return ec.fieldContext_ServiceDefinition_hoursPerBathroom(ctx, field)
+			case "hoursPer100Sqm":
+				return ec.fieldContext_ServiceDefinition_hoursPer100Sqm(ctx, field)
+			case "houseMultiplier":
+				return ec.fieldContext_ServiceDefinition_houseMultiplier(ctx, field)
+			case "petDurationMinutes":
+				return ec.fieldContext_ServiceDefinition_petDurationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
@@ -18349,6 +20622,8 @@ func (ec *executionContext) fieldContext_Query_availableExtras(_ context.Context
 				return ec.fieldContext_ServiceExtra_nameEn(ctx, field)
 			case "price":
 				return ec.fieldContext_ServiceExtra_price(ctx, field)
+			case "durationMinutes":
+				return ec.fieldContext_ServiceExtra_durationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
@@ -18389,6 +20664,10 @@ func (ec *executionContext) fieldContext_Query_estimatePrice(ctx context.Context
 				return ec.fieldContext_PriceEstimate_hourlyRate(ctx, field)
 			case "estimatedHours":
 				return ec.fieldContext_PriceEstimate_estimatedHours(ctx, field)
+			case "propertyMultiplier":
+				return ec.fieldContext_PriceEstimate_propertyMultiplier(ctx, field)
+			case "petsSurcharge":
+				return ec.fieldContext_PriceEstimate_petsSurcharge(ctx, field)
 			case "subtotal":
 				return ec.fieldContext_PriceEstimate_subtotal(ctx, field)
 			case "extras":
@@ -18453,6 +20732,16 @@ func (ec *executionContext) fieldContext_Query_allServices(_ context.Context, fi
 				return ec.fieldContext_ServiceDefinition_basePricePerHour(ctx, field)
 			case "minHours":
 				return ec.fieldContext_ServiceDefinition_minHours(ctx, field)
+			case "hoursPerRoom":
+				return ec.fieldContext_ServiceDefinition_hoursPerRoom(ctx, field)
+			case "hoursPerBathroom":
+				return ec.fieldContext_ServiceDefinition_hoursPerBathroom(ctx, field)
+			case "hoursPer100Sqm":
+				return ec.fieldContext_ServiceDefinition_hoursPer100Sqm(ctx, field)
+			case "houseMultiplier":
+				return ec.fieldContext_ServiceDefinition_houseMultiplier(ctx, field)
+			case "petDurationMinutes":
+				return ec.fieldContext_ServiceDefinition_petDurationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
@@ -18496,6 +20785,8 @@ func (ec *executionContext) fieldContext_Query_allExtras(_ context.Context, fiel
 				return ec.fieldContext_ServiceExtra_nameEn(ctx, field)
 			case "price":
 				return ec.fieldContext_ServiceExtra_price(ctx, field)
+			case "durationMinutes":
+				return ec.fieldContext_ServiceExtra_durationMinutes(ctx, field)
 			case "icon":
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
@@ -19040,6 +21331,8 @@ func (ec *executionContext) fieldContext_Review_booking(_ context.Context, field
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -19524,6 +21817,151 @@ func (ec *executionContext) fieldContext_ServiceDefinition_minHours(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _ServiceDefinition_hoursPerRoom(ctx context.Context, field graphql.CollectedField, obj *model.ServiceDefinition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceDefinition_hoursPerRoom,
+		func(ctx context.Context) (any, error) {
+			return obj.HoursPerRoom, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceDefinition_hoursPerRoom(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceDefinition",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceDefinition_hoursPerBathroom(ctx context.Context, field graphql.CollectedField, obj *model.ServiceDefinition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceDefinition_hoursPerBathroom,
+		func(ctx context.Context) (any, error) {
+			return obj.HoursPerBathroom, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceDefinition_hoursPerBathroom(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceDefinition",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceDefinition_hoursPer100Sqm(ctx context.Context, field graphql.CollectedField, obj *model.ServiceDefinition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceDefinition_hoursPer100Sqm,
+		func(ctx context.Context) (any, error) {
+			return obj.HoursPer100Sqm, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceDefinition_hoursPer100Sqm(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceDefinition",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceDefinition_houseMultiplier(ctx context.Context, field graphql.CollectedField, obj *model.ServiceDefinition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceDefinition_houseMultiplier,
+		func(ctx context.Context) (any, error) {
+			return obj.HouseMultiplier, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceDefinition_houseMultiplier(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceDefinition",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceDefinition_petDurationMinutes(ctx context.Context, field graphql.CollectedField, obj *model.ServiceDefinition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceDefinition_petDurationMinutes,
+		func(ctx context.Context) (any, error) {
+			return obj.PetDurationMinutes, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceDefinition_petDurationMinutes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceDefinition",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ServiceDefinition_icon(ctx context.Context, field graphql.CollectedField, obj *model.ServiceDefinition) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -19693,6 +22131,35 @@ func (ec *executionContext) fieldContext_ServiceExtra_price(_ context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceExtra_durationMinutes(ctx context.Context, field graphql.CollectedField, obj *model.ServiceExtra) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceExtra_durationMinutes,
+		func(ctx context.Context) (any, error) {
+			return obj.DurationMinutes, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceExtra_durationMinutes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceExtra",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -19981,6 +22448,8 @@ func (ec *executionContext) fieldContext_Subscription_bookingUpdated(ctx context
 				return ec.fieldContext_Booking_paymentStatus(ctx, field)
 			case "paidAt":
 				return ec.fieldContext_Booking_paidAt(ctx, field)
+			case "timeSlots":
+				return ec.fieldContext_Booking_timeSlots(ctx, field)
 			case "review":
 				return ec.fieldContext_Booking_review(ctx, field)
 			case "chatRoom":
@@ -22342,7 +24811,7 @@ func (ec *executionContext) unmarshalInputCreateBookingInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"addressId", "address", "serviceType", "scheduledDate", "scheduledStartTime", "propertyType", "numRooms", "numBathrooms", "areaSqm", "hasPets", "specialInstructions", "extras", "guestEmail", "guestName", "guestPhone"}
+	fieldsInOrder := [...]string{"addressId", "address", "serviceType", "scheduledDate", "scheduledStartTime", "timeSlots", "propertyType", "numRooms", "numBathrooms", "areaSqm", "hasPets", "specialInstructions", "extras", "guestEmail", "guestName", "guestPhone", "preferredCleanerId", "suggestedStartTime"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -22372,18 +24841,25 @@ func (ec *executionContext) unmarshalInputCreateBookingInput(ctx context.Context
 			it.ServiceType = data
 		case "scheduledDate":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scheduledDate"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.ScheduledDate = data
 		case "scheduledStartTime":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scheduledStartTime"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.ScheduledStartTime = data
+		case "timeSlots":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("timeSlots"))
+			data, err := ec.unmarshalOTimeSlotInput2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTimeSlotInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TimeSlots = data
 		case "propertyType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyType"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -22454,6 +24930,20 @@ func (ec *executionContext) unmarshalInputCreateBookingInput(ctx context.Context
 				return it, err
 			}
 			it.GuestPhone = data
+		case "preferredCleanerId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preferredCleanerId"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PreferredCleanerID = data
+		case "suggestedStartTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("suggestedStartTime"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SuggestedStartTime = data
 		}
 	}
 
@@ -22467,7 +24957,7 @@ func (ec *executionContext) unmarshalInputCreateServiceDefinitionInput(ctx conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceType", "nameRo", "nameEn", "basePricePerHour", "minHours", "isActive"}
+	fieldsInOrder := [...]string{"serviceType", "nameRo", "nameEn", "basePricePerHour", "minHours", "hoursPerRoom", "hoursPerBathroom", "hoursPer100Sqm", "houseMultiplier", "petDurationMinutes", "isActive"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -22509,6 +24999,41 @@ func (ec *executionContext) unmarshalInputCreateServiceDefinitionInput(ctx conte
 				return it, err
 			}
 			it.MinHours = data
+		case "hoursPerRoom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hoursPerRoom"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HoursPerRoom = data
+		case "hoursPerBathroom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hoursPerBathroom"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HoursPerBathroom = data
+		case "hoursPer100Sqm":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hoursPer100Sqm"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HoursPer100Sqm = data
+		case "houseMultiplier":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("houseMultiplier"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HouseMultiplier = data
+		case "petDurationMinutes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("petDurationMinutes"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PetDurationMinutes = data
 		case "isActive":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isActive"))
 			data, err := ec.unmarshalNBoolean2bool(ctx, v)
@@ -22529,7 +25054,7 @@ func (ec *executionContext) unmarshalInputCreateServiceExtraInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"nameRo", "nameEn", "price", "isActive"}
+	fieldsInOrder := [...]string{"nameRo", "nameEn", "price", "durationMinutes", "isActive"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -22557,6 +25082,13 @@ func (ec *executionContext) unmarshalInputCreateServiceExtraInput(ctx context.Co
 				return it, err
 			}
 			it.Price = data
+		case "durationMinutes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("durationMinutes"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DurationMinutes = data
 		case "isActive":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isActive"))
 			data, err := ec.unmarshalNBoolean2bool(ctx, v)
@@ -22652,7 +25184,7 @@ func (ec *executionContext) unmarshalInputPriceEstimateInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceType", "numRooms", "numBathrooms", "areaSqm", "extras"}
+	fieldsInOrder := [...]string{"serviceType", "numRooms", "numBathrooms", "areaSqm", "propertyType", "hasPets", "extras"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -22687,6 +25219,20 @@ func (ec *executionContext) unmarshalInputPriceEstimateInput(ctx context.Context
 				return it, err
 			}
 			it.AreaSqm = data
+		case "propertyType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyType"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PropertyType = data
+		case "hasPets":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hasPets"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HasPets = data
 		case "extras":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("extras"))
 			data, err := ec.unmarshalOExtraInput2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐExtraInputᚄ(ctx, v)
@@ -22735,6 +25281,47 @@ func (ec *executionContext) unmarshalInputSubmitReviewInput(ctx context.Context,
 				return it, err
 			}
 			it.Comment = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTimeSlotInput(ctx context.Context, obj any) (model.TimeSlotInput, error) {
+	var it model.TimeSlotInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"date", "startTime", "endTime"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "date":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("date"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Date = data
+		case "startTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartTime = data
+		case "endTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EndTime = data
 		}
 	}
 
@@ -22982,7 +25569,7 @@ func (ec *executionContext) unmarshalInputUpdateServiceDefinitionInput(ctx conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "basePricePerHour", "minHours", "isActive"}
+	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "basePricePerHour", "minHours", "hoursPerRoom", "hoursPerBathroom", "hoursPer100Sqm", "houseMultiplier", "petDurationMinutes", "isActive"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -23024,6 +25611,41 @@ func (ec *executionContext) unmarshalInputUpdateServiceDefinitionInput(ctx conte
 				return it, err
 			}
 			it.MinHours = data
+		case "hoursPerRoom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hoursPerRoom"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HoursPerRoom = data
+		case "hoursPerBathroom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hoursPerBathroom"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HoursPerBathroom = data
+		case "hoursPer100Sqm":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hoursPer100Sqm"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HoursPer100Sqm = data
+		case "houseMultiplier":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("houseMultiplier"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HouseMultiplier = data
+		case "petDurationMinutes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("petDurationMinutes"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PetDurationMinutes = data
 		case "isActive":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isActive"))
 			data, err := ec.unmarshalNBoolean2bool(ctx, v)
@@ -23044,7 +25666,7 @@ func (ec *executionContext) unmarshalInputUpdateServiceExtraInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "price", "isActive"}
+	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "price", "durationMinutes", "isActive"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -23079,6 +25701,13 @@ func (ec *executionContext) unmarshalInputUpdateServiceExtraInput(ctx context.Co
 				return it, err
 			}
 			it.Price = data
+		case "durationMinutes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("durationMinutes"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DurationMinutes = data
 		case "isActive":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isActive"))
 			data, err := ec.unmarshalNBoolean2bool(ctx, v)
@@ -23437,6 +26066,11 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "paidAt":
 			out.Values[i] = ec._Booking_paidAt(ctx, field, obj)
+		case "timeSlots":
+			out.Values[i] = ec._Booking_timeSlots(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "review":
 			out.Values[i] = ec._Booking_review(ctx, field, obj)
 		case "chatRoom":
@@ -23541,6 +26175,65 @@ func (ec *executionContext) _BookingExtra(ctx context.Context, sel ast.Selection
 			}
 		case "quantity":
 			out.Values[i] = ec._BookingExtra_quantity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var bookingTimeSlotImplementors = []string{"BookingTimeSlot"}
+
+func (ec *executionContext) _BookingTimeSlot(ctx context.Context, sel ast.SelectionSet, obj *model.BookingTimeSlot) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bookingTimeSlotImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BookingTimeSlot")
+		case "id":
+			out.Values[i] = ec._BookingTimeSlot_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "slotDate":
+			out.Values[i] = ec._BookingTimeSlot_slotDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startTime":
+			out.Values[i] = ec._BookingTimeSlot_startTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endTime":
+			out.Values[i] = ec._BookingTimeSlot_endTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isSelected":
+			out.Values[i] = ec._BookingTimeSlot_isSelected(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -23800,6 +26493,60 @@ func (ec *executionContext) _ChatRoom(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = ec._ChatRoom_lastMessage(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._ChatRoom_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cityAreaImplementors = []string{"CityArea"}
+
+func (ec *executionContext) _CityArea(ctx context.Context, sel ast.SelectionSet, obj *model.CityArea) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cityAreaImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CityArea")
+		case "id":
+			out.Values[i] = ec._CityArea_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._CityArea_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cityId":
+			out.Values[i] = ec._CityArea_cityId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cityName":
+			out.Values[i] = ec._CityArea_cityName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -24124,6 +26871,70 @@ func (ec *executionContext) _CleanerStats(ctx context.Context, sel ast.Selection
 			}
 		case "thisMonthEarnings":
 			out.Values[i] = ec._CleanerStats_thisMonthEarnings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cleanerSuggestionImplementors = []string{"CleanerSuggestion"}
+
+func (ec *executionContext) _CleanerSuggestion(ctx context.Context, sel ast.SelectionSet, obj *model.CleanerSuggestion) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cleanerSuggestionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CleanerSuggestion")
+		case "cleaner":
+			out.Values[i] = ec._CleanerSuggestion_cleaner(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "company":
+			out.Values[i] = ec._CleanerSuggestion_company(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "availabilityStatus":
+			out.Values[i] = ec._CleanerSuggestion_availabilityStatus(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "availableFrom":
+			out.Values[i] = ec._CleanerSuggestion_availableFrom(ctx, field, obj)
+		case "availableTo":
+			out.Values[i] = ec._CleanerSuggestion_availableTo(ctx, field, obj)
+		case "suggestedStartTime":
+			out.Values[i] = ec._CleanerSuggestion_suggestedStartTime(ctx, field, obj)
+		case "suggestedEndTime":
+			out.Values[i] = ec._CleanerSuggestion_suggestedEndTime(ctx, field, obj)
+		case "suggestedSlotIndex":
+			out.Values[i] = ec._CleanerSuggestion_suggestedSlotIndex(ctx, field, obj)
+		case "matchScore":
+			out.Values[i] = ec._CleanerSuggestion_matchScore(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -24696,6 +27507,65 @@ func (ec *executionContext) _DailyRevenue(ctx context.Context, sel ast.Selection
 	return out
 }
 
+var enabledCityImplementors = []string{"EnabledCity"}
+
+func (ec *executionContext) _EnabledCity(ctx context.Context, sel ast.SelectionSet, obj *model.EnabledCity) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, enabledCityImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EnabledCity")
+		case "id":
+			out.Values[i] = ec._EnabledCity_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._EnabledCity_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "county":
+			out.Values[i] = ec._EnabledCity_county(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isActive":
+			out.Values[i] = ec._EnabledCity_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "areas":
+			out.Values[i] = ec._EnabledCity_areas(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var extraLineItemImplementors = []string{"ExtraLineItem"}
 
 func (ec *executionContext) _ExtraLineItem(ctx context.Context, sel ast.SelectionSet, obj *model.ExtraLineItem) graphql.Marshaler {
@@ -24879,6 +27749,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "completeJob":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_completeJob(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "selectBookingTimeSlot":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_selectBookingTimeSlot(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -25068,6 +27945,48 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "suspendCompany":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_suspendCompany(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createCity":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createCity(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "toggleCityActive":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_toggleCityActive(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createCityArea":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createCityArea(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteCityArea":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteCityArea(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateCompanyServiceAreas":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateCompanyServiceAreas(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateCleanerServiceAreas":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateCleanerServiceAreas(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -25609,6 +28528,16 @@ func (ec *executionContext) _PriceEstimate(ctx context.Context, sel ast.Selectio
 			}
 		case "estimatedHours":
 			out.Values[i] = ec._PriceEstimate_estimatedHours(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "propertyMultiplier":
+			out.Values[i] = ec._PriceEstimate_propertyMultiplier(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "petsSurcharge":
+			out.Values[i] = ec._PriceEstimate_petsSurcharge(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -26703,6 +29632,182 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "activeCities":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_activeCities(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "cityAreas":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_cityAreas(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "allCities":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allCities(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myCompanyServiceAreas":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myCompanyServiceAreas(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "cleanerServiceAreas":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_cleanerServiceAreas(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myCleanerServiceAreas":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myCleanerServiceAreas(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "suggestCleaners":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_suggestCleaners(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "isCitySupported":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_isCitySupported(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "myNotifications":
 			field := field
 
@@ -27179,6 +30284,31 @@ func (ec *executionContext) _ServiceDefinition(ctx context.Context, sel ast.Sele
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "hoursPerRoom":
+			out.Values[i] = ec._ServiceDefinition_hoursPerRoom(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hoursPerBathroom":
+			out.Values[i] = ec._ServiceDefinition_hoursPerBathroom(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hoursPer100Sqm":
+			out.Values[i] = ec._ServiceDefinition_hoursPer100Sqm(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "houseMultiplier":
+			out.Values[i] = ec._ServiceDefinition_houseMultiplier(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "petDurationMinutes":
+			out.Values[i] = ec._ServiceDefinition_petDurationMinutes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "icon":
 			out.Values[i] = ec._ServiceDefinition_icon(ctx, field, obj)
 		case "isActive":
@@ -27237,6 +30367,11 @@ func (ec *executionContext) _ServiceExtra(ctx context.Context, sel ast.Selection
 			}
 		case "price":
 			out.Values[i] = ec._ServiceExtra_price(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "durationMinutes":
+			out.Values[i] = ec._ServiceExtra_durationMinutes(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -28190,6 +31325,60 @@ func (ec *executionContext) marshalNBookingStatus2helpmecleanᚑbackendᚋintern
 	return v
 }
 
+func (ec *executionContext) marshalNBookingTimeSlot2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐBookingTimeSlotᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BookingTimeSlot) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBookingTimeSlot2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐBookingTimeSlot(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBookingTimeSlot2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐBookingTimeSlot(ctx context.Context, sel ast.SelectionSet, v *model.BookingTimeSlot) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BookingTimeSlot(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNBookingsByStatus2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐBookingsByStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BookingsByStatus) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -28440,6 +31629,64 @@ func (ec *executionContext) marshalNChatRoom2ᚖhelpmecleanᚑbackendᚋinternal
 	return ec._ChatRoom(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNCityArea2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityArea(ctx context.Context, sel ast.SelectionSet, v model.CityArea) graphql.Marshaler {
+	return ec._CityArea(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCityArea2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityAreaᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CityArea) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCityArea2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityArea(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCityArea2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCityArea(ctx context.Context, sel ast.SelectionSet, v *model.CityArea) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CityArea(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNCleanerDailyEarnings2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerDailyEarningsᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CleanerDailyEarnings) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -28646,6 +31893,60 @@ func (ec *executionContext) unmarshalNCleanerStatus2helpmecleanᚑbackendᚋinte
 
 func (ec *executionContext) marshalNCleanerStatus2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerStatus(ctx context.Context, sel ast.SelectionSet, v model.CleanerStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNCleanerSuggestion2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerSuggestionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CleanerSuggestion) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCleanerSuggestion2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerSuggestion(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCleanerSuggestion2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerSuggestion(ctx context.Context, sel ast.SelectionSet, v *model.CleanerSuggestion) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CleanerSuggestion(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCompany2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCompany(ctx context.Context, sel ast.SelectionSet, v model.Company) graphql.Marshaler {
@@ -29022,6 +32323,64 @@ func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNEnabledCity2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCity(ctx context.Context, sel ast.SelectionSet, v model.EnabledCity) graphql.Marshaler {
+	return ec._EnabledCity(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEnabledCity2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCityᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.EnabledCity) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEnabledCity2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCity(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEnabledCity2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐEnabledCity(ctx context.Context, sel ast.SelectionSet, v *model.EnabledCity) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EnabledCity(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNExtraInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐExtraInput(ctx context.Context, v any) (*model.ExtraInput, error) {
@@ -29738,6 +33097,26 @@ func (ec *executionContext) unmarshalNSubmitReviewInput2helpmecleanᚑbackendᚋ
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNTimeSlotInput2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTimeSlotInputᚄ(ctx context.Context, v any) ([]*model.TimeSlotInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.TimeSlotInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNTimeSlotInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTimeSlotInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNTimeSlotInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTimeSlotInput(ctx context.Context, v any) (*model.TimeSlotInput, error) {
+	res, err := ec.unmarshalInputTimeSlotInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNTopCompany2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTopCompanyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TopCompany) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -30451,6 +33830,24 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOTimeSlotInput2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTimeSlotInputᚄ(ctx context.Context, v any) ([]*model.TimeSlotInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.TimeSlotInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNTimeSlotInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐTimeSlotInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalOUser2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {

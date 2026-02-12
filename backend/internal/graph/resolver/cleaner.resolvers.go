@@ -61,6 +61,9 @@ func (r *mutationResolver) InviteCleaner(ctx context.Context, input model.Invite
 		return nil, fmt.Errorf("failed to invite cleaner: %w", err)
 	}
 
+	// Auto-assign all company service areas to the new cleaner.
+	r.copyCompanyAreasToCleanerHelper(ctx, company.ID, cleaner.ID)
+
 	return r.cleanerWithCompany(ctx, cleaner)
 }
 
@@ -105,6 +108,9 @@ func (r *mutationResolver) InviteSelfAsCleaner(ctx context.Context) (*model.Clea
 	if err != nil {
 		return nil, fmt.Errorf("failed to link cleaner to user: %w", err)
 	}
+
+	// Auto-assign all company service areas to the new cleaner.
+	r.copyCompanyAreasToCleanerHelper(ctx, company.ID, cleaner.ID)
 
 	return r.cleanerWithCompany(ctx, cleaner)
 }

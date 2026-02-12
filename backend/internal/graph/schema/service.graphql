@@ -7,6 +7,11 @@ type ServiceDefinition {
   descriptionEn: String
   basePricePerHour: Float!
   minHours: Float!
+  hoursPerRoom: Float!
+  hoursPerBathroom: Float!
+  hoursPer100Sqm: Float!
+  houseMultiplier: Float!
+  petDurationMinutes: Int!
   icon: String
   isActive: Boolean!
 }
@@ -16,6 +21,7 @@ type ServiceExtra {
   nameRo: String!
   nameEn: String!
   price: Float!
+  durationMinutes: Int!
   icon: String
   isActive: Boolean!
 }
@@ -23,6 +29,8 @@ type ServiceExtra {
 type PriceEstimate {
   hourlyRate: Float!
   estimatedHours: Float!
+  propertyMultiplier: Float!
+  petsSurcharge: Float!
   subtotal: Float!
   extras: [ExtraLineItem!]!
   total: Float!
@@ -45,6 +53,8 @@ input PriceEstimateInput {
   numRooms: Int!
   numBathrooms: Int!
   areaSqm: Int
+  propertyType: String
+  hasPets: Boolean
   extras: [ExtraInput!]
 }
 
@@ -66,6 +76,11 @@ input UpdateServiceDefinitionInput {
   nameEn: String!
   basePricePerHour: Float!
   minHours: Float!
+  hoursPerRoom: Float!
+  hoursPerBathroom: Float!
+  hoursPer100Sqm: Float!
+  houseMultiplier: Float!
+  petDurationMinutes: Int!
   isActive: Boolean!
 }
 
@@ -75,6 +90,11 @@ input CreateServiceDefinitionInput {
   nameEn: String!
   basePricePerHour: Float!
   minHours: Float!
+  hoursPerRoom: Float!
+  hoursPerBathroom: Float!
+  hoursPer100Sqm: Float!
+  houseMultiplier: Float!
+  petDurationMinutes: Int!
   isActive: Boolean!
 }
 
@@ -83,6 +103,7 @@ input UpdateServiceExtraInput {
   nameRo: String!
   nameEn: String!
   price: Float!
+  durationMinutes: Int!
   isActive: Boolean!
 }
 
@@ -90,5 +111,6 @@ input CreateServiceExtraInput {
   nameRo: String!
   nameEn: String!
   price: Float!
+  durationMinutes: Int!
   isActive: Boolean!
 }

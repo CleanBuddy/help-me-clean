@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { Building2, Save, FileText, MapPin, Clock } from 'lucide-react';
+import { Building2, Save, FileText, MapPin, Clock, ChevronDown, ChevronRight, CheckSquare, Square } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { cn } from '@helpmeclean/shared';
-import { MY_COMPANY, UPDATE_COMPANY_PROFILE, MY_COMPANY_WORK_SCHEDULE } from '@/graphql/operations';
+import {
+  MY_COMPANY,
+  UPDATE_COMPANY_PROFILE,
+  MY_COMPANY_WORK_SCHEDULE,
+  ACTIVE_CITIES,
+  MY_COMPANY_SERVICE_AREAS,
+  UPDATE_COMPANY_SERVICE_AREAS,
+} from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +44,23 @@ interface CompanyDocument {
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+}
+
+// ─── Service Area Types ──────────────────────────────────────────────────────
+
+interface CityArea {
+  id: string;
+  name: string;
+  cityId: string;
+  cityName: string;
+}
+
+interface City {
+  id: string;
+  name: string;
+  county: string;
+  isActive: boolean;
+  areas: CityArea[];
 }
 
 // ─── Work Schedule ───────────────────────────────────────────────────────────
@@ -79,21 +103,32 @@ export default function SettingsPage() {
 
   const { data: scheduleData } = useQuery(MY_COMPANY_WORK_SCHEDULE);
 
+  // Service areas queries & mutation
+  const { data: citiesData, loading: citiesLoading } = useQuery(ACTIVE_CITIES);
+  const { data: companyAreasData, loading: areasLoading } = useQuery(MY_COMPANY_SERVICE_AREAS);
+  const [updateServiceAreas, { loading: savingAreas }] = useMutation(UPDATE_COMPANY_SERVICE_AREAS, {
+    refetchQueries: [{ query: MY_COMPANY_SERVICE_AREAS }],
+  });
+
   const [description, setDescription] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
-  const [maxRadius, setMaxRadius] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [schedule, setSchedule] = useState<WorkScheduleDay[]>(buildDefaultSchedule);
   const [scheduleSuccessMessage, setScheduleSuccessMessage] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
+
+  // Service areas state
+  const [selectedAreaIds, setSelectedAreaIds] = useState<Set<string>>(new Set());
+  const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
+  const [areasSuccessMessage, setAreasSuccessMessage] = useState('');
+  const [areasErrorMessage, setAreasErrorMessage] = useState('');
 
   useEffect(() => {
     if (company) {
       setDescription(company.description || '');
       setContactEmail(company.contactEmail || '');
       setContactPhone(company.contactPhone || '');
-      setMaxRadius(company.maxServiceRadiusKm?.toString() || '');
     }
   }, [company]);
 
@@ -116,6 +151,21 @@ export default function SettingsPage() {
     }
   }, [scheduleData]);
 
+  // Initialize selected areas from company's current service areas
+  useEffect(() => {
+    if (companyAreasData?.myCompanyServiceAreas) {
+      const ids = new Set(
+        (companyAreasData.myCompanyServiceAreas as CityArea[]).map((a) => a.id),
+      );
+      setSelectedAreaIds(ids);
+    }
+  }, [companyAreasData]);
+
+  const cities: City[] = useMemo(
+    () => (citiesData?.activeCities as City[] | undefined) ?? [],
+    [citiesData],
+  );
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMessage('');
@@ -126,7 +176,6 @@ export default function SettingsPage() {
             description,
             contactPhone,
             contactEmail,
-            maxServiceRadiusKm: maxRadius ? parseInt(maxRadius, 10) : undefined,
           },
         },
       });
@@ -167,6 +216,79 @@ export default function SettingsPage() {
       setSavingSchedule(false);
     }
   };
+
+  // ─── Service Area Handlers ─────────────────────────────────────────────────
+
+  const toggleCity = (cityId: string) => {
+    setExpandedCities((prev) => {
+      const next = new Set(prev);
+      if (next.has(cityId)) {
+        next.delete(cityId);
+      } else {
+        next.add(cityId);
+      }
+      return next;
+    });
+  };
+
+  const toggleArea = (areaId: string) => {
+    setSelectedAreaIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(areaId)) {
+        next.delete(areaId);
+      } else {
+        next.add(areaId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllInCity = (city: City) => {
+    setSelectedAreaIds((prev) => {
+      const next = new Set(prev);
+      for (const area of city.areas) {
+        next.add(area.id);
+      }
+      return next;
+    });
+  };
+
+  const deselectAllInCity = (city: City) => {
+    setSelectedAreaIds((prev) => {
+      const next = new Set(prev);
+      for (const area of city.areas) {
+        next.delete(area.id);
+      }
+      return next;
+    });
+  };
+
+  const handleSaveAreas = async () => {
+    setAreasSuccessMessage('');
+    setAreasErrorMessage('');
+    try {
+      await updateServiceAreas({
+        variables: {
+          areaIds: Array.from(selectedAreaIds),
+        },
+      });
+      setAreasSuccessMessage('Zonele de acoperire au fost salvate cu succes.');
+      setTimeout(() => setAreasSuccessMessage(''), 3000);
+    } catch {
+      setAreasErrorMessage('Eroare la salvarea zonelor. Incearca din nou.');
+      setTimeout(() => setAreasErrorMessage(''), 4000);
+    }
+  };
+
+  const getSelectedCountForCity = (city: City): number => {
+    return city.areas.filter((a) => selectedAreaIds.has(a.id)).length;
+  };
+
+  const allSelectedInCity = (city: City): boolean => {
+    return city.areas.length > 0 && city.areas.every((a) => selectedAreaIds.has(a.id));
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -229,10 +351,6 @@ export default function SettingsPage() {
               {[company.city, company.county].filter(Boolean).join(', ') || '--'}
             </p>
           </div>
-          <div>
-            <p className="text-gray-500">Raza de acoperire</p>
-            <p className="font-medium">{company.maxServiceRadiusKm ?? '--'} km</p>
-          </div>
         </div>
         {company.rejectionReason && (
           <div className="mt-4 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -264,8 +382,6 @@ export default function SettingsPage() {
             onChange={(e) => setContactEmail(e.target.value)} placeholder="contact@firma.ro" />
           <Input label="Telefon contact" value={contactPhone}
             onChange={(e) => setContactPhone(e.target.value)} placeholder="+40 7XX XXX XXX" />
-          <Input label="Raza maxima serviciu (km)" type="number" value={maxRadius}
-            onChange={(e) => setMaxRadius(e.target.value)} placeholder="50" />
           {successMessage && (
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
               {successMessage}
@@ -380,21 +496,183 @@ export default function SettingsPage() {
         )}
       </Card>
 
-      {/* Coverage area */}
+      {/* Service Areas */}
       <Card>
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-2">
           <MapPin className="h-5 w-5 text-gray-500" />
-          <h2 className="text-lg font-semibold text-gray-900">Zona de acoperire</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Zone de acoperire</h2>
         </div>
-        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-          <MapPin className="h-5 w-5 text-blue-600 shrink-0" />
-          <p className="text-sm font-medium text-gray-900">
-            {[company.city, company.county].filter(Boolean).join(', ') || 'Locatie nespecificata'}
-            {' — '}
-            <span className="text-blue-600">{company.maxServiceRadiusKm ?? 0} km</span>
-            {' raza de serviciu'}
-          </p>
-        </div>
+        <p className="text-sm text-gray-500 mb-5">
+          Selecteaza zonele in care firma ta ofera servicii de curatenie. Clientii din aceste zone vor putea solicita serviciile tale.
+        </p>
+
+        {citiesLoading || areasLoading ? (
+          <div className="animate-pulse space-y-3">
+            <div className="h-14 bg-gray-100 rounded-xl" />
+            <div className="h-14 bg-gray-100 rounded-xl" />
+            <div className="h-14 bg-gray-100 rounded-xl" />
+          </div>
+        ) : cities.length === 0 ? (
+          <div className="text-center py-8">
+            <MapPin className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-500">Nu exista orase active momentan.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {cities.map((city) => {
+              const isExpanded = expandedCities.has(city.id);
+              const selectedCount = getSelectedCountForCity(city);
+              const totalCount = city.areas.length;
+              const allSelected = allSelectedInCity(city);
+
+              return (
+                <div key={city.id} className="rounded-xl border border-gray-200 overflow-hidden">
+                  {/* City header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleCity(city.id)}
+                    className={cn(
+                      'w-full flex items-center justify-between px-4 py-3 text-left transition-colors',
+                      'hover:bg-gray-50',
+                      isExpanded && 'bg-gray-50 border-b border-gray-200',
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      )}
+                      <MapPin className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-semibold text-gray-900">{city.name}</span>
+                      <span className="text-xs text-gray-400">{city.county}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedCount > 0 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          {selectedCount} / {totalCount}
+                        </span>
+                      )}
+                      {selectedCount === 0 && totalCount > 0 && (
+                        <span className="text-xs text-gray-400">
+                          {totalCount} {totalCount === 1 ? 'zona' : 'zone'}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Expanded area list */}
+                  {isExpanded && (
+                    <div className="px-4 py-3">
+                      {/* Select all / Deselect all actions */}
+                      {totalCount > 0 && (
+                        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() => selectAllInCity(city)}
+                            disabled={allSelected}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 text-xs font-medium transition-colors',
+                              allSelected
+                                ? 'text-gray-300 cursor-not-allowed'
+                                : 'text-blue-600 hover:text-blue-700',
+                            )}
+                          >
+                            <CheckSquare className="h-3.5 w-3.5" />
+                            Selecteaza toate
+                          </button>
+                          <span className="text-gray-200">|</span>
+                          <button
+                            type="button"
+                            onClick={() => deselectAllInCity(city)}
+                            disabled={selectedCount === 0}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 text-xs font-medium transition-colors',
+                              selectedCount === 0
+                                ? 'text-gray-300 cursor-not-allowed'
+                                : 'text-gray-500 hover:text-gray-700',
+                            )}
+                          >
+                            <Square className="h-3.5 w-3.5" />
+                            Deselecteaza toate
+                          </button>
+                        </div>
+                      )}
+
+                      {totalCount === 0 ? (
+                        <p className="text-xs text-gray-400 py-2">Nicio zona definita pentru acest oras.</p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {city.areas.map((area) => {
+                            const isSelected = selectedAreaIds.has(area.id);
+                            return (
+                              <label
+                                key={area.id}
+                                className={cn(
+                                  'flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors',
+                                  isSelected
+                                    ? 'bg-blue-50 border border-blue-200'
+                                    : 'bg-gray-50 border border-transparent hover:bg-gray-100',
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleArea(area.id)}
+                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600/30"
+                                />
+                                <span className={cn(
+                                  'text-sm',
+                                  isSelected ? 'font-medium text-blue-900' : 'text-gray-700',
+                                )}>
+                                  {area.name}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Summary of total selected */}
+        {cities.length > 0 && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
+            <MapPin className="h-4 w-4" />
+            <span>
+              {selectedAreaIds.size === 0
+                ? 'Nicio zona selectata'
+                : `${selectedAreaIds.size} ${selectedAreaIds.size === 1 ? 'zona selectata' : 'zone selectate'}`}
+            </span>
+          </div>
+        )}
+
+        {/* Feedback messages */}
+        {areasSuccessMessage && (
+          <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+            {areasSuccessMessage}
+          </div>
+        )}
+        {areasErrorMessage && (
+          <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            {areasErrorMessage}
+          </div>
+        )}
+
+        {/* Save button */}
+        {cities.length > 0 && (
+          <div className="mt-5">
+            <Button onClick={handleSaveAreas} loading={savingAreas}>
+              <Save className="h-4 w-4" />
+              Salveaza zonele
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   );

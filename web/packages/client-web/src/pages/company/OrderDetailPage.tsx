@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { ArrowLeft, MapPin, User, Phone, Mail, Clock, Calendar, Search, Loader2, Star } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Phone, Mail, Clock, Calendar, Search, Loader2, Star, Info, CheckCircle, RefreshCw, Check } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -12,6 +12,9 @@ import {
   MY_CLEANERS,
   ASSIGN_CLEANER,
   CANCEL_BOOKING,
+  SUGGEST_CLEANERS,
+  ACTIVE_CITIES,
+  SELECT_BOOKING_TIME_SLOT,
 } from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -52,6 +55,37 @@ interface CleanerOption {
   totalJobsCompleted: number;
 }
 
+interface SuggestedCleaner {
+  cleaner: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+    ratingAvg: number;
+    totalJobsCompleted: number;
+  };
+  company: {
+    id: string;
+    companyName: string;
+  };
+  availabilityStatus: string;
+  matchScore: number;
+}
+
+interface CityArea {
+  id: string;
+  name: string;
+  cityId: string;
+  cityName: string;
+}
+
+interface EnabledCity {
+  id: string;
+  name: string;
+  county: string;
+  isActive: boolean;
+  areas: CityArea[];
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {
@@ -74,6 +108,41 @@ export default function OrderDetailPage() {
     skip: !assignModal,
   });
 
+  // Fetch active cities for resolving city -> cityId/areaId for suggestions
+  const { data: citiesData } = useQuery(ACTIVE_CITIES, {
+    skip: !assignModal,
+  });
+
+  const booking = data?.booking;
+
+  // Resolve cityId and areaId from the booking address, if possible
+  const resolvedLocation = (() => {
+    if (!booking?.address?.city || !citiesData?.activeCities) return null;
+    const bookingCity = booking.address.city.toLowerCase().trim();
+    const matchedCity = (citiesData.activeCities as EnabledCity[]).find(
+      (c) => c.name.toLowerCase().trim() === bookingCity,
+    );
+    if (!matchedCity) return null;
+    // Try to match area by address street or just return city with first area
+    const firstArea = matchedCity.areas?.[0];
+    if (!firstArea) return null;
+    return { cityId: matchedCity.id, areaId: firstArea.id };
+  })();
+
+  // Fetch cleaner suggestions when the assign modal is open and we can resolve a location
+  const { data: suggestionsData, loading: loadingSuggestions } = useQuery(SUGGEST_CLEANERS, {
+    variables: {
+      cityId: resolvedLocation?.cityId ?? '',
+      areaId: resolvedLocation?.areaId ?? '',
+      scheduledDate: booking?.scheduledDate ?? '',
+      scheduledStartTime: booking?.scheduledStartTime ?? '',
+      estimatedDurationHours: booking?.estimatedDurationHours ?? 2,
+    },
+    skip: !assignModal || !resolvedLocation,
+  });
+
+  const suggestedCleaners: SuggestedCleaner[] = suggestionsData?.suggestCleaners ?? [];
+
   // Mutations
   const [assignCleaner, { loading: assigning }] = useMutation(ASSIGN_CLEANER, {
     refetchQueries: [{ query: COMPANY_BOOKING_DETAIL, variables: { id } }],
@@ -86,13 +155,24 @@ export default function OrderDetailPage() {
     ],
   });
 
-  const booking = data?.booking;
+  const [selectTimeSlot, { loading: selectingSlot }] = useMutation(SELECT_BOOKING_TIME_SLOT, {
+    refetchQueries: [{ query: COMPANY_BOOKING_DETAIL, variables: { id } }],
+  });
+
+  // Derived state: is this a targeted booking (sent to our company with a preferred cleaner)?
+  const isTargetedBooking = booking?.status === 'PENDING' && !!booking?.company;
+  const suggestedCleanerOnBooking = isTargetedBooking && booking?.cleaner ? booking.cleaner : null;
 
   // Handlers
   const handleAssign = async (cleanerId: string) => {
     await assignCleaner({ variables: { bookingId: id, cleanerId } });
     setAssignModal(false);
     setCleanerSearch('');
+  };
+
+  const handleApproveTargeted = async () => {
+    if (!suggestedCleanerOnBooking) return;
+    await assignCleaner({ variables: { bookingId: id, cleanerId: suggestedCleanerOnBooking.id } });
   };
 
   const handleCancel = async () => {
@@ -110,6 +190,9 @@ export default function OrderDetailPage() {
         c.email?.toLowerCase().includes(cleanerSearch.toLowerCase())
       )
     : allCleaners;
+
+  // Get IDs of suggested cleaners so we can mark them in the full list
+  const suggestedCleanerIds = new Set(suggestedCleaners.map((s) => s.cleaner.id));
 
   if (loading) {
     return (
@@ -161,6 +244,46 @@ export default function OrderDetailPage() {
         <ArrowLeft className="h-4 w-4" />
         Inapoi la comenzi
       </button>
+
+      {/* Targeted Booking Banner */}
+      {isTargetedBooking && (
+        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-blue-900">
+                Aceasta comanda a fost directionata catre firma ta
+              </p>
+              {suggestedCleanerOnBooking && (
+                <p className="text-sm text-blue-700 mt-1">
+                  Curatator sugerat: <span className="font-medium">{suggestedCleanerOnBooking.fullName}</span>
+                </p>
+              )}
+              <div className="flex flex-wrap gap-3 mt-3">
+                {suggestedCleanerOnBooking && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleApproveTargeted}
+                    loading={assigning}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Aproba comanda
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setAssignModal(true)}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Schimba curatator
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -214,6 +337,53 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </Card>
+
+          {/* Time Slots */}
+          {booking.timeSlots && booking.timeSlots.length > 0 && (
+            <Card>
+              <h2 className="font-semibold text-gray-900 mb-4">Intervale de timp</h2>
+              <div className="space-y-3">
+                {booking.timeSlots.map((slot: { id: string; slotDate: string; startTime: string; endTime: string; isSelected: boolean }) => {
+                  const canSelect = (booking.status === 'PENDING' || booking.status === 'ASSIGNED') && !slot.isSelected;
+                  return (
+                    <div
+                      key={slot.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border ${
+                        slot.isSelected
+                          ? 'border-blue-200 bg-blue-50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <Calendar className={`h-5 w-5 shrink-0 ${slot.isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {new Date(slot.slotDate).toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
+                        </p>
+                      </div>
+                      {slot.isSelected ? (
+                        <div className="flex items-center gap-1.5 text-blue-600">
+                          <Check className="h-4 w-4" />
+                          <span className="text-xs font-semibold">Selectat</span>
+                        </div>
+                      ) : canSelect ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={selectingSlot}
+                          onClick={() => selectTimeSlot({ variables: { bookingId: id, timeSlotId: slot.id } })}
+                        >
+                          Selecteaza
+                        </Button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {/* Address */}
           {booking.address && (
@@ -339,13 +509,19 @@ export default function OrderDetailPage() {
                     <span className="text-sm">{booking.cleaner.phone}</span>
                   </div>
                 )}
+                {/* For targeted pending bookings, the cleaner shown is the suggestion - not yet assigned */}
+                {isTargetedBooking && (
+                  <Badge variant="warning" className="mt-1">Sugerat - nu este inca asignat</Badge>
+                )}
               </div>
             ) : (
               <div>
                 <p className="text-sm text-gray-500 mb-3">Niciun cleaner asignat inca.</p>
-                <Button size="sm" className="w-full" onClick={() => setAssignModal(true)}>
-                  Asigneaza cleaner
-                </Button>
+                {!isTargetedBooking && (
+                  <Button size="sm" className="w-full" onClick={() => setAssignModal(true)}>
+                    Asigneaza cleaner
+                  </Button>
+                )}
               </div>
             )}
           </Card>
@@ -359,6 +535,72 @@ export default function OrderDetailPage() {
         title="Asigneaza cleaner"
       >
         <div className="space-y-4">
+          {/* Suggestions Section */}
+          {resolvedLocation && suggestedCleaners.length > 0 && !cleanerSearch.trim() && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="h-4 w-4 text-accent" />
+                <h4 className="text-sm font-semibold text-gray-900">Recomandari</h4>
+                <span className="text-xs text-gray-400">
+                  ({booking.address?.city})
+                </span>
+              </div>
+              {loadingSuggestions ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-2 mb-4">
+                  {suggestedCleaners.slice(0, 3).map((suggestion) => (
+                    <div
+                      key={suggestion.cleaner.id}
+                      className="flex items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50/50 hover:border-blue-400 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-semibold text-blue-700">
+                            {suggestion.cleaner.fullName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 text-sm truncate">
+                            {suggestion.cleaner.fullName}
+                          </p>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <Star className="h-3 w-3 text-accent" />
+                              {suggestion.cleaner.ratingAvg > 0 ? suggestion.cleaner.ratingAvg.toFixed(1) : '--'}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {suggestion.cleaner.totalJobsCompleted} joburi
+                            </span>
+                            <Badge
+                              variant={suggestion.availabilityStatus === 'AVAILABLE' ? 'success' : 'warning'}
+                              className="text-[10px] px-1.5 py-0"
+                            >
+                              {suggestion.availabilityStatus === 'AVAILABLE' ? 'Disponibil' : 'Partial'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAssign(suggestion.cleaner.id)}
+                        loading={assigning}
+                        className="shrink-0 ml-3"
+                      >
+                        Selecteaza
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="border-t border-gray-200 pt-3 mb-1">
+                <p className="text-xs text-gray-400 mb-2">Sau cauta manual din toti curatorii tai:</p>
+              </div>
+            </div>
+          )}
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -381,7 +623,11 @@ export default function OrderDetailPage() {
               {filteredCleaners.map((cleaner) => (
                 <div
                   key={cleaner.id}
-                  className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                  className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                    suggestedCleanerIds.has(cleaner.id)
+                      ? 'border-blue-200 bg-blue-50/30 hover:border-blue-400'
+                      : 'border-gray-200 hover:border-primary/30 hover:bg-primary/5'
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -390,7 +636,12 @@ export default function OrderDetailPage() {
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">{cleaner.fullName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 text-sm truncate">{cleaner.fullName}</p>
+                        {suggestedCleanerIds.has(cleaner.id) && (
+                          <Badge variant="info" className="text-[10px] px-1.5 py-0">Recomandat</Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="flex items-center gap-1 text-xs text-gray-400">
                           <Star className="h-3 w-3 text-accent" />

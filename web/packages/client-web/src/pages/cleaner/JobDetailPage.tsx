@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calendar, Check } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -98,6 +98,53 @@ export default function JobDetailPage() {
           <p>Durata: {booking.estimatedDurationHours}h</p>
         </div>
       </Card>
+
+      {/* Time Slots */}
+      {booking.timeSlots && booking.timeSlots.length > 0 && (() => {
+        const confirmedSlot = booking.timeSlots.find((s: { id: string; slotDate: string; startTime: string; endTime: string; isSelected: boolean }) => s.isSelected);
+        return (
+          <Card className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-900 mb-3">Intervale de timp</h2>
+            {confirmedSlot ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50">
+                <Calendar className="h-5 w-5 text-blue-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">
+                    {new Date(confirmedSlot.slotDate).toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {confirmedSlot.startTime.slice(0, 5)} - {confirmedSlot.endTime.slice(0, 5)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 text-blue-600">
+                  <Check className="h-4 w-4" />
+                  <span className="text-xs font-semibold">Confirmat</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {booking.timeSlots.map((slot: { id: string; slotDate: string; startTime: string; endTime: string; isSelected: boolean }) => (
+                  <div
+                    key={slot.id}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-200"
+                  >
+                    <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-600">
+                        {new Date(slot.slotDate).toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-400 mt-1">Niciun interval confirmat inca.</p>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Address */}
       {booking.address && (

@@ -11,7 +11,7 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
-	"math"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -24,12 +24,17 @@ func (r *mutationResolver) UpdateServiceDefinition(ctx context.Context, input mo
 	}
 
 	updated, err := r.Queries.UpdateServiceDefinition(ctx, db.UpdateServiceDefinitionParams{
-		ID:               stringToUUID(input.ID),
-		NameRo:           input.NameRo,
-		NameEn:           input.NameEn,
-		BasePricePerHour: float64ToNumeric(input.BasePricePerHour),
-		MinHours:         float64ToNumeric(input.MinHours),
-		IsActive:         pgtype.Bool{Bool: input.IsActive, Valid: true},
+		ID:                 stringToUUID(input.ID),
+		NameRo:             input.NameRo,
+		NameEn:             input.NameEn,
+		BasePricePerHour:   float64ToNumeric(input.BasePricePerHour),
+		MinHours:           float64ToNumeric(input.MinHours),
+		HoursPerRoom:       float64ToNumeric(input.HoursPerRoom),
+		HoursPerBathroom:   float64ToNumeric(input.HoursPerBathroom),
+		HoursPer100Sqm:     float64ToNumeric(input.HoursPer100Sqm),
+		HouseMultiplier:    float64ToNumeric(input.HouseMultiplier),
+		PetDurationMinutes: int32(input.PetDurationMinutes),
+		IsActive:           pgtype.Bool{Bool: input.IsActive, Valid: true},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update service definition: %w", err)
@@ -46,12 +51,17 @@ func (r *mutationResolver) CreateServiceDefinition(ctx context.Context, input mo
 	}
 
 	created, err := r.Queries.CreateServiceDefinition(ctx, db.CreateServiceDefinitionParams{
-		ServiceType:      gqlServiceTypeToDb(input.ServiceType),
-		NameRo:           input.NameRo,
-		NameEn:           input.NameEn,
-		BasePricePerHour: float64ToNumeric(input.BasePricePerHour),
-		MinHours:         float64ToNumeric(input.MinHours),
-		IsActive:         pgtype.Bool{Bool: input.IsActive, Valid: true},
+		ServiceType:        gqlServiceTypeToDb(input.ServiceType),
+		NameRo:             input.NameRo,
+		NameEn:             input.NameEn,
+		BasePricePerHour:   float64ToNumeric(input.BasePricePerHour),
+		MinHours:           float64ToNumeric(input.MinHours),
+		HoursPerRoom:       float64ToNumeric(input.HoursPerRoom),
+		HoursPerBathroom:   float64ToNumeric(input.HoursPerBathroom),
+		HoursPer100Sqm:     float64ToNumeric(input.HoursPer100Sqm),
+		HouseMultiplier:    float64ToNumeric(input.HouseMultiplier),
+		PetDurationMinutes: int32(input.PetDurationMinutes),
+		IsActive:           pgtype.Bool{Bool: input.IsActive, Valid: true},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service definition: %w", err)
@@ -68,11 +78,12 @@ func (r *mutationResolver) UpdateServiceExtra(ctx context.Context, input model.U
 	}
 
 	updated, err := r.Queries.UpdateServiceExtra(ctx, db.UpdateServiceExtraParams{
-		ID:       stringToUUID(input.ID),
-		NameRo:   input.NameRo,
-		NameEn:   input.NameEn,
-		Price:    float64ToNumeric(input.Price),
-		IsActive: pgtype.Bool{Bool: input.IsActive, Valid: true},
+		ID:              stringToUUID(input.ID),
+		NameRo:          input.NameRo,
+		NameEn:          input.NameEn,
+		Price:           float64ToNumeric(input.Price),
+		DurationMinutes: int32(input.DurationMinutes),
+		IsActive:        pgtype.Bool{Bool: input.IsActive, Valid: true},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update service extra: %w", err)
@@ -89,10 +100,11 @@ func (r *mutationResolver) CreateServiceExtra(ctx context.Context, input model.C
 	}
 
 	created, err := r.Queries.CreateServiceExtra(ctx, db.CreateServiceExtraParams{
-		NameRo:   input.NameRo,
-		NameEn:   input.NameEn,
-		Price:    float64ToNumeric(input.Price),
-		IsActive: pgtype.Bool{Bool: input.IsActive, Valid: true},
+		NameRo:          input.NameRo,
+		NameEn:          input.NameEn,
+		Price:           float64ToNumeric(input.Price),
+		DurationMinutes: int32(input.DurationMinutes),
+		IsActive:        pgtype.Bool{Bool: input.IsActive, Valid: true},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service extra: %w", err)
@@ -138,24 +150,14 @@ func (r *queryResolver) EstimatePrice(ctx context.Context, input model.PriceEsti
 	}
 
 	hourlyRate := numericToFloat(serviceDef.BasePricePerHour)
-	minHours := numericToFloat(serviceDef.MinHours)
 
-	// Estimate hours based on rooms and bathrooms.
-	estimatedHours := float64(input.NumRooms)*0.5 + float64(input.NumBathrooms)*0.5
-	if input.AreaSqm != nil {
-		estimatedHours += float64(*input.AreaSqm) / 100.0
-	}
-	if estimatedHours < minHours {
-		estimatedHours = minHours
-	}
-	// Round to nearest 0.5.
-	estimatedHours = math.Round(estimatedHours*2) / 2
-
-	subtotal := hourlyRate * estimatedHours
-
-	// Calculate extras.
+	// Fetch extras and build duration info.
 	var extraLineItems []*model.ExtraLineItem
 	extrasTotal := 0.0
+	var extrasDuration []struct {
+		DurationMinutes int32
+		Quantity        int
+	}
 	if input.Extras != nil {
 		for _, extraInput := range input.Extras {
 			extra, err := r.Queries.GetExtraByID(ctx, stringToUUID(extraInput.ExtraID))
@@ -170,17 +172,43 @@ func (r *queryResolver) EstimatePrice(ctx context.Context, input model.PriceEsti
 				Quantity:  extraInput.Quantity,
 				LineTotal: lineTotal,
 			})
+			extrasDuration = append(extrasDuration, struct {
+				DurationMinutes int32
+				Quantity        int
+			}{DurationMinutes: extra.DurationMinutes, Quantity: extraInput.Quantity})
 		}
 	}
 
-	total := subtotal + extrasTotal
+	// Estimate duration using DB-driven parameters.
+	estimatedHours := estimateDuration(serviceDef, input.NumRooms, input.NumBathrooms, input.AreaSqm, input.PropertyType, input.HasPets, extrasDuration)
+
+	// Property type multiplier for price display.
+	propertyMultiplier := 1.0
+	if input.PropertyType != nil {
+		switch strings.ToLower(*input.PropertyType) {
+		case "casa", "house":
+			propertyMultiplier = numericToFloat(serviceDef.HouseMultiplier)
+		}
+	}
+
+	subtotal := hourlyRate * estimatedHours
+
+	// Pets surcharge (flat fee on top of duration).
+	petsSurcharge := 0.0
+	if input.HasPets != nil && *input.HasPets {
+		petsSurcharge = 15.0
+	}
+
+	total := subtotal + extrasTotal + petsSurcharge
 
 	return &model.PriceEstimate{
-		HourlyRate:     hourlyRate,
-		EstimatedHours: estimatedHours,
-		Subtotal:       subtotal,
-		Extras:         extraLineItems,
-		Total:          total,
+		HourlyRate:         hourlyRate,
+		EstimatedHours:     estimatedHours,
+		PropertyMultiplier: propertyMultiplier,
+		PetsSurcharge:      petsSurcharge,
+		Subtotal:           subtotal,
+		Extras:             extraLineItems,
+		Total:              total,
 	}, nil
 }
 
