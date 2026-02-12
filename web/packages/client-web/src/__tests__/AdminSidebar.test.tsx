@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import AdminSidebar from '@/components/layout/AdminSidebar';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import AdminLayout from '@/components/layout/AdminLayout';
 import { useAuth } from '@/context/AuthContext';
 
 vi.mock('@helpmeclean/shared', () => ({
@@ -35,38 +35,42 @@ const defaultAuth = {
   refetchUser: vi.fn(),
 };
 
-function renderSidebar(initialRoute = '/admin') {
+function renderLayout(initialRoute = '/admin') {
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
-      <AdminSidebar />
+      <Routes>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<div>Admin Page</div>} />
+        </Route>
+      </Routes>
     </MemoryRouter>,
   );
 }
 
-describe('AdminSidebar', () => {
+describe('AdminLayout sidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuth).mockReturnValue({ ...defaultAuth });
   });
 
   it('shows "HelpMeClean" text', () => {
-    renderSidebar();
-    expect(screen.getByText('HelpMeClean')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('HelpMeClean').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows "Admin Panel" subtitle', () => {
-    renderSidebar();
-    expect(screen.getByText('Admin Panel')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Admin Panel').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows all nav links', () => {
-    renderSidebar();
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Companii')).toBeInTheDocument();
-    expect(screen.getByText('Comenzi')).toBeInTheDocument();
-    expect(screen.getByText('Mesaje')).toBeInTheDocument();
-    expect(screen.getByText('Utilizatori')).toBeInTheDocument();
-    expect(screen.getByText('Setari')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Companii').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Comenzi').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Mesaje').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Utilizatori').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Setari').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows user name and email when authenticated', () => {
@@ -81,29 +85,29 @@ describe('AdminSidebar', () => {
         status: 'ACTIVE',
       },
     });
-    renderSidebar();
-    expect(screen.getByText('Admin User')).toBeInTheDocument();
-    expect(screen.getByText('admin@helpmeclean.ro')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Admin User').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('admin@helpmeclean.ro').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows Deconectare button', () => {
-    renderSidebar();
-    expect(screen.getByText('Deconectare')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Deconectare').length).toBeGreaterThanOrEqual(1);
   });
 
   it('calls logout and navigates on Deconectare click', async () => {
     const mockLogout = vi.fn();
     vi.mocked(useAuth).mockReturnValue({ ...defaultAuth, logout: mockLogout });
     const user = userEvent.setup();
-    renderSidebar();
-    await user.click(screen.getByText('Deconectare'));
+    renderLayout();
+    const logoutButtons = screen.getAllByText('Deconectare');
+    await user.click(logoutButtons[0]);
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith('/autentificare');
   });
 
-  it('active link has bg-primary/10 class', () => {
-    renderSidebar('/admin');
-    const dashboardLink = screen.getByText('Dashboard').closest('a');
-    expect(dashboardLink?.className).toContain('bg-primary/10');
+  it('shows collapse toggle button', () => {
+    renderLayout();
+    expect(screen.getAllByText('Restrange').length).toBeGreaterThanOrEqual(1);
   });
 });

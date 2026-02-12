@@ -1,0 +1,446 @@
+import { useState } from 'react';
+import { useQuery, useMutation } from '@apollo/client';
+import {
+  FileText,
+  Download,
+  Send,
+  XCircle,
+  Plus,
+  AlertTriangle,
+} from 'lucide-react';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Select from '@/components/ui/Select';
+import Modal from '@/components/ui/Modal';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import {
+  COMPANY_INVOICES,
+  GENERATE_BOOKING_INVOICE,
+  CANCEL_INVOICE,
+  TRANSMIT_TO_EFACTURA,
+} from '@/graphql/operations';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatRON(amountCents: number): string {
+  return (amountCents / 100).toFixed(2) + ' lei';
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('ro-RO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+// ─── Status Maps ──────────────────────────────────────────────────────────────
+
+type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'CANCELLED' | 'OVERDUE';
+
+const invoiceStatusBadge: Record<InvoiceStatus, 'default' | 'info' | 'success' | 'danger' | 'warning'> = {
+  DRAFT: 'default',
+  ISSUED: 'info',
+  PAID: 'success',
+  CANCELLED: 'danger',
+  OVERDUE: 'warning',
+};
+
+const invoiceStatusLabel: Record<InvoiceStatus, string> = {
+  DRAFT: 'Ciorna',
+  ISSUED: 'Emisa',
+  PAID: 'Platita',
+  CANCELLED: 'Anulata',
+  OVERDUE: 'Scadenta',
+};
+
+type EfacturaStatus = 'NOT_SENT' | 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'ERROR';
+
+const efacturaStatusBadge: Record<EfacturaStatus, 'default' | 'warning' | 'success' | 'danger'> = {
+  NOT_SENT: 'default',
+  PENDING: 'warning',
+  ACCEPTED: 'success',
+  REJECTED: 'danger',
+  ERROR: 'danger',
+};
+
+const efacturaStatusLabel: Record<EfacturaStatus, string> = {
+  NOT_SENT: 'Netransmisa',
+  PENDING: 'In procesare',
+  ACCEPTED: 'Acceptata',
+  REJECTED: 'Respinsa',
+  ERROR: 'Eroare',
+};
+
+const statusFilterOptions = [
+  { value: '', label: 'Toate statusurile' },
+  { value: 'DRAFT', label: 'Ciorna' },
+  { value: 'ISSUED', label: 'Emisa' },
+  { value: 'PAID', label: 'Platita' },
+  { value: 'CANCELLED', label: 'Anulata' },
+  { value: 'OVERDUE', label: 'Scadenta' },
+];
+
+// ─── Invoice Row Type ─────────────────────────────────────────────────────────
+
+interface InvoiceEdge {
+  id: string;
+  invoiceType: string;
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  buyerName: string;
+  totalAmount: number;
+  currency: string;
+  efacturaStatus: EfacturaStatus | null;
+  downloadUrl: string | null;
+  issuedAt: string;
+  createdAt: string;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function CompanyInvoicesPage() {
+  const [statusFilter, setStatusFilter] = useState<string>('');
+
+  // Modal state for generating an invoice
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [generateBookingId, setGenerateBookingId] = useState('');
+
+  // Modal state for cancel confirmation
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelInvoiceId, setCancelInvoiceId] = useState<string | null>(null);
+
+  // Queries
+  const { data, loading, refetch } = useQuery(COMPANY_INVOICES, {
+    variables: {
+      status: statusFilter || undefined,
+      first: 50,
+    },
+  });
+
+  // Mutations
+  const [generateInvoice, { loading: generating }] = useMutation(GENERATE_BOOKING_INVOICE, {
+    onCompleted: () => {
+      setGenerateModalOpen(false);
+      setGenerateBookingId('');
+      refetch();
+    },
+  });
+
+  const [cancelInvoice, { loading: cancelling }] = useMutation(CANCEL_INVOICE, {
+    onCompleted: () => {
+      setCancelModalOpen(false);
+      setCancelInvoiceId(null);
+      refetch();
+    },
+  });
+
+  const [transmitToEfactura, { loading: transmitting }] = useMutation(TRANSMIT_TO_EFACTURA, {
+    onCompleted: () => {
+      refetch();
+    },
+  });
+
+  const invoices: InvoiceEdge[] = data?.companyInvoices?.edges ?? [];
+  const totalCount: number = data?.companyInvoices?.totalCount ?? 0;
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  const handleGenerate = async () => {
+    if (!generateBookingId.trim()) return;
+    try {
+      await generateInvoice({
+        variables: { bookingId: generateBookingId.trim() },
+      });
+    } catch {
+      // Error handled by Apollo
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelInvoiceId) return;
+    try {
+      await cancelInvoice({
+        variables: { id: cancelInvoiceId },
+      });
+    } catch {
+      // Error handled by Apollo
+    }
+  };
+
+  const handleTransmit = async (invoiceId: string) => {
+    try {
+      await transmitToEfactura({
+        variables: { id: invoiceId },
+      });
+    } catch {
+      // Error handled by Apollo
+    }
+  };
+
+  const handleDownload = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const openCancelModal = (invoiceId: string) => {
+    setCancelInvoiceId(invoiceId);
+    setCancelModalOpen(true);
+  };
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Facturi</h1>
+          <p className="text-gray-500 mt-1">
+            Gestioneaza facturile firmei tale.
+          </p>
+        </div>
+        <Button onClick={() => setGenerateModalOpen(true)} size="sm">
+          <Plus className="h-4 w-4" />
+          Genereaza factura
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="w-full sm:w-64">
+          <Select
+            options={statusFilterOptions}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            label="Filtreaza dupa status"
+          />
+        </div>
+      </div>
+
+      {/* Results count */}
+      {!loading && (
+        <p className="text-sm text-gray-500 mb-4">{totalCount} facturi gasite</p>
+      )}
+
+      {/* Invoice table */}
+      <Card padding={false}>
+        {loading ? (
+          <LoadingSpinner text="Se incarca facturile..." />
+        ) : invoices.length === 0 ? (
+          <div className="text-center py-12 px-6">
+            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-1">Nicio factura</h3>
+            <p className="text-gray-500">
+              Nu exista facturi pentru filtrul selectat.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Nr. factura
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Data
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Cumparator
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                    Suma
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    E-Factura
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                    Actiuni
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {invoices.map((invoice) => (
+                  <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {invoice.invoiceNumber}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-600">
+                        {formatDate(invoice.issuedAt || invoice.createdAt)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-900">
+                        {invoice.buyerName || '--'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="text-sm font-bold text-gray-900">
+                        {formatRON(invoice.totalAmount)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={invoiceStatusBadge[invoice.status] ?? 'default'}>
+                        {invoiceStatusLabel[invoice.status] ?? invoice.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      {invoice.efacturaStatus ? (
+                        <Badge
+                          variant={
+                            efacturaStatusBadge[invoice.efacturaStatus as EfacturaStatus] ?? 'default'
+                          }
+                        >
+                          {efacturaStatusLabel[invoice.efacturaStatus as EfacturaStatus] ??
+                            invoice.efacturaStatus}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-gray-400">--</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Download PDF */}
+                        {invoice.downloadUrl && (
+                          <button
+                            onClick={() => handleDownload(invoice.downloadUrl!)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Descarca PDF"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        )}
+
+                        {/* Transmit to e-Factura */}
+                        {invoice.status !== 'CANCELLED' &&
+                          (!invoice.efacturaStatus ||
+                            invoice.efacturaStatus === 'NOT_SENT' ||
+                            invoice.efacturaStatus === 'ERROR') && (
+                            <button
+                              onClick={() => handleTransmit(invoice.id)}
+                              disabled={transmitting}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50"
+                              title="Transmite la e-Factura"
+                            >
+                              <Send className="h-4 w-4" />
+                            </button>
+                          )}
+
+                        {/* Cancel invoice */}
+                        {invoice.status !== 'CANCELLED' && invoice.status !== 'PAID' && (
+                          <button
+                            onClick={() => openCancelModal(invoice.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Anuleaza factura"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Generate Invoice Modal */}
+      <Modal
+        open={generateModalOpen}
+        onClose={() => {
+          setGenerateModalOpen(false);
+          setGenerateBookingId('');
+        }}
+        title="Genereaza factura"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Introdu ID-ul rezervarii finalizate pentru care doresti sa generezi o factura.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              ID Rezervare
+            </label>
+            <input
+              type="text"
+              value={generateBookingId}
+              onChange={(e) => setGenerateBookingId(e.target.value)}
+              placeholder="ex: abc123-def456..."
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setGenerateModalOpen(false);
+                setGenerateBookingId('');
+              }}
+            >
+              Anuleaza
+            </Button>
+            <Button
+              onClick={handleGenerate}
+              loading={generating}
+              disabled={!generateBookingId.trim()}
+            >
+              <FileText className="h-4 w-4" />
+              Genereaza
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Cancel Invoice Confirmation Modal */}
+      <Modal
+        open={cancelModalOpen}
+        onClose={() => {
+          setCancelModalOpen(false);
+          setCancelInvoiceId(null);
+        }}
+        title="Confirma anularea"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200">
+            <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">
+              Esti sigur ca doresti sa anulezi aceasta factura? Aceasta actiune nu poate fi anulata.
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCancelModalOpen(false);
+                setCancelInvoiceId(null);
+              }}
+            >
+              Renunta
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleCancel}
+              loading={cancelling}
+            >
+              <XCircle className="h-4 w-4" />
+              Anuleaza factura
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}

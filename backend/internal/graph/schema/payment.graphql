@@ -1,0 +1,181 @@
+# ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum ConnectOnboardingStatus {
+  NOT_STARTED
+  PENDING
+  COMPLETE
+  RESTRICTED
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  REQUIRES_ACTION
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  PROCESSED
+  REJECTED
+}
+
+# ─── Types ────────────────────────────────────────────────────────────────────
+
+type SetupIntentResult {
+  clientSecret: String!
+}
+
+type PaymentIntentResult {
+  clientSecret: String!
+  paymentIntentId: String!
+  amount: Int!
+  currency: String!
+}
+
+type StripeConnectStatus {
+  accountId: String
+  onboardingStatus: ConnectOnboardingStatus!
+  chargesEnabled: Boolean!
+  payoutsEnabled: Boolean!
+}
+
+type PaymentTransaction {
+  id: ID!
+  bookingId: ID!
+  booking: Booking
+  stripePaymentIntentId: String!
+  amountTotal: Int!
+  amountCompany: Int!
+  amountPlatformFee: Int!
+  currency: String!
+  status: PaymentTransactionStatus!
+  failureReason: String
+  refundAmount: Int
+  createdAt: DateTime!
+}
+
+type CompanyPayout {
+  id: ID!
+  company: Company
+  amount: Int!
+  currency: String!
+  periodFrom: String!
+  periodTo: String!
+  bookingCount: Int!
+  status: PayoutStatus!
+  paidAt: DateTime
+  lineItems: [PayoutLineItem!]!
+  createdAt: DateTime!
+}
+
+type PayoutLineItem {
+  id: ID!
+  booking: Booking
+  amountGross: Int!
+  amountCommission: Int!
+  amountNet: Int!
+}
+
+type RefundRequest {
+  id: ID!
+  booking: Booking
+  requestedBy: User
+  approvedBy: User
+  amount: Int!
+  reason: String!
+  status: RefundStatus!
+  processedAt: DateTime
+  createdAt: DateTime!
+}
+
+type PaymentHistoryEntry {
+  id: ID!
+  booking: Booking
+  amount: Int!
+  currency: String!
+  status: PaymentTransactionStatus!
+  paidAt: DateTime
+  createdAt: DateTime!
+}
+
+type PaymentHistoryConnection {
+  edges: [PaymentHistoryEntry!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CompanyEarningsSummary {
+  totalGross: Int!
+  totalCommission: Int!
+  totalNet: Int!
+  bookingCount: Int!
+  averagePerBooking: Int!
+}
+
+type PlatformRevenueReport {
+  totalRevenue: Int!
+  totalCommission: Int!
+  totalPayouts: Int!
+  pendingPayouts: Int!
+  totalRefunds: Int!
+  netRevenue: Int!
+  bookingCount: Int!
+}
+
+type ConnectOnboardingLink {
+  url: String!
+}
+
+# ─── Queries ──────────────────────────────────────────────────────────────────
+
+extend type Query {
+  # Client
+  myPaymentHistory(first: Int, after: String): PaymentHistoryConnection!
+  bookingPaymentDetails(bookingId: ID!): PaymentTransaction
+
+  # Company
+  myConnectStatus: StripeConnectStatus!
+  myPayouts(first: Int, after: String): [CompanyPayout!]!
+  myPayoutDetail(id: ID!): CompanyPayout!
+  myCompanyEarnings(from: String!, to: String!): CompanyEarningsSummary!
+
+  # Admin
+  allPaymentTransactions(status: PaymentTransactionStatus, first: Int, after: String): [PaymentTransaction!]!
+  allRefundRequests(status: RefundStatus, first: Int, after: String): [RefundRequest!]!
+  allPayouts(companyId: ID, status: PayoutStatus, first: Int, after: String): [CompanyPayout!]!
+  platformRevenueReport(from: String!, to: String!): PlatformRevenueReport!
+}
+
+# ─── Mutations ────────────────────────────────────────────────────────────────
+
+extend type Mutation {
+  # Client: payment
+  createSetupIntent: SetupIntentResult!
+  attachPaymentMethod(stripePaymentMethodId: String!): PaymentMethod!
+  createBookingPaymentIntent(bookingId: ID!): PaymentIntentResult!
+  requestRefund(bookingId: ID!, reason: String!): RefundRequest!
+
+  # Company: Stripe Connect
+  initiateConnectOnboarding: ConnectOnboardingLink!
+  refreshConnectOnboarding: ConnectOnboardingLink!
+
+  # Admin: payout & refund management
+  createMonthlyPayout(companyId: ID!, periodFrom: String!, periodTo: String!): CompanyPayout!
+  processRefund(refundRequestId: ID!, approved: Boolean!): RefundRequest!
+  adminIssueRefund(bookingId: ID!, amount: Int!, reason: String!): RefundRequest!
+  markBookingPaid(id: ID!): Booking!
+}

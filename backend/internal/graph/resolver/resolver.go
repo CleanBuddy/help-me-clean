@@ -11,13 +11,17 @@ import (
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/pubsub"
+	"helpmeclean-backend/internal/service/invoice"
+	"helpmeclean-backend/internal/service/payment"
 )
 
 // Resolver is the root resolver struct.
 type Resolver struct {
-	Pool    *pgxpool.Pool
-	Queries *db.Queries
-	PubSub  *pubsub.PubSub
+	Pool           *pgxpool.Pool
+	Queries        *db.Queries
+	PubSub         *pubsub.PubSub
+	PaymentService *payment.Service
+	InvoiceService *invoice.Service
 }
 
 // cleanerWithCompany loads a cleaner's company and returns the full CleanerProfile.
@@ -94,6 +98,27 @@ func (r *Resolver) createBookingChat(ctx context.Context, booking db.Booking, co
 	r.PubSub.Publish(room.ID.String(), gqlMsg)
 }
 
+// CreateBookingChatFromPayment creates a chat room for a booking that was auto-confirmed
+// via payment webhook. Uses the cleaner's or client's user ID as system message sender.
+// Errors are logged, not propagated.
+func (r *Resolver) CreateBookingChatFromPayment(ctx context.Context, booking db.Booking) {
+	senderUserID := ""
+	if booking.CleanerID.Valid {
+		cleaner, err := r.Queries.GetCleanerByID(ctx, booking.CleanerID)
+		if err == nil && cleaner.UserID.Valid {
+			senderUserID = uuidToString(cleaner.UserID)
+		}
+	}
+	if senderUserID == "" && booking.ClientUserID.Valid {
+		senderUserID = uuidToString(booking.ClientUserID)
+	}
+	if senderUserID == "" {
+		log.Printf("CreateBookingChatFromPayment: no user ID available for booking %s", uuidToString(booking.ID))
+		return
+	}
+	r.createBookingChat(ctx, booking, senderUserID)
+}
+
 // copyCompanyAreasToCleanerHelper copies all company service areas to a newly created cleaner.
 // Errors are logged but not propagated (best-effort).
 func (r *Resolver) copyCompanyAreasToCleanerHelper(ctx context.Context, companyID pgtype.UUID, cleanerID pgtype.UUID) {
@@ -158,5 +183,32 @@ func (r *Resolver) enrichBooking(ctx context.Context, dbB db.Booking, gqlB *mode
 	// Load review if one exists for this booking.
 	if review, err := r.Queries.GetReviewByBookingID(ctx, dbB.ID); err == nil {
 		gqlB.Review = dbReviewToGQL(review)
+	}
+}
+
+// enrichInvoice populates related entities (line items, booking, company)
+// on a GQL invoice from the DB invoice's foreign keys.
+func (r *Resolver) enrichInvoice(ctx context.Context, inv db.Invoice, gql *model.Invoice) {
+	// Load line items.
+	if lineItems, err := r.Queries.ListInvoiceLineItems(ctx, inv.ID); err == nil {
+		for _, li := range lineItems {
+			gql.LineItems = append(gql.LineItems, dbInvoiceLineItemToGQL(li))
+		}
+	}
+
+	// Load booking if present.
+	if inv.BookingID.Valid {
+		if booking, err := r.Queries.GetBookingByID(ctx, inv.BookingID); err == nil {
+			gqlBooking := dbBookingToGQL(booking)
+			r.enrichBooking(ctx, booking, gqlBooking)
+			gql.Booking = gqlBooking
+		}
+	}
+
+	// Load company if present.
+	if inv.CompanyID.Valid {
+		if company, err := r.Queries.GetCompanyByID(ctx, inv.CompanyID); err == nil {
+			gql.Company = dbCompanyToGQL(company)
+		}
 	}
 }

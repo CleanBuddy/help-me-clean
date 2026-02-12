@@ -1707,16 +1707,20 @@ func TestDbReviewToGQL(t *testing.T) {
 func TestDbPaymentMethodToGQL(t *testing.T) {
 	t.Run("converts full payment method", func(t *testing.T) {
 		dbPM := db.ClientPaymentMethod{
-			ID:           makeUUID(0xC1),
-			CardLastFour: makeText("4242"),
-			CardBrand:    makeText("visa"),
-			IsDefault:    pgtype.Bool{Bool: true, Valid: true},
+			ID:                    makeUUID(0xC1),
+			StripePaymentMethodID: makeText("pm_test_123"),
+			CardLastFour:          makeText("4242"),
+			CardBrand:             makeText("visa"),
+			IsDefault:             pgtype.Bool{Bool: true, Valid: true},
 		}
 
 		result := dbPaymentMethodToGQL(dbPM)
 
 		if result == nil {
 			t.Fatal("expected non-nil result")
+		}
+		if result.StripePaymentMethodID != "pm_test_123" {
+			t.Errorf("expected StripePaymentMethodID 'pm_test_123', got %q", result.StripePaymentMethodID)
 		}
 		if result.CardLastFour != "4242" {
 			t.Errorf("expected CardLastFour '4242', got %q", result.CardLastFour)
@@ -1991,4 +1995,900 @@ func TestFloat64ToNumeric(t *testing.T) {
 			t.Errorf("expected 0, got %f", result)
 		}
 	})
+}
+
+// ---------------------------------------------------------------------------
+// Payment & Invoice converter tests
+// ---------------------------------------------------------------------------
+
+func TestDbPaymentTransactionToGQL(t *testing.T) {
+	t.Run("converts full payment transaction with all fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+
+		dbTx := db.PaymentTransaction{
+			ID:                    makeUUID(0x01),
+			BookingID:             makeUUID(0x02),
+			StripePaymentIntentID: "pi_1234567890",
+			AmountTotal:           15000,
+			AmountCompany:         12750,
+			AmountPlatformFee:     2250,
+			Currency:              "RON",
+			Status:                db.PaymentTransactionStatusSucceeded,
+			FailureReason:         pgtype.Text{String: "card_declined", Valid: true},
+			RefundAmount:          pgtype.Int4{Int32: 5000, Valid: true},
+			CreatedAt:             makeTimestamptz(now),
+		}
+
+		result := dbPaymentTransactionToGQL(dbTx)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0x01))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		expectedBookingID := uuidToString(makeUUID(0x02))
+		if result.BookingID != expectedBookingID {
+			t.Errorf("expected BookingID %q, got %q", expectedBookingID, result.BookingID)
+		}
+		if result.StripePaymentIntentID != "pi_1234567890" {
+			t.Errorf("expected StripePaymentIntentID 'pi_1234567890', got %q", result.StripePaymentIntentID)
+		}
+		if result.AmountTotal != 15000 {
+			t.Errorf("expected AmountTotal 15000, got %d", result.AmountTotal)
+		}
+		if result.AmountCompany != 12750 {
+			t.Errorf("expected AmountCompany 12750, got %d", result.AmountCompany)
+		}
+		if result.AmountPlatformFee != 2250 {
+			t.Errorf("expected AmountPlatformFee 2250, got %d", result.AmountPlatformFee)
+		}
+		if result.Currency != "RON" {
+			t.Errorf("expected Currency 'RON', got %q", result.Currency)
+		}
+		if result.Status != model.PaymentTransactionStatusSucceeded {
+			t.Errorf("expected Status SUCCEEDED, got %q", result.Status)
+		}
+		if result.FailureReason == nil || *result.FailureReason != "card_declined" {
+			t.Errorf("expected FailureReason 'card_declined', got %v", result.FailureReason)
+		}
+		if result.RefundAmount == nil || *result.RefundAmount != 5000 {
+			t.Errorf("expected RefundAmount 5000, got %v", result.RefundAmount)
+		}
+		if !result.CreatedAt.Equal(now) {
+			t.Errorf("expected CreatedAt %v, got %v", now, result.CreatedAt)
+		}
+	})
+
+	t.Run("converts payment transaction with nil optional fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+
+		dbTx := db.PaymentTransaction{
+			ID:                    makeUUID(0x03),
+			BookingID:             makeUUID(0x04),
+			StripePaymentIntentID: "pi_0000000000",
+			AmountTotal:           5000,
+			AmountCompany:         4250,
+			AmountPlatformFee:     750,
+			Currency:              "EUR",
+			Status:                db.PaymentTransactionStatusPending,
+			FailureReason:         pgtype.Text{Valid: false},
+			RefundAmount:          pgtype.Int4{Valid: false},
+			CreatedAt:             makeTimestamptz(now),
+		}
+
+		result := dbPaymentTransactionToGQL(dbTx)
+
+		if result.FailureReason != nil {
+			t.Errorf("expected nil FailureReason, got %v", result.FailureReason)
+		}
+		if result.RefundAmount != nil {
+			t.Errorf("expected nil RefundAmount, got %v", result.RefundAmount)
+		}
+		if result.Status != model.PaymentTransactionStatusPending {
+			t.Errorf("expected Status PENDING, got %q", result.Status)
+		}
+	})
+
+	t.Run("status enum conversion for all statuses", func(t *testing.T) {
+		tests := []struct {
+			dbStatus  db.PaymentTransactionStatus
+			gqlStatus model.PaymentTransactionStatus
+		}{
+			{db.PaymentTransactionStatusPending, model.PaymentTransactionStatusPending},
+			{db.PaymentTransactionStatusRequiresAction, model.PaymentTransactionStatusRequiresAction},
+			{db.PaymentTransactionStatusProcessing, model.PaymentTransactionStatusProcessing},
+			{db.PaymentTransactionStatusSucceeded, model.PaymentTransactionStatusSucceeded},
+			{db.PaymentTransactionStatusFailed, model.PaymentTransactionStatusFailed},
+			{db.PaymentTransactionStatusRefunded, model.PaymentTransactionStatusRefunded},
+			{db.PaymentTransactionStatusPartiallyRefunded, model.PaymentTransactionStatusPartiallyRefunded},
+			{db.PaymentTransactionStatusCancelled, model.PaymentTransactionStatusCancelled},
+		}
+
+		for _, tc := range tests {
+			t.Run(string(tc.dbStatus), func(t *testing.T) {
+				dbTx := db.PaymentTransaction{
+					ID:                    makeUUID(0x05),
+					BookingID:             makeUUID(0x06),
+					StripePaymentIntentID: "pi_test",
+					Status:                tc.dbStatus,
+					CreatedAt:             makeTimestamptz(time.Now().UTC()),
+				}
+				result := dbPaymentTransactionToGQL(dbTx)
+				if result.Status != tc.gqlStatus {
+					t.Errorf("expected Status %q, got %q", tc.gqlStatus, result.Status)
+				}
+			})
+		}
+	})
+}
+
+func TestDbCompanyPayoutToGQL(t *testing.T) {
+	t.Run("converts full company payout with all fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+		paidAt := now.Add(-1 * time.Hour)
+
+		dbPayout := db.CompanyPayout{
+			ID:           makeUUID(0x10),
+			Amount:       250000,
+			Currency:     "RON",
+			PeriodFrom:   pgtype.Date{Time: time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC), Valid: true},
+			PeriodTo:     pgtype.Date{Time: time.Date(2025, 6, 30, 0, 0, 0, 0, time.UTC), Valid: true},
+			BookingCount: 45,
+			Status:       db.PayoutStatusPaid,
+			PaidAt:       makeTimestamptz(paidAt),
+			CreatedAt:    makeTimestamptz(now),
+		}
+
+		result := dbCompanyPayoutToGQL(dbPayout)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0x10))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		if result.Amount != 250000 {
+			t.Errorf("expected Amount 250000, got %d", result.Amount)
+		}
+		if result.Currency != "RON" {
+			t.Errorf("expected Currency 'RON', got %q", result.Currency)
+		}
+		if result.PeriodFrom != "2025-06-01" {
+			t.Errorf("expected PeriodFrom '2025-06-01', got %q", result.PeriodFrom)
+		}
+		if result.PeriodTo != "2025-06-30" {
+			t.Errorf("expected PeriodTo '2025-06-30', got %q", result.PeriodTo)
+		}
+		if result.BookingCount != 45 {
+			t.Errorf("expected BookingCount 45, got %d", result.BookingCount)
+		}
+		if result.Status != model.PayoutStatusPaid {
+			t.Errorf("expected Status PAID, got %q", result.Status)
+		}
+		if result.PaidAt == nil || !result.PaidAt.Equal(paidAt) {
+			t.Errorf("expected PaidAt %v, got %v", paidAt, result.PaidAt)
+		}
+		if result.LineItems == nil {
+			t.Error("expected non-nil LineItems slice")
+		}
+		if len(result.LineItems) != 0 {
+			t.Errorf("expected empty LineItems slice, got %d items", len(result.LineItems))
+		}
+		if !result.CreatedAt.Equal(now) {
+			t.Errorf("expected CreatedAt %v, got %v", now, result.CreatedAt)
+		}
+	})
+
+	t.Run("converts payout with nil optional fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+
+		dbPayout := db.CompanyPayout{
+			ID:           makeUUID(0x11),
+			Amount:       100000,
+			Currency:     "EUR",
+			PeriodFrom:   pgtype.Date{Valid: false},
+			PeriodTo:     pgtype.Date{Valid: false},
+			BookingCount: 0,
+			Status:       db.PayoutStatusPending,
+			PaidAt:       pgtype.Timestamptz{Valid: false},
+			CreatedAt:    makeTimestamptz(now),
+		}
+
+		result := dbCompanyPayoutToGQL(dbPayout)
+
+		if result.PeriodFrom != "" {
+			t.Errorf("expected empty PeriodFrom, got %q", result.PeriodFrom)
+		}
+		if result.PeriodTo != "" {
+			t.Errorf("expected empty PeriodTo, got %q", result.PeriodTo)
+		}
+		if result.PaidAt != nil {
+			t.Errorf("expected nil PaidAt, got %v", result.PaidAt)
+		}
+		if result.Status != model.PayoutStatusPending {
+			t.Errorf("expected Status PENDING, got %q", result.Status)
+		}
+	})
+
+	t.Run("status enum conversion for all payout statuses", func(t *testing.T) {
+		tests := []struct {
+			dbStatus  db.PayoutStatus
+			gqlStatus model.PayoutStatus
+		}{
+			{db.PayoutStatusPending, model.PayoutStatusPending},
+			{db.PayoutStatusProcessing, model.PayoutStatusProcessing},
+			{db.PayoutStatusPaid, model.PayoutStatusPaid},
+			{db.PayoutStatusFailed, model.PayoutStatusFailed},
+			{db.PayoutStatusCancelled, model.PayoutStatusCancelled},
+		}
+
+		for _, tc := range tests {
+			t.Run(string(tc.dbStatus), func(t *testing.T) {
+				dbPayout := db.CompanyPayout{
+					ID:        makeUUID(0x12),
+					Status:    tc.dbStatus,
+					CreatedAt: makeTimestamptz(time.Now().UTC()),
+				}
+				result := dbCompanyPayoutToGQL(dbPayout)
+				if result.Status != tc.gqlStatus {
+					t.Errorf("expected Status %q, got %q", tc.gqlStatus, result.Status)
+				}
+			})
+		}
+	})
+}
+
+func TestDbPayoutLineItemToGQL(t *testing.T) {
+	t.Run("converts full payout line item", func(t *testing.T) {
+		dbLI := db.PayoutLineItem{
+			ID:               makeUUID(0x20),
+			AmountGross:      10000,
+			AmountCommission: 1500,
+			AmountNet:        8500,
+		}
+
+		result := dbPayoutLineItemToGQL(dbLI)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0x20))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		if result.AmountGross != 10000 {
+			t.Errorf("expected AmountGross 10000, got %d", result.AmountGross)
+		}
+		if result.AmountCommission != 1500 {
+			t.Errorf("expected AmountCommission 1500, got %d", result.AmountCommission)
+		}
+		if result.AmountNet != 8500 {
+			t.Errorf("expected AmountNet 8500, got %d", result.AmountNet)
+		}
+	})
+
+	t.Run("converts payout line item with zero amounts", func(t *testing.T) {
+		dbLI := db.PayoutLineItem{
+			ID:               makeUUID(0x21),
+			AmountGross:      0,
+			AmountCommission: 0,
+			AmountNet:        0,
+		}
+
+		result := dbPayoutLineItemToGQL(dbLI)
+
+		if result.AmountGross != 0 {
+			t.Errorf("expected AmountGross 0, got %d", result.AmountGross)
+		}
+		if result.AmountCommission != 0 {
+			t.Errorf("expected AmountCommission 0, got %d", result.AmountCommission)
+		}
+		if result.AmountNet != 0 {
+			t.Errorf("expected AmountNet 0, got %d", result.AmountNet)
+		}
+	})
+}
+
+func TestDbRefundRequestToGQL(t *testing.T) {
+	t.Run("converts full refund request with all fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+		processedAt := now.Add(-30 * time.Minute)
+
+		dbRefund := db.RefundRequest{
+			ID:          makeUUID(0x30),
+			Amount:      7500,
+			Reason:      "Service not performed as described",
+			Status:      db.RefundStatusApproved,
+			ProcessedAt: makeTimestamptz(processedAt),
+			CreatedAt:   makeTimestamptz(now),
+		}
+
+		result := dbRefundRequestToGQL(dbRefund)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0x30))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		if result.Amount != 7500 {
+			t.Errorf("expected Amount 7500, got %d", result.Amount)
+		}
+		if result.Reason != "Service not performed as described" {
+			t.Errorf("expected Reason, got %q", result.Reason)
+		}
+		if result.Status != model.RefundStatusApproved {
+			t.Errorf("expected Status APPROVED, got %q", result.Status)
+		}
+		if result.ProcessedAt == nil || !result.ProcessedAt.Equal(processedAt) {
+			t.Errorf("expected ProcessedAt %v, got %v", processedAt, result.ProcessedAt)
+		}
+		if !result.CreatedAt.Equal(now) {
+			t.Errorf("expected CreatedAt %v, got %v", now, result.CreatedAt)
+		}
+	})
+
+	t.Run("converts refund request with nil ProcessedAt", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+
+		dbRefund := db.RefundRequest{
+			ID:          makeUUID(0x31),
+			Amount:      3000,
+			Reason:      "Cancelled within free cancellation window",
+			Status:      db.RefundStatusRequested,
+			ProcessedAt: pgtype.Timestamptz{Valid: false},
+			CreatedAt:   makeTimestamptz(now),
+		}
+
+		result := dbRefundRequestToGQL(dbRefund)
+
+		if result.ProcessedAt != nil {
+			t.Errorf("expected nil ProcessedAt, got %v", result.ProcessedAt)
+		}
+		if result.Status != model.RefundStatusRequested {
+			t.Errorf("expected Status REQUESTED, got %q", result.Status)
+		}
+	})
+
+	t.Run("status enum conversion for all refund statuses", func(t *testing.T) {
+		tests := []struct {
+			dbStatus  db.RefundStatus
+			gqlStatus model.RefundStatus
+		}{
+			{db.RefundStatusRequested, model.RefundStatusRequested},
+			{db.RefundStatusApproved, model.RefundStatusApproved},
+			{db.RefundStatusProcessed, model.RefundStatusProcessed},
+			{db.RefundStatusRejected, model.RefundStatusRejected},
+		}
+
+		for _, tc := range tests {
+			t.Run(string(tc.dbStatus), func(t *testing.T) {
+				dbRefund := db.RefundRequest{
+					ID:        makeUUID(0x32),
+					Amount:    1000,
+					Reason:    "test",
+					Status:    tc.dbStatus,
+					CreatedAt: makeTimestamptz(time.Now().UTC()),
+				}
+				result := dbRefundRequestToGQL(dbRefund)
+				if result.Status != tc.gqlStatus {
+					t.Errorf("expected Status %q, got %q", tc.gqlStatus, result.Status)
+				}
+			})
+		}
+	})
+}
+
+func TestDbInvoiceToGQL(t *testing.T) {
+	t.Run("converts full invoice with all fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+		issuedAt := now.Add(-24 * time.Hour)
+
+		dbInvoice := db.Invoice{
+			ID:                    makeUUID(0x40),
+			InvoiceType:           db.InvoiceTypeClientService,
+			InvoiceNumber:         makeText("HMC-INV-2025-00001"),
+			Status:                db.InvoiceStatusIssued,
+			SellerCompanyName:     "CleanCo SRL",
+			SellerCui:             "RO12345678",
+			BuyerName:             "Ion Popescu",
+			BuyerCui:              makeText("RO87654321"),
+			SubtotalAmount:        15000,
+			VatRate:               makeNumeric("19.00"),
+			VatAmount:             2850,
+			TotalAmount:           17850,
+			Currency:              "RON",
+			EfacturaStatus:        makeText("transmitted"),
+			FactureazaDownloadUrl: makeText("https://app.factureaza.ro/download/abc123"),
+			IssuedAt:              makeTimestamptz(issuedAt),
+			DueDate:               pgtype.Date{Time: time.Date(2025, 7, 15, 0, 0, 0, 0, time.UTC), Valid: true},
+			Notes:                 makeText("Service curatenie standard"),
+			CreatedAt:             makeTimestamptz(now),
+		}
+
+		result := dbInvoiceToGQL(dbInvoice)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0x40))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		if result.InvoiceType != model.InvoiceTypeClientService {
+			t.Errorf("expected InvoiceType CLIENT_SERVICE, got %q", result.InvoiceType)
+		}
+		if result.InvoiceNumber == nil || *result.InvoiceNumber != "HMC-INV-2025-00001" {
+			t.Errorf("expected InvoiceNumber 'HMC-INV-2025-00001', got %v", result.InvoiceNumber)
+		}
+		if result.Status != model.InvoiceStatusIssued {
+			t.Errorf("expected Status ISSUED, got %q", result.Status)
+		}
+		if result.SellerCompanyName != "CleanCo SRL" {
+			t.Errorf("expected SellerCompanyName 'CleanCo SRL', got %q", result.SellerCompanyName)
+		}
+		if result.SellerCui != "RO12345678" {
+			t.Errorf("expected SellerCui 'RO12345678', got %q", result.SellerCui)
+		}
+		if result.BuyerName != "Ion Popescu" {
+			t.Errorf("expected BuyerName 'Ion Popescu', got %q", result.BuyerName)
+		}
+		if result.BuyerCui == nil || *result.BuyerCui != "RO87654321" {
+			t.Errorf("expected BuyerCui 'RO87654321', got %v", result.BuyerCui)
+		}
+		if result.SubtotalAmount != 15000 {
+			t.Errorf("expected SubtotalAmount 15000, got %d", result.SubtotalAmount)
+		}
+		if math.Abs(result.VatRate-19.00) > 0.01 {
+			t.Errorf("expected VatRate 19.00, got %f", result.VatRate)
+		}
+		if result.VatAmount != 2850 {
+			t.Errorf("expected VatAmount 2850, got %d", result.VatAmount)
+		}
+		if result.TotalAmount != 17850 {
+			t.Errorf("expected TotalAmount 17850, got %d", result.TotalAmount)
+		}
+		if result.Currency != "RON" {
+			t.Errorf("expected Currency 'RON', got %q", result.Currency)
+		}
+		if result.EfacturaStatus == nil || *result.EfacturaStatus != "transmitted" {
+			t.Errorf("expected EfacturaStatus 'transmitted', got %v", result.EfacturaStatus)
+		}
+		if result.DownloadURL == nil || *result.DownloadURL != "https://app.factureaza.ro/download/abc123" {
+			t.Errorf("expected DownloadURL, got %v", result.DownloadURL)
+		}
+		if result.IssuedAt == nil || !result.IssuedAt.Equal(issuedAt) {
+			t.Errorf("expected IssuedAt %v, got %v", issuedAt, result.IssuedAt)
+		}
+		if result.DueDate == nil || *result.DueDate != "2025-07-15" {
+			t.Errorf("expected DueDate '2025-07-15', got %v", result.DueDate)
+		}
+		if result.Notes == nil || *result.Notes != "Service curatenie standard" {
+			t.Errorf("expected Notes, got %v", result.Notes)
+		}
+		if result.LineItems == nil {
+			t.Error("expected non-nil LineItems slice")
+		}
+		if len(result.LineItems) != 0 {
+			t.Errorf("expected empty LineItems slice, got %d items", len(result.LineItems))
+		}
+		if !result.CreatedAt.Equal(now) {
+			t.Errorf("expected CreatedAt %v, got %v", now, result.CreatedAt)
+		}
+	})
+
+	t.Run("converts invoice with nil optional fields", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Microsecond)
+
+		dbInvoice := db.Invoice{
+			ID:                    makeUUID(0x41),
+			InvoiceType:           db.InvoiceTypePlatformCommission,
+			InvoiceNumber:         pgtype.Text{Valid: false},
+			Status:                db.InvoiceStatusDraft,
+			SellerCompanyName:     "HelpMeClean SRL",
+			SellerCui:             "RO99999999",
+			BuyerName:             "Test Corp",
+			BuyerCui:              pgtype.Text{Valid: false},
+			SubtotalAmount:        5000,
+			VatRate:               makeNumeric("19.00"),
+			VatAmount:             950,
+			TotalAmount:           5950,
+			Currency:              "RON",
+			EfacturaStatus:        pgtype.Text{Valid: false},
+			FactureazaDownloadUrl: pgtype.Text{Valid: false},
+			IssuedAt:              pgtype.Timestamptz{Valid: false},
+			DueDate:               pgtype.Date{Valid: false},
+			Notes:                 pgtype.Text{Valid: false},
+			CreatedAt:             makeTimestamptz(now),
+		}
+
+		result := dbInvoiceToGQL(dbInvoice)
+
+		if result.InvoiceType != model.InvoiceTypePlatformCommission {
+			t.Errorf("expected InvoiceType PLATFORM_COMMISSION, got %q", result.InvoiceType)
+		}
+		if result.InvoiceNumber != nil {
+			t.Errorf("expected nil InvoiceNumber, got %v", result.InvoiceNumber)
+		}
+		if result.Status != model.InvoiceStatusDraft {
+			t.Errorf("expected Status DRAFT, got %q", result.Status)
+		}
+		if result.BuyerCui != nil {
+			t.Errorf("expected nil BuyerCui, got %v", result.BuyerCui)
+		}
+		if result.EfacturaStatus != nil {
+			t.Errorf("expected nil EfacturaStatus, got %v", result.EfacturaStatus)
+		}
+		if result.DownloadURL != nil {
+			t.Errorf("expected nil DownloadURL, got %v", result.DownloadURL)
+		}
+		if result.IssuedAt != nil {
+			t.Errorf("expected nil IssuedAt, got %v", result.IssuedAt)
+		}
+		if result.DueDate != nil {
+			t.Errorf("expected nil DueDate, got %v", result.DueDate)
+		}
+		if result.Notes != nil {
+			t.Errorf("expected nil Notes, got %v", result.Notes)
+		}
+	})
+
+	t.Run("invoice status enum conversion for all statuses", func(t *testing.T) {
+		tests := []struct {
+			dbStatus  db.InvoiceStatus
+			gqlStatus model.InvoiceStatus
+		}{
+			{db.InvoiceStatusDraft, model.InvoiceStatusDraft},
+			{db.InvoiceStatusIssued, model.InvoiceStatusIssued},
+			{db.InvoiceStatusSent, model.InvoiceStatusSent},
+			{db.InvoiceStatusTransmitted, model.InvoiceStatusTransmitted},
+			{db.InvoiceStatusPaid, model.InvoiceStatusPaid},
+			{db.InvoiceStatusCancelled, model.InvoiceStatusCancelled},
+			{db.InvoiceStatusCreditNote, model.InvoiceStatusCreditNote},
+		}
+
+		for _, tc := range tests {
+			t.Run(string(tc.dbStatus), func(t *testing.T) {
+				dbInvoice := db.Invoice{
+					ID:                makeUUID(0x42),
+					InvoiceType:       db.InvoiceTypeClientService,
+					Status:            tc.dbStatus,
+					SellerCompanyName: "Test",
+					SellerCui:         "RO1",
+					BuyerName:         "Buyer",
+					Currency:          "RON",
+					VatRate:           makeNumeric("19.00"),
+					CreatedAt:         makeTimestamptz(time.Now().UTC()),
+				}
+				result := dbInvoiceToGQL(dbInvoice)
+				if result.Status != tc.gqlStatus {
+					t.Errorf("expected Status %q, got %q", tc.gqlStatus, result.Status)
+				}
+			})
+		}
+	})
+
+	t.Run("invoice type enum conversion", func(t *testing.T) {
+		tests := []struct {
+			dbType  db.InvoiceType
+			gqlType model.InvoiceType
+		}{
+			{db.InvoiceTypeClientService, model.InvoiceTypeClientService},
+			{db.InvoiceTypePlatformCommission, model.InvoiceTypePlatformCommission},
+		}
+
+		for _, tc := range tests {
+			t.Run(string(tc.dbType), func(t *testing.T) {
+				dbInvoice := db.Invoice{
+					ID:                makeUUID(0x43),
+					InvoiceType:       tc.dbType,
+					Status:            db.InvoiceStatusDraft,
+					SellerCompanyName: "Test",
+					SellerCui:         "RO1",
+					BuyerName:         "Buyer",
+					Currency:          "RON",
+					VatRate:           makeNumeric("19.00"),
+					CreatedAt:         makeTimestamptz(time.Now().UTC()),
+				}
+				result := dbInvoiceToGQL(dbInvoice)
+				if result.InvoiceType != tc.gqlType {
+					t.Errorf("expected InvoiceType %q, got %q", tc.gqlType, result.InvoiceType)
+				}
+			})
+		}
+	})
+}
+
+func TestDbInvoiceLineItemToGQL(t *testing.T) {
+	t.Run("converts full invoice line item", func(t *testing.T) {
+		dbLI := db.InvoiceLineItem{
+			ID:               makeUUID(0x50),
+			DescriptionRo:    "Curatenie standard - 3 ore",
+			DescriptionEn:    makeText("Standard cleaning - 3 hours"),
+			Quantity:         makeNumeric("3.00"),
+			UnitPrice:        5000,
+			VatRate:          makeNumeric("19.00"),
+			VatAmount:        2850,
+			LineTotal:        15000,
+			LineTotalWithVat: 17850,
+		}
+
+		result := dbInvoiceLineItemToGQL(dbLI)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0x50))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		if result.DescriptionRo != "Curatenie standard - 3 ore" {
+			t.Errorf("expected DescriptionRo, got %q", result.DescriptionRo)
+		}
+		if result.DescriptionEn == nil || *result.DescriptionEn != "Standard cleaning - 3 hours" {
+			t.Errorf("expected DescriptionEn 'Standard cleaning - 3 hours', got %v", result.DescriptionEn)
+		}
+		if math.Abs(result.Quantity-3.00) > 0.01 {
+			t.Errorf("expected Quantity 3.00, got %f", result.Quantity)
+		}
+		if result.UnitPrice != 5000 {
+			t.Errorf("expected UnitPrice 5000, got %d", result.UnitPrice)
+		}
+		if math.Abs(result.VatRate-19.00) > 0.01 {
+			t.Errorf("expected VatRate 19.00, got %f", result.VatRate)
+		}
+		if result.VatAmount != 2850 {
+			t.Errorf("expected VatAmount 2850, got %d", result.VatAmount)
+		}
+		if result.LineTotal != 15000 {
+			t.Errorf("expected LineTotal 15000, got %d", result.LineTotal)
+		}
+		if result.LineTotalWithVat != 17850 {
+			t.Errorf("expected LineTotalWithVat 17850, got %d", result.LineTotalWithVat)
+		}
+	})
+
+	t.Run("converts line item with nil DescriptionEn", func(t *testing.T) {
+		dbLI := db.InvoiceLineItem{
+			ID:               makeUUID(0x51),
+			DescriptionRo:    "Curatenie geamuri",
+			DescriptionEn:    pgtype.Text{Valid: false},
+			Quantity:         makeNumeric("1.00"),
+			UnitPrice:        3500,
+			VatRate:          makeNumeric("19.00"),
+			VatAmount:        665,
+			LineTotal:        3500,
+			LineTotalWithVat: 4165,
+		}
+
+		result := dbInvoiceLineItemToGQL(dbLI)
+
+		if result.DescriptionEn != nil {
+			t.Errorf("expected nil DescriptionEn, got %v", result.DescriptionEn)
+		}
+	})
+
+	t.Run("converts line item with zero amounts", func(t *testing.T) {
+		dbLI := db.InvoiceLineItem{
+			ID:               makeUUID(0x52),
+			DescriptionRo:    "Discount",
+			DescriptionEn:    makeText("Discount"),
+			Quantity:         makeNumeric("1.00"),
+			UnitPrice:        0,
+			VatRate:          makeNumeric("0"),
+			VatAmount:        0,
+			LineTotal:        0,
+			LineTotalWithVat: 0,
+		}
+
+		result := dbInvoiceLineItemToGQL(dbLI)
+
+		if result.UnitPrice != 0 {
+			t.Errorf("expected UnitPrice 0, got %d", result.UnitPrice)
+		}
+		if result.VatAmount != 0 {
+			t.Errorf("expected VatAmount 0, got %d", result.VatAmount)
+		}
+		if result.LineTotal != 0 {
+			t.Errorf("expected LineTotal 0, got %d", result.LineTotal)
+		}
+		if result.LineTotalWithVat != 0 {
+			t.Errorf("expected LineTotalWithVat 0, got %d", result.LineTotalWithVat)
+		}
+	})
+}
+
+func TestDbBillingProfileToGQL(t *testing.T) {
+	t.Run("converts full company billing profile with all fields", func(t *testing.T) {
+		dbBP := db.ClientBillingProfile{
+			ID:          makeUUID(0x60),
+			IsCompany:   true,
+			CompanyName: makeText("Test SRL"),
+			Cui:         makeText("RO12345678"),
+			RegNumber:   makeText("J40/1234/2020"),
+			Address:     makeText("Str. Exemplu 10"),
+			City:        makeText("Bucharest"),
+			County:      makeText("Bucharest"),
+			IsVatPayer:  pgtype.Bool{Bool: true, Valid: true},
+			BankName:    makeText("Banca Transilvania"),
+			Iban:        makeText("RO49AAAA1B31007593840000"),
+			IsDefault:   pgtype.Bool{Bool: true, Valid: true},
+		}
+
+		result := dbBillingProfileToGQL(dbBP)
+
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		expectedID := uuidToString(makeUUID(0x60))
+		if result.ID != expectedID {
+			t.Errorf("expected ID %q, got %q", expectedID, result.ID)
+		}
+		if result.IsCompany != true {
+			t.Error("expected IsCompany true")
+		}
+		if result.CompanyName == nil || *result.CompanyName != "Test SRL" {
+			t.Errorf("expected CompanyName 'Test SRL', got %v", result.CompanyName)
+		}
+		if result.Cui == nil || *result.Cui != "RO12345678" {
+			t.Errorf("expected Cui 'RO12345678', got %v", result.Cui)
+		}
+		if result.RegNumber == nil || *result.RegNumber != "J40/1234/2020" {
+			t.Errorf("expected RegNumber 'J40/1234/2020', got %v", result.RegNumber)
+		}
+		if result.Address == nil || *result.Address != "Str. Exemplu 10" {
+			t.Errorf("expected Address 'Str. Exemplu 10', got %v", result.Address)
+		}
+		if result.City == nil || *result.City != "Bucharest" {
+			t.Errorf("expected City 'Bucharest', got %v", result.City)
+		}
+		if result.County == nil || *result.County != "Bucharest" {
+			t.Errorf("expected County 'Bucharest', got %v", result.County)
+		}
+		if result.IsVatPayer != true {
+			t.Error("expected IsVatPayer true")
+		}
+		if result.BankName == nil || *result.BankName != "Banca Transilvania" {
+			t.Errorf("expected BankName 'Banca Transilvania', got %v", result.BankName)
+		}
+		if result.Iban == nil || *result.Iban != "RO49AAAA1B31007593840000" {
+			t.Errorf("expected Iban 'RO49AAAA1B31007593840000', got %v", result.Iban)
+		}
+		if result.IsDefault != true {
+			t.Error("expected IsDefault true")
+		}
+	})
+
+	t.Run("converts individual billing profile with nil optional fields", func(t *testing.T) {
+		dbBP := db.ClientBillingProfile{
+			ID:          makeUUID(0x61),
+			IsCompany:   false,
+			CompanyName: pgtype.Text{Valid: false},
+			Cui:         pgtype.Text{Valid: false},
+			RegNumber:   pgtype.Text{Valid: false},
+			Address:     pgtype.Text{Valid: false},
+			City:        pgtype.Text{Valid: false},
+			County:      pgtype.Text{Valid: false},
+			IsVatPayer:  pgtype.Bool{Valid: false},
+			BankName:    pgtype.Text{Valid: false},
+			Iban:        pgtype.Text{Valid: false},
+			IsDefault:   pgtype.Bool{Valid: false},
+		}
+
+		result := dbBillingProfileToGQL(dbBP)
+
+		if result.IsCompany != false {
+			t.Error("expected IsCompany false")
+		}
+		if result.CompanyName != nil {
+			t.Errorf("expected nil CompanyName, got %v", result.CompanyName)
+		}
+		if result.Cui != nil {
+			t.Errorf("expected nil Cui, got %v", result.Cui)
+		}
+		if result.RegNumber != nil {
+			t.Errorf("expected nil RegNumber, got %v", result.RegNumber)
+		}
+		if result.Address != nil {
+			t.Errorf("expected nil Address, got %v", result.Address)
+		}
+		if result.City != nil {
+			t.Errorf("expected nil City, got %v", result.City)
+		}
+		if result.County != nil {
+			t.Errorf("expected nil County, got %v", result.County)
+		}
+		if result.IsVatPayer != false {
+			t.Error("expected IsVatPayer false for invalid")
+		}
+		if result.BankName != nil {
+			t.Errorf("expected nil BankName, got %v", result.BankName)
+		}
+		if result.Iban != nil {
+			t.Errorf("expected nil Iban, got %v", result.Iban)
+		}
+		if result.IsDefault != false {
+			t.Error("expected IsDefault false for invalid")
+		}
+	})
+
+	t.Run("converts billing profile with IsCompany true but empty company fields", func(t *testing.T) {
+		dbBP := db.ClientBillingProfile{
+			ID:          makeUUID(0x62),
+			IsCompany:   true,
+			CompanyName: makeText(""),
+			Cui:         makeText(""),
+			RegNumber:   pgtype.Text{Valid: false},
+			Address:     makeText("Some address"),
+			City:        makeText("Cluj"),
+			County:      makeText("Cluj"),
+			IsVatPayer:  pgtype.Bool{Bool: false, Valid: true},
+			BankName:    pgtype.Text{Valid: false},
+			Iban:        pgtype.Text{Valid: false},
+			IsDefault:   pgtype.Bool{Bool: false, Valid: true},
+		}
+
+		result := dbBillingProfileToGQL(dbBP)
+
+		if result.IsCompany != true {
+			t.Error("expected IsCompany true")
+		}
+		if result.CompanyName == nil || *result.CompanyName != "" {
+			t.Errorf("expected CompanyName pointer to empty string, got %v", result.CompanyName)
+		}
+		if result.Cui == nil || *result.Cui != "" {
+			t.Errorf("expected Cui pointer to empty string, got %v", result.Cui)
+		}
+		if result.IsVatPayer != false {
+			t.Error("expected IsVatPayer false")
+		}
+		if result.IsDefault != false {
+			t.Error("expected IsDefault false")
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// validateStatusTransition
+// ---------------------------------------------------------------------------
+
+func TestValidateStatusTransition(t *testing.T) {
+	tests := []struct {
+		name    string
+		current db.BookingStatus
+		target  db.BookingStatus
+		wantErr bool
+	}{
+		// New auto-confirm path (payment → confirmed).
+		{"pending to confirmed", db.BookingStatusPending, db.BookingStatusConfirmed, false},
+		// Legacy path (still supported).
+		{"pending to assigned", db.BookingStatusPending, db.BookingStatusAssigned, false},
+		{"assigned to confirmed", db.BookingStatusAssigned, db.BookingStatusConfirmed, false},
+		// Normal forward transitions.
+		{"confirmed to in_progress", db.BookingStatusConfirmed, db.BookingStatusInProgress, false},
+		{"in_progress to completed", db.BookingStatusInProgress, db.BookingStatusCompleted, false},
+		// Invalid transitions.
+		{"pending to in_progress", db.BookingStatusPending, db.BookingStatusInProgress, true},
+		{"pending to completed", db.BookingStatusPending, db.BookingStatusCompleted, true},
+		{"confirmed to assigned", db.BookingStatusConfirmed, db.BookingStatusAssigned, true},
+		// Cancellation from any active state.
+		{"pending cancel by client", db.BookingStatusPending, db.BookingStatusCancelledByClient, false},
+		{"confirmed cancel by company", db.BookingStatusConfirmed, db.BookingStatusCancelledByCompany, false},
+		{"in_progress cancel by admin", db.BookingStatusInProgress, db.BookingStatusCancelledByAdmin, false},
+		// Terminal states cannot transition.
+		{"completed cannot transition", db.BookingStatusCompleted, db.BookingStatusInProgress, true},
+		{"cancelled cannot transition", db.BookingStatusCancelledByClient, db.BookingStatusPending, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateStatusTransition(tt.current, tt.target)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateStatusTransition(%s, %s) error = %v, wantErr %v", tt.current, tt.target, err, tt.wantErr)
+			}
+		})
+	}
 }

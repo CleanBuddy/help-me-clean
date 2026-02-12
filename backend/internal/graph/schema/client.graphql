@@ -15,8 +15,11 @@ type Address {
 
 type PaymentMethod {
   id: ID!
+  stripePaymentMethodId: String!
   cardLastFour: String!
   cardBrand: String!
+  cardExpMonth: Int
+  cardExpYear: Int
   isDefault: Boolean!
 }
 
@@ -30,7 +33,6 @@ extend type Mutation {
   updateAddress(id: ID!, input: UpdateAddressInput!): Address!
   deleteAddress(id: ID!): Boolean!
   setDefaultAddress(id: ID!): Address!
-  addPaymentMethod(stripeToken: String!): PaymentMethod!
   deletePaymentMethod(id: ID!): Boolean!
   setDefaultPaymentMethod(id: ID!): PaymentMethod!
 }

@@ -395,10 +395,126 @@ func dbAddressToGQL(a db.ClientAddress) *model.Address {
 
 func dbPaymentMethodToGQL(p db.ClientPaymentMethod) *model.PaymentMethod {
 	return &model.PaymentMethod{
+		ID:                    uuidToString(p.ID),
+		StripePaymentMethodID: textVal(p.StripePaymentMethodID),
+		CardLastFour:          textVal(p.CardLastFour),
+		CardBrand:             textVal(p.CardBrand),
+		CardExpMonth:          int4Ptr(p.CardExpMonth),
+		CardExpYear:           int4Ptr(p.CardExpYear),
+		IsDefault:             boolVal(p.IsDefault),
+	}
+}
+
+func dbPaymentTransactionToGQL(t db.PaymentTransaction) *model.PaymentTransaction {
+	return &model.PaymentTransaction{
+		ID:                    uuidToString(t.ID),
+		BookingID:             uuidToString(t.BookingID),
+		StripePaymentIntentID: t.StripePaymentIntentID,
+		AmountTotal:           int(t.AmountTotal),
+		AmountCompany:         int(t.AmountCompany),
+		AmountPlatformFee:     int(t.AmountPlatformFee),
+		Currency:              t.Currency,
+		Status:                model.PaymentTransactionStatus(strings.ToUpper(string(t.Status))),
+		FailureReason:         textPtr(t.FailureReason),
+		RefundAmount:          int4Ptr(t.RefundAmount),
+		CreatedAt:             timestamptzToTime(t.CreatedAt),
+	}
+}
+
+func dbCompanyPayoutToGQL(p db.CompanyPayout) *model.CompanyPayout {
+	return &model.CompanyPayout{
 		ID:           uuidToString(p.ID),
-		CardLastFour: textVal(p.CardLastFour),
-		CardBrand:    textVal(p.CardBrand),
-		IsDefault:    boolVal(p.IsDefault),
+		Amount:       int(p.Amount),
+		Currency:     p.Currency,
+		PeriodFrom:   dateToString(p.PeriodFrom),
+		PeriodTo:     dateToString(p.PeriodTo),
+		BookingCount: int(p.BookingCount),
+		Status:       model.PayoutStatus(strings.ToUpper(string(p.Status))),
+		PaidAt:       timestamptzToTimePtr(p.PaidAt),
+		LineItems:    []*model.PayoutLineItem{},
+		CreatedAt:    timestamptzToTime(p.CreatedAt),
+	}
+}
+
+func dbPayoutLineItemToGQL(li db.PayoutLineItem) *model.PayoutLineItem {
+	return &model.PayoutLineItem{
+		ID:               uuidToString(li.ID),
+		AmountGross:      int(li.AmountGross),
+		AmountCommission: int(li.AmountCommission),
+		AmountNet:        int(li.AmountNet),
+	}
+}
+
+func dbRefundRequestToGQL(r db.RefundRequest) *model.RefundRequest {
+	return &model.RefundRequest{
+		ID:          uuidToString(r.ID),
+		Amount:      int(r.Amount),
+		Reason:      r.Reason,
+		Status:      model.RefundStatus(strings.ToUpper(string(r.Status))),
+		ProcessedAt: timestamptzToTimePtr(r.ProcessedAt),
+		CreatedAt:   timestamptzToTime(r.CreatedAt),
+	}
+}
+
+func dbInvoiceToGQL(inv db.Invoice) *model.Invoice {
+	return &model.Invoice{
+		ID:                uuidToString(inv.ID),
+		InvoiceType:       model.InvoiceType(strings.ToUpper(string(inv.InvoiceType))),
+		InvoiceNumber:     textPtr(inv.InvoiceNumber),
+		Status:            model.InvoiceStatus(strings.ToUpper(string(inv.Status))),
+		SellerCompanyName: inv.SellerCompanyName,
+		SellerCui:         inv.SellerCui,
+		BuyerName:         inv.BuyerName,
+		BuyerCui:          textPtr(inv.BuyerCui),
+		SubtotalAmount:    int(inv.SubtotalAmount),
+		VatRate:           numericToFloat(inv.VatRate),
+		VatAmount:         int(inv.VatAmount),
+		TotalAmount:       int(inv.TotalAmount),
+		Currency:          inv.Currency,
+		EfacturaStatus:    textPtr(inv.EfacturaStatus),
+		DownloadURL:       textPtr(inv.FactureazaDownloadUrl),
+		IssuedAt:          timestamptzToTimePtr(inv.IssuedAt),
+		DueDate: func() *string {
+			s := dateToString(inv.DueDate)
+			if s == "" {
+				return nil
+			}
+			return &s
+		}(),
+		Notes:     textPtr(inv.Notes),
+		LineItems: []*model.InvoiceLineItem{},
+		CreatedAt: timestamptzToTime(inv.CreatedAt),
+	}
+}
+
+func dbInvoiceLineItemToGQL(li db.InvoiceLineItem) *model.InvoiceLineItem {
+	return &model.InvoiceLineItem{
+		ID:               uuidToString(li.ID),
+		DescriptionRo:    li.DescriptionRo,
+		DescriptionEn:    textPtr(li.DescriptionEn),
+		Quantity:          numericToFloat(li.Quantity),
+		UnitPrice:         int(li.UnitPrice),
+		VatRate:           numericToFloat(li.VatRate),
+		VatAmount:         int(li.VatAmount),
+		LineTotal:         int(li.LineTotal),
+		LineTotalWithVat:  int(li.LineTotalWithVat),
+	}
+}
+
+func dbBillingProfileToGQL(bp db.ClientBillingProfile) *model.ClientBillingProfile {
+	return &model.ClientBillingProfile{
+		ID:         uuidToString(bp.ID),
+		IsCompany:  bp.IsCompany,
+		CompanyName: textPtr(bp.CompanyName),
+		Cui:        textPtr(bp.Cui),
+		RegNumber:  textPtr(bp.RegNumber),
+		Address:    textPtr(bp.Address),
+		City:       textPtr(bp.City),
+		County:     textPtr(bp.County),
+		IsVatPayer: boolVal(bp.IsVatPayer),
+		BankName:   textPtr(bp.BankName),
+		Iban:       textPtr(bp.Iban),
+		IsDefault:  boolVal(bp.IsDefault),
 	}
 }
 
@@ -469,7 +585,7 @@ func validateStatusTransition(current db.BookingStatus, target db.BookingStatus)
 	}
 
 	allowed := map[db.BookingStatus][]db.BookingStatus{
-		db.BookingStatusPending:    {db.BookingStatusAssigned},
+		db.BookingStatusPending:    {db.BookingStatusAssigned, db.BookingStatusConfirmed},
 		db.BookingStatusAssigned:   {db.BookingStatusConfirmed},
 		db.BookingStatusConfirmed:  {db.BookingStatusInProgress},
 		db.BookingStatusInProgress: {db.BookingStatusCompleted},

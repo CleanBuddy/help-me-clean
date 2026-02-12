@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { loadStripe } from '@stripe/stripe-js';
 import {
   Check,
   ChevronRight,
@@ -32,6 +33,8 @@ import {
   X,
   Star,
   AlertCircle,
+  CreditCard,
+  Loader2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
@@ -42,6 +45,7 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import AddressAutocomplete, { type ParsedAddress } from '@/components/ui/AddressAutocomplete';
+import AddCardModal from '@/components/payment/AddCardModal';
 import {
   AVAILABLE_SERVICES,
   AVAILABLE_EXTRAS,
@@ -50,7 +54,13 @@ import {
   MY_ADDRESSES,
   ACTIVE_CITIES,
   SUGGEST_CLEANERS,
+  MY_PAYMENT_METHODS,
+  CREATE_BOOKING_PAYMENT_INTENT,
 } from '@/graphql/operations';
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder',
+);
 
 // ---- Types ------------------------------------------------------------------
 
@@ -149,6 +159,16 @@ interface CleanerSuggestion {
   matchScore: number;
 }
 
+interface SavedPaymentMethod {
+  id: string;
+  stripePaymentMethodId: string;
+  cardLastFour: string;
+  cardBrand: string;
+  cardExpMonth?: number;
+  cardExpYear?: number;
+  isDefault: boolean;
+}
+
 interface BookingFormState {
   serviceType: string;
   propertyType: string;
@@ -175,14 +195,22 @@ interface BookingFormState {
 
 // ---- Constants --------------------------------------------------------------
 
-const STEPS = [
+const STEPS_BASE = [
   { key: 'service', label: 'Serviciu', icon: Sparkles },
   { key: 'details', label: 'Detalii', icon: Home },
   { key: 'schedule', label: 'Programare', icon: Calendar },
   { key: 'address', label: 'Adresa', icon: MapPin },
   { key: 'cleaner', label: 'Curatator', icon: Users },
   { key: 'summary', label: 'Sumar', icon: ClipboardList },
+  { key: 'payment', label: 'Plata', icon: CreditCard },
 ] as const;
+
+const BRAND_LABELS: Record<string, string> = {
+  visa: 'Visa',
+  mastercard: 'Mastercard',
+  amex: 'Amex',
+  discover: 'Discover',
+};
 
 const PROPERTY_TYPES: { value: string; label: string; icon: LucideIcon; badge: string | null }[] = [
   { value: 'Apartament', label: 'Apartament', icon: Building2, badge: null },
@@ -295,6 +323,18 @@ export default function BookingPage() {
   const [devAuthMode, setDevAuthMode] = useState(false);
   const [devAuthEmail, setDevAuthEmail] = useState('');
 
+  // Payment step state
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  // Dynamic steps: authenticated users get a Payment step; guests don't
+  const STEPS = useMemo(() => {
+    if (!isAuthenticated) return STEPS_BASE.filter((s) => s.key !== 'payment');
+    return [...STEPS_BASE];
+  }, [isAuthenticated]);
+
   const [form, setForm] = useState<BookingFormState>({
     serviceType: preselectedService,
     propertyType: 'Apartament',
@@ -330,6 +370,13 @@ export default function BookingPage() {
     MY_ADDRESSES,
     { skip: !isAuthenticated },
   );
+
+  // Payment methods (authenticated only)
+  const { data: paymentMethodsData, refetch: refetchPaymentMethods } = useQuery<{
+    myPaymentMethods: SavedPaymentMethod[];
+  }>(MY_PAYMENT_METHODS, { skip: !isAuthenticated });
+  const [createPaymentIntent] = useMutation(CREATE_BOOKING_PAYMENT_INTENT);
+  const paymentMethods: SavedPaymentMethod[] = paymentMethodsData?.myPaymentMethods ?? [];
 
   const [fetchEstimate, { data: estimateData, loading: estimateLoading }] =
     useLazyQuery<{ estimatePrice: PriceEstimate }>(ESTIMATE_PRICE, {
@@ -376,6 +423,14 @@ export default function BookingPage() {
     };
   }, [triggerEstimate]);
 
+  // Auto-select default payment method
+  useEffect(() => {
+    if (paymentMethods.length > 0 && !selectedPaymentMethodId) {
+      const defaultMethod = paymentMethods.find((pm) => pm.isDefault);
+      setSelectedPaymentMethodId(defaultMethod?.id ?? paymentMethods[0].id);
+    }
+  }, [paymentMethods, selectedPaymentMethodId]);
+
   // ---- Helpers --------------------------------------------------------------
 
   const updateForm = useCallback(
@@ -391,33 +446,36 @@ export default function BookingPage() {
   );
 
   const canProceed = useMemo(() => {
-    switch (currentStep) {
-      case 0:
+    const stepKey = STEPS[currentStep]?.key;
+    switch (stepKey) {
+      case 'service':
         return !!form.serviceType;
-      case 1:
+      case 'details':
         return form.numRooms >= 1 && form.numBathrooms >= 1 && !!form.areaSqm && parseInt(form.areaSqm, 10) > 0;
-      case 2:
+      case 'schedule':
         return form.timeSlots.length >= 1;
-      case 3:
+      case 'address':
         return !!form.useSavedAddress || (
           !!form.streetAddress.trim() &&
           !!form.selectedCityId &&
           !!form.selectedAreaId
         );
-      case 4:
-        return true;
-      case 5:
+      case 'cleaner':
+        return !!form.preferredCleanerId;
+      case 'summary':
         return isAuthenticated;
+      case 'payment':
+        return !!selectedPaymentMethodId;
       default:
         return false;
     }
-  }, [currentStep, form, isAuthenticated]);
+  }, [currentStep, STEPS, form, isAuthenticated, selectedPaymentMethodId]);
 
   const handleNext = useCallback(() => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     }
-  }, [currentStep]);
+  }, [currentStep, STEPS.length]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
@@ -502,6 +560,105 @@ export default function BookingPage() {
     }
   }, [form, createBooking]);
 
+  const buildBookingInput = useCallback(() => {
+    const input: Record<string, unknown> = {
+      serviceType: form.serviceType,
+      scheduledDate: form.timeSlots[0]?.date,
+      scheduledStartTime: form.timeSlots[0]?.startTime,
+      timeSlots: form.timeSlots.map((s) => ({
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
+      propertyType: form.propertyType || undefined,
+      numRooms: form.numRooms,
+      numBathrooms: form.numBathrooms,
+      areaSqm: parseInt(form.areaSqm, 10) || undefined,
+      hasPets: form.hasPets,
+      specialInstructions: form.specialInstructions || undefined,
+      extras: form.extras.filter((e) => e.quantity > 0),
+      preferredCleanerId: form.preferredCleanerId || undefined,
+      suggestedStartTime: form.suggestedStartTime || undefined,
+    };
+    if (form.useSavedAddress) {
+      input.addressId = form.useSavedAddress;
+    } else {
+      input.address = {
+        streetAddress: form.streetAddress,
+        city: form.city,
+        county: form.county,
+        floor: form.floor || undefined,
+        apartment: form.apartment || undefined,
+        latitude: form.latitude,
+        longitude: form.longitude,
+      };
+    }
+    return input;
+  }, [form]);
+
+  const handlePayAndBook = useCallback(async () => {
+    if (!selectedPaymentMethodId) return;
+
+    // Look up the Stripe payment method ID (pm_xxx) for the selected card
+    const selectedPm = paymentMethods.find((pm) => pm.id === selectedPaymentMethodId);
+    const stripePmId = selectedPm?.stripePaymentMethodId;
+    if (!stripePmId) {
+      setPaymentError('Metoda de plata selectata nu este valida. Te rugam sa selectezi alta.');
+      return;
+    }
+
+    setPaymentProcessing(true);
+    setPaymentError(null);
+
+    try {
+      // 1. Create booking
+      const input = buildBookingInput();
+      const { data } = await createBooking({ variables: { input } });
+      const bookingId = data.createBookingRequest.id;
+      const refCode = data.createBookingRequest.referenceCode;
+
+      // 2. Create PaymentIntent
+      try {
+        const { data: piData } = await createPaymentIntent({
+          variables: { bookingId },
+        });
+        const { clientSecret } = piData.createBookingPaymentIntent;
+
+        // 3. Confirm payment with saved card (use Stripe pm_xxx ID, not internal UUID)
+        const stripe = await stripePromise;
+        if (!stripe) {
+          setPaymentError('Stripe nu s-a incarcat. Poti plati ulterior din pagina comenzii.');
+          setBookingResult({ referenceCode: refCode, id: bookingId });
+          return;
+        }
+
+        const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+          clientSecret,
+          { payment_method: stripePmId },
+        );
+
+        if (stripeError) {
+          setPaymentError(
+            `Plata a esuat: ${stripeError.message}. Rezervarea ${refCode} a fost creata. Poti plati ulterior din pagina comenzii.`,
+          );
+          setBookingResult({ referenceCode: refCode, id: bookingId });
+        } else if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') {
+          setBookingResult({ referenceCode: refCode, id: bookingId });
+        }
+      } catch {
+        setPaymentError(
+          `Rezervarea ${refCode} a fost creata, dar plata nu a putut fi initiata. Poti plati ulterior din pagina comenzii.`,
+        );
+        setBookingResult({ referenceCode: refCode, id: bookingId });
+      }
+    } catch (err) {
+      console.error('Booking creation failed:', err);
+      setPaymentError('Crearea rezervarii a esuat. Te rugam sa incerci din nou.');
+    } finally {
+      setPaymentProcessing(false);
+    }
+  }, [selectedPaymentMethodId, paymentMethods, buildBookingInput, createBooking, createPaymentIntent]);
+
   // ---- Auth handlers --------------------------------------------------------
 
   const handleBookingGoogleSuccess = useCallback(
@@ -543,37 +700,53 @@ export default function BookingPage() {
   // ---- Success screen -------------------------------------------------------
 
   if (bookingResult) {
+    const hasPaymentError = !!paymentError;
     return (
       <div className="min-h-[70vh] flex items-center justify-center py-12 px-4">
         <div className="text-center max-w-md">
-          {/* Confetti-like decorations */}
           <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping" />
-            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <CheckCircle2 className="h-12 w-12 text-white" />
-            </div>
-            {/* Decorative dots */}
-            <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-amber-400 animate-bounce" />
-            <div className="absolute -bottom-1 -left-3 w-3 h-3 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0.2s' }} />
-            <div className="absolute top-0 -left-4 w-2 h-2 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '0.4s' }} />
-            <div className="absolute -bottom-2 right-0 w-3 h-3 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0.3s' }} />
+            {hasPaymentError ? (
+              <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <AlertCircle className="h-12 w-12 text-white" />
+              </div>
+            ) : (
+              <>
+                <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping" />
+                <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <CheckCircle2 className="h-12 w-12 text-white" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-amber-400 animate-bounce" />
+                <div className="absolute -bottom-1 -left-3 w-3 h-3 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div className="absolute top-0 -left-4 w-2 h-2 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '0.4s' }} />
+                <div className="absolute -bottom-2 right-0 w-3 h-3 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0.3s' }} />
+              </>
+            )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            Rezervare confirmata!
+            {hasPaymentError ? 'Rezervare creata, plata in asteptare' : 'Rezervare confirmata!'}
           </h1>
           <p className="text-gray-500 mb-4">
-            Comanda ta a fost plasata cu succes.
+            {hasPaymentError
+              ? paymentError
+              : 'Rezervarea ta a fost confirmata. Curatorul a fost notificat!'}
           </p>
-          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-100 text-xl font-mono font-bold text-gray-900 mb-4 tracking-wider">
+          <div className={cn(
+            'inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xl font-mono font-bold text-gray-900 mb-4 tracking-wider',
+            hasPaymentError
+              ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200'
+              : 'bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-100',
+          )}>
             {bookingResult.referenceCode}
           </div>
           <p className="text-sm text-gray-400 mb-8">
-            Vei fi notificat cand o firma de curatenie accepta cererea ta.
+            {hasPaymentError
+              ? 'Poti plati din pagina comenzii tale.'
+              : 'Poti comunica cu curatorul prin chat din pagina comenzii.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {isAuthenticated && (
-              <Button onClick={() => navigate('/cont/comenzi')}>
-                Vezi comenzile mele
+              <Button onClick={() => navigate(`/cont/comenzi/${bookingResult.id}`)}>
+                {hasPaymentError ? 'Plateste acum' : 'Vezi comenzile mele'}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             )}
@@ -602,12 +775,12 @@ export default function BookingPage() {
         </div>
 
         {/* Step indicator */}
-        <StepIndicator currentStep={currentStep} />
+        <StepIndicator currentStep={currentStep} steps={STEPS} />
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Main content */}
           <div className="lg:col-span-3">
-            {currentStep === 0 && (
+            {STEPS[currentStep]?.key === 'service' && (
               <StepService
                 services={services}
                 loading={servicesLoading}
@@ -616,7 +789,7 @@ export default function BookingPage() {
               />
             )}
 
-            {currentStep === 1 && (
+            {STEPS[currentStep]?.key === 'details' && (
               <StepDetails
                 form={form}
                 updateForm={updateForm}
@@ -626,7 +799,7 @@ export default function BookingPage() {
               />
             )}
 
-            {currentStep === 2 && (
+            {STEPS[currentStep]?.key === 'schedule' && (
               <StepSchedule
                 form={form}
                 updateForm={updateForm}
@@ -635,7 +808,7 @@ export default function BookingPage() {
               />
             )}
 
-            {currentStep === 3 && (
+            {STEPS[currentStep]?.key === 'address' && (
               <StepAddress
                 form={form}
                 updateForm={updateForm}
@@ -644,7 +817,7 @@ export default function BookingPage() {
               />
             )}
 
-            {currentStep === 4 && (
+            {STEPS[currentStep]?.key === 'cleaner' && (
               <StepCleaner
                 form={form}
                 updateForm={updateForm}
@@ -653,7 +826,7 @@ export default function BookingPage() {
               />
             )}
 
-            {currentStep === 5 && (
+            {STEPS[currentStep]?.key === 'summary' && (
               <>
                 {/* Auth gate */}
                 {!isAuthenticated && (
@@ -741,10 +914,126 @@ export default function BookingPage() {
               </>
             )}
 
+            {STEPS[currentStep]?.key === 'payment' && (
+              <div className="space-y-6">
+                {/* Price reminder */}
+                {estimate && (
+                  <Card className="bg-gradient-to-r from-blue-50 to-emerald-50 border-blue-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Total de plata</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {estimate.total} RON
+                        </p>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-white/80 flex items-center justify-center">
+                        <CreditCard className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Saved cards */}
+                <Card>
+                  <h3 className="font-semibold text-gray-900 mb-4">Selecteaza metoda de plata</h3>
+
+                  {paymentMethods.length > 0 ? (
+                    <div className="space-y-3">
+                      {paymentMethods.map((pm) => (
+                        <button
+                          key={pm.id}
+                          type="button"
+                          onClick={() => setSelectedPaymentMethodId(pm.id)}
+                          className={cn(
+                            'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left',
+                            selectedPaymentMethodId === pm.id
+                              ? 'border-primary bg-primary/5'
+                              : 'border-gray-200 hover:border-gray-300',
+                          )}
+                        >
+                          <div className={cn(
+                            'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
+                            selectedPaymentMethodId === pm.id ? 'border-primary' : 'border-gray-300',
+                          )}>
+                            {selectedPaymentMethodId === pm.id && (
+                              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {BRAND_LABELS[pm.cardBrand?.toLowerCase()] ?? pm.cardBrand}
+                              </span>
+                              <span className="text-gray-500">
+                                •••• {pm.cardLastFour}
+                              </span>
+                              {pm.isDefault && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                  Implicit
+                                </span>
+                              )}
+                            </div>
+                            {pm.cardExpMonth && pm.cardExpYear && (
+                              <p className="text-sm text-gray-400 mt-0.5">
+                                Expira {String(pm.cardExpMonth).padStart(2, '0')}/{pm.cardExpYear}
+                              </p>
+                            )}
+                          </div>
+                          <CreditCard className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                        <CreditCard className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 mb-1">Niciun card salvat</p>
+                      <p className="text-sm text-gray-400">
+                        Adauga un card pentru a putea plati.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCardModal(true)}
+                    className="mt-4 w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adauga un card nou
+                  </button>
+                </Card>
+
+                {/* Payment error */}
+                {paymentError && (
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100">
+                    <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{paymentError}</p>
+                  </div>
+                )}
+
+                {/* Security note */}
+                <p className="text-xs text-gray-400 text-center">
+                  Platile sunt procesate securizat prin Stripe. Datele cardului tau nu sunt stocate pe serverele noastre.
+                </p>
+
+                {/* Add card modal */}
+                <AddCardModal
+                  open={showAddCardModal}
+                  onClose={() => setShowAddCardModal(false)}
+                  onSuccess={() => {
+                    refetchPaymentMethods();
+                    setShowAddCardModal(false);
+                  }}
+                />
+              </div>
+            )}
+
             {/* Navigation */}
             <div className="flex justify-between mt-8">
               {currentStep > 0 ? (
-                <Button variant="ghost" onClick={handleBack}>
+                <Button variant="ghost" onClick={handleBack} disabled={paymentProcessing}>
                   <ChevronLeft className="h-4 w-4" />
                   Inapoi
                 </Button>
@@ -756,6 +1045,25 @@ export default function BookingPage() {
                 <Button onClick={handleNext} disabled={!canProceed}>
                   Continua
                   <ChevronRight className="h-4 w-4" />
+                </Button>
+              ) : STEPS[currentStep]?.key === 'payment' ? (
+                <Button
+                  onClick={handlePayAndBook}
+                  loading={paymentProcessing}
+                  disabled={!canProceed || paymentProcessing}
+                  size="lg"
+                >
+                  {paymentProcessing ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Se proceseaza...
+                    </>
+                  ) : (
+                    <>
+                      Confirma si plateste
+                      <CreditCard className="h-5 w-5" />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button
@@ -798,10 +1106,10 @@ export default function BookingPage() {
 
 // ---- Step Indicator ---------------------------------------------------------
 
-function StepIndicator({ currentStep }: { currentStep: number }) {
+function StepIndicator({ currentStep, steps }: { currentStep: number; steps: readonly { key: string; label: string; icon: LucideIcon }[] }) {
   return (
     <div className="flex items-center justify-center gap-1 sm:gap-2">
-      {STEPS.map((step, index) => {
+      {steps.map((step, index) => {
         const StepIcon = step.icon;
         const isCompleted = index < currentStep;
         const isCurrent = index === currentStep;
@@ -832,7 +1140,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
                 {step.label}
               </span>
             </div>
-            {index < STEPS.length - 1 && (
+            {index < steps.length - 1 && (
               <div
                 className={cn(
                   'w-6 sm:w-10 h-0.5 mx-1 sm:mx-2 rounded-full mb-5 sm:mb-5',
@@ -1984,8 +2292,7 @@ function StepCleaner({
         Alege un curatator
       </h2>
       <p className="text-sm text-gray-500 mb-4">
-        Iti sugeram curatatori disponibili in zona ta. Poti selecta unul sau
-        continua fara preferinta.
+        Selecteaza curatorul care va efectua serviciul. Pretul este acelasi indiferent de alegere.
       </p>
 
       {/* Job schedule header */}
@@ -1999,36 +2306,6 @@ function StepCleaner({
           </span>
         </div>
       )}
-
-      {/* Any cleaner option (default) */}
-      <Card
-        className={cn(
-          'cursor-pointer transition-all mb-4',
-          !form.preferredCleanerId
-            ? 'ring-2 ring-blue-600 border-blue-600 shadow-md shadow-blue-600/10'
-            : 'hover:shadow-md hover:border-gray-300',
-        )}
-        onClick={() => updateForm({ preferredCleanerId: '', suggestedStartTime: '' })}
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-            <Users className="h-6 w-6 text-gray-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">
-              Orice curatator disponibil
-            </h3>
-            <p className="text-sm text-gray-500">
-              Lasam platforma sa aleaga cel mai potrivit curatator pentru tine.
-            </p>
-          </div>
-          {!form.preferredCleanerId && (
-            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
-              <Check className="h-4 w-4 text-white" />
-            </div>
-          )}
-        </div>
-      </Card>
 
       {suggestionsLoading ? (
         <LoadingSpinner text="Se cauta curatatori disponibili..." />
@@ -2153,8 +2430,8 @@ function StepCleaner({
           <div className="text-center py-6">
             <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500">
-              Nu am gasit curatatori disponibili in aceasta zona si data. Poti
-              continua fara preferinta sau incerca alta data.
+              Nu am gasit curatatori disponibili in aceasta zona si data. Te rugam
+              sa incerci o alta data sau sa verifici zona.
             </p>
           </div>
         </Card>
@@ -2405,13 +2682,8 @@ function StepSummary({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                <Users className="h-5 w-5 text-gray-400" />
-              </div>
-              <div className="text-sm text-gray-900 font-medium">
-                Orice curatator disponibil
-              </div>
+            <div className="text-sm text-gray-400 italic">
+              Niciun curatator selectat
             </div>
           )}
         </Card>

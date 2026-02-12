@@ -179,10 +179,10 @@ describe('BookingDetailPage', () => {
     expect(screen.getByText('Clean SRL')).toBeInTheDocument();
   });
 
-  it('shows Asignata step in timeline', () => {
+  it('shows "Platita & Confirmata" step in timeline', () => {
     mockBooking();
     renderPage();
-    expect(screen.getByText('Asignata')).toBeInTheDocument();
+    expect(screen.getByText('Platita & Confirmata')).toBeInTheDocument();
   });
 
   it('shows not found fallback', () => {

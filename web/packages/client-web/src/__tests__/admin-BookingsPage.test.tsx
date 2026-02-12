@@ -129,7 +129,6 @@ describe('BookingsPage', () => {
   it('shows status filter tabs', () => {
     renderBookingsPage();
     expect(screen.getByText('Toate')).toBeInTheDocument();
-    expect(screen.getByText('Asignate')).toBeInTheDocument();
     expect(screen.getByText('Confirmate')).toBeInTheDocument();
     expect(screen.getByText('In desfasurare')).toBeInTheDocument();
     expect(screen.getByText('Finalizate')).toBeInTheDocument();

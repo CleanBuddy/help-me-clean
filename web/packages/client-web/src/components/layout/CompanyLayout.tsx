@@ -1,16 +1,36 @@
-import { Outlet } from 'react-router-dom';
-import CompanySidebar from './CompanySidebar';
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Users,
+  Wallet,
+  FileText,
+  Settings,
+  Building2,
+  MessageSquare,
+  CalendarDays,
+} from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
 import CompanyStatusGate from '@/components/company/CompanyStatusGate';
+
+const navItems = [
+  { to: '/firma', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/firma/comenzi', icon: ClipboardList, label: 'Comenzi' },
+  { to: '/firma/program', icon: CalendarDays, label: 'Program' },
+  { to: '/firma/mesaje', icon: MessageSquare, label: 'Mesaje' },
+  { to: '/firma/echipa', icon: Users, label: 'Echipa mea' },
+  { to: '/firma/plati', icon: Wallet, label: 'Plati & Castiguri' },
+  { to: '/firma/facturi', icon: FileText, label: 'Facturi' },
+  { to: '/firma/setari', icon: Settings, label: 'Setari' },
+];
 
 export default function CompanyLayout() {
   return (
-    <CompanyStatusGate>
-      <div className="flex min-h-screen bg-[#FAFBFC]">
-        <CompanySidebar />
-        <main className="flex-1 p-8 overflow-auto">
-          <Outlet />
-        </main>
-      </div>
-    </CompanyStatusGate>
+    <DashboardLayout
+      navItems={navItems}
+      logoIcon={Building2}
+      subtitle="Company Dashboard"
+      homeRoute="/firma"
+      wrapper={(children) => <CompanyStatusGate>{children}</CompanyStatusGate>}
+    />
   );
 }

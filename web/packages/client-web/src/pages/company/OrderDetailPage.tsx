@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { ArrowLeft, MapPin, User, Phone, Mail, Clock, Calendar, Search, Loader2, Star, Info, CheckCircle, RefreshCw, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Phone, Mail, Clock, Calendar, Search, Loader2, Star, Check } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -159,20 +159,11 @@ export default function OrderDetailPage() {
     refetchQueries: [{ query: COMPANY_BOOKING_DETAIL, variables: { id } }],
   });
 
-  // Derived state: is this a targeted booking (sent to our company with a preferred cleaner)?
-  const isTargetedBooking = booking?.status === 'PENDING' && !!booking?.company;
-  const suggestedCleanerOnBooking = isTargetedBooking && booking?.cleaner ? booking.cleaner : null;
-
   // Handlers
   const handleAssign = async (cleanerId: string) => {
     await assignCleaner({ variables: { bookingId: id, cleanerId } });
     setAssignModal(false);
     setCleanerSearch('');
-  };
-
-  const handleApproveTargeted = async () => {
-    if (!suggestedCleanerOnBooking) return;
-    await assignCleaner({ variables: { bookingId: id, cleanerId: suggestedCleanerOnBooking.id } });
   };
 
   const handleCancel = async () => {
@@ -244,46 +235,6 @@ export default function OrderDetailPage() {
         <ArrowLeft className="h-4 w-4" />
         Inapoi la comenzi
       </button>
-
-      {/* Targeted Booking Banner */}
-      {isTargetedBooking && (
-        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-blue-900">
-                Aceasta comanda a fost directionata catre firma ta
-              </p>
-              {suggestedCleanerOnBooking && (
-                <p className="text-sm text-blue-700 mt-1">
-                  Curatator sugerat: <span className="font-medium">{suggestedCleanerOnBooking.fullName}</span>
-                </p>
-              )}
-              <div className="flex flex-wrap gap-3 mt-3">
-                {suggestedCleanerOnBooking && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleApproveTargeted}
-                    loading={assigning}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    Aproba comanda
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAssignModal(true)}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Schimba curatator
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -509,19 +460,13 @@ export default function OrderDetailPage() {
                     <span className="text-sm">{booking.cleaner.phone}</span>
                   </div>
                 )}
-                {/* For targeted pending bookings, the cleaner shown is the suggestion - not yet assigned */}
-                {isTargetedBooking && (
-                  <Badge variant="warning" className="mt-1">Sugerat - nu este inca asignat</Badge>
-                )}
               </div>
             ) : (
               <div>
                 <p className="text-sm text-gray-500 mb-3">Niciun cleaner asignat inca.</p>
-                {!isTargetedBooking && (
-                  <Button size="sm" className="w-full" onClick={() => setAssignModal(true)}>
-                    Asigneaza cleaner
-                  </Button>
-                )}
+                <Button size="sm" className="w-full" onClick={() => setAssignModal(true)}>
+                  Asigneaza cleaner
+                </Button>
               </div>
             )}
           </Card>

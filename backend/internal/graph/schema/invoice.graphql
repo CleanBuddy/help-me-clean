@@ -1,0 +1,143 @@
+# ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  SENT
+  TRANSMITTED
+  PAID
+  CANCELLED
+  CREDIT_NOTE
+}
+
+enum InvoiceType {
+  CLIENT_SERVICE
+  PLATFORM_COMMISSION
+}
+
+# ─── Types ────────────────────────────────────────────────────────────────────
+
+type Invoice {
+  id: ID!
+  invoiceType: InvoiceType!
+  invoiceNumber: String
+  status: InvoiceStatus!
+  sellerCompanyName: String!
+  sellerCui: String!
+  buyerName: String!
+  buyerCui: String
+  subtotalAmount: Int!
+  vatRate: Float!
+  vatAmount: Int!
+  totalAmount: Int!
+  currency: String!
+  booking: Booking
+  company: Company
+  efacturaStatus: String
+  downloadUrl: String
+  issuedAt: DateTime
+  dueDate: String
+  notes: String
+  lineItems: [InvoiceLineItem!]!
+  createdAt: DateTime!
+}
+
+type InvoiceLineItem {
+  id: ID!
+  descriptionRo: String!
+  descriptionEn: String
+  quantity: Float!
+  unitPrice: Int!
+  vatRate: Float!
+  vatAmount: Int!
+  lineTotal: Int!
+  lineTotalWithVat: Int!
+}
+
+type ClientBillingProfile {
+  id: ID!
+  isCompany: Boolean!
+  companyName: String
+  cui: String
+  regNumber: String
+  address: String
+  city: String
+  county: String
+  isVatPayer: Boolean!
+  bankName: String
+  iban: String
+  isDefault: Boolean!
+}
+
+type InvoiceConnection {
+  edges: [Invoice!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type InvoiceAnalytics {
+  totalIssued: Int!
+  totalAmount: Int!
+  totalVat: Int!
+  byStatus: [InvoiceStatusCount!]!
+  byType: [InvoiceTypeCount!]!
+}
+
+type InvoiceStatusCount {
+  status: InvoiceStatus!
+  count: Int!
+  totalAmount: Int!
+}
+
+type InvoiceTypeCount {
+  type: InvoiceType!
+  count: Int!
+  totalAmount: Int!
+}
+
+# ─── Input ────────────────────────────────────────────────────────────────────
+
+input BillingProfileInput {
+  isCompany: Boolean!
+  companyName: String
+  cui: String
+  regNumber: String
+  address: String
+  city: String
+  county: String
+  isVatPayer: Boolean
+  bankName: String
+  iban: String
+}
+
+# ─── Queries ──────────────────────────────────────────────────────────────────
+
+extend type Query {
+  # Client
+  myBillingProfile: ClientBillingProfile
+  myInvoices(first: Int, after: String): InvoiceConnection!
+  invoiceDetail(id: ID!): Invoice!
+
+  # Company
+  companyInvoices(status: InvoiceStatus, first: Int, after: String): InvoiceConnection!
+
+  # Admin
+  allInvoices(type: InvoiceType, status: InvoiceStatus, companyId: ID, first: Int, after: String): InvoiceConnection!
+  invoiceAnalytics(from: String!, to: String!): InvoiceAnalytics!
+}
+
+# ─── Mutations ────────────────────────────────────────────────────────────────
+
+extend type Mutation {
+  # Client
+  upsertBillingProfile(input: BillingProfileInput!): ClientBillingProfile!
+
+  # Company
+  generateBookingInvoice(bookingId: ID!): Invoice!
+  cancelInvoice(id: ID!): Invoice!
+  transmitInvoiceToEFactura(id: ID!): Invoice!
+
+  # Admin
+  generateCommissionInvoice(payoutId: ID!): Invoice!
+  generateCreditNote(invoiceId: ID!, amount: Int!, reason: String!): Invoice!
+}

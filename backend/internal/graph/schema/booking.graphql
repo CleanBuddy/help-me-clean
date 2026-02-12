@@ -94,7 +94,6 @@ extend type Query {
 extend type Mutation {
   createBookingRequest(input: CreateBookingInput!): Booking!
   cancelBooking(id: ID!, reason: String): Booking!
-  payForBooking(id: ID!, paymentMethodId: ID): Booking!
   assignCleanerToBooking(bookingId: ID!, cleanerId: ID!): Booking!
   confirmBooking(id: ID!): Booking!
   startJob(id: ID!): Booking!

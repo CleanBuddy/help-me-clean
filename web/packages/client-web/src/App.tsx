@@ -27,6 +27,9 @@ import ClientBookingDetailPage from '@/pages/client/BookingDetailPage';
 import ChatPage from '@/pages/client/ChatPage';
 import ProfilePage from '@/pages/client/ProfilePage';
 import AddressesPage from '@/pages/client/AddressesPage';
+import PaymentMethodsPage from '@/pages/client/PaymentMethodsPage';
+import PaymentHistoryPage from '@/pages/client/PaymentHistoryPage';
+import ClientInvoicesPage from '@/pages/client/InvoicesPage';
 
 // Company pages
 import CompanyDashboardPage from '@/pages/company/DashboardPage';
@@ -36,6 +39,8 @@ import TeamPage from '@/pages/company/TeamPage';
 import CompanySettingsPage from '@/pages/company/SettingsPage';
 import CompanyMessagesPage from '@/pages/company/MessagesPage';
 import CompanyCalendarPage from '@/pages/company/CalendarPage';
+import CompanyPayoutsPage from '@/pages/company/PayoutsPage';
+import CompanyInvoicesPage from '@/pages/company/CompanyInvoicesPage';
 
 // Cleaner pages
 import CleanerDashboardPage from '@/pages/cleaner/DashboardPage';
@@ -56,6 +61,10 @@ import AdminSettingsPage from '@/pages/admin/SettingsPage';
 import AdminMessagesPage from '@/pages/admin/MessagesPage';
 import ReportsPage from '@/pages/admin/ReportsPage';
 import ReviewsPage from '@/pages/admin/ReviewsPage';
+import AdminPaymentsPage from '@/pages/admin/PaymentsPage';
+import AdminPayoutsPage from '@/pages/admin/AdminPayoutsPage';
+import AdminRefundsPage from '@/pages/admin/RefundsPage';
+import AdminInvoicesPage from '@/pages/admin/AdminInvoicesPage';
 
 // ─── Apollo Client ───────────────────────────────────────────────────────────
 
@@ -143,6 +152,9 @@ function AppRoutes() {
         <Route path="mesaje" element={<ChatPage />} />
         <Route path="mesaje/:roomId" element={<ChatPage />} />
         <Route path="adrese" element={<AddressesPage />} />
+        <Route path="plati" element={<PaymentMethodsPage />} />
+        <Route path="plati/istoric" element={<PaymentHistoryPage />} />
+        <Route path="facturi" element={<ClientInvoicesPage />} />
         <Route path="setari" element={<ProfilePage />} />
       </Route>
 
@@ -166,6 +178,8 @@ function AppRoutes() {
         <Route path="mesaje" element={<CompanyMessagesPage />} />
         <Route path="mesaje/:roomId" element={<CompanyMessagesPage />} />
         <Route path="echipa" element={<TeamPage />} />
+        <Route path="plati" element={<CompanyPayoutsPage />} />
+        <Route path="facturi" element={<CompanyInvoicesPage />} />
         <Route path="setari" element={<CompanySettingsPage />} />
       </Route>
 
@@ -209,6 +223,10 @@ function AppRoutes() {
         <Route path="mesaje/:roomId" element={<AdminMessagesPage />} />
         <Route path="utilizatori" element={<UsersPage />} />
         <Route path="utilizatori/:id" element={<UserDetailPage />} />
+        <Route path="plati" element={<AdminPaymentsPage />} />
+        <Route path="plati/companii" element={<AdminPayoutsPage />} />
+        <Route path="plati/rambursari" element={<AdminRefundsPage />} />
+        <Route path="facturi" element={<AdminInvoicesPage />} />
         <Route path="rapoarte" element={<ReportsPage />} />
         <Route path="recenzii" element={<ReviewsPage />} />
         <Route path="setari" element={<AdminSettingsPage />} />

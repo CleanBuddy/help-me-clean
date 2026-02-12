@@ -110,13 +110,13 @@ describe('Cleaner JobDetailPage', () => {
     expect(screen.getByText('Cheile sunt la vecin.')).toBeInTheDocument();
   });
 
-  it('shows "Confirma comanda" button for ASSIGNED status', () => {
+  it('shows no action button for ASSIGNED status (auto-confirmed by payment)', () => {
     mockUseQuery.mockReturnValue({
       data: { booking: mockBooking({ status: 'ASSIGNED' }) },
       loading: false,
     });
     renderPage();
-    expect(screen.getByText('Confirma comanda')).toBeInTheDocument();
+    expect(screen.queryByText('Confirma comanda')).not.toBeInTheDocument();
   });
 
   it('shows "Incepe curatenia" button for CONFIRMED status', () => {
@@ -148,17 +148,17 @@ describe('Cleaner JobDetailPage', () => {
     expect(screen.queryByText('Finalizeaza curatenia')).not.toBeInTheDocument();
   });
 
-  it('calls confirm mutation when button clicked', async () => {
-    const mockConfirm = vi.fn().mockResolvedValue({});
-    mockUseMutation.mockReturnValue([mockConfirm, { loading: false }]);
+  it('calls start mutation when "Incepe curatenia" button clicked', async () => {
+    const mockStart = vi.fn().mockResolvedValue({});
+    mockUseMutation.mockReturnValue([mockStart, { loading: false }]);
     mockUseQuery.mockReturnValue({
-      data: { booking: mockBooking({ status: 'ASSIGNED' }) },
+      data: { booking: mockBooking({ status: 'CONFIRMED' }) },
       loading: false,
     });
     const user = userEvent.setup();
     renderPage();
-    await user.click(screen.getByText('Confirma comanda'));
-    expect(mockConfirm).toHaveBeenCalledWith({ variables: { id: '1' } });
+    await user.click(screen.getByText('Incepe curatenia'));
+    expect(mockStart).toHaveBeenCalledWith({ variables: { id: '1' } });
   });
 
   it('shows back link', () => {

@@ -294,22 +294,6 @@ func (r *mutationResolver) CancelBooking(ctx context.Context, id string, reason 
 	return dbBookingToGQL(booking), nil
 }
 
-// PayForBooking is the resolver for the payForBooking field.
-func (r *mutationResolver) PayForBooking(ctx context.Context, id string, paymentMethodID *string) (*model.Booking, error) {
-	claims := auth.GetUserFromContext(ctx)
-	if claims == nil {
-		return nil, fmt.Errorf("not authenticated")
-	}
-
-	// For MVP, just mark as paid (mock Stripe).
-	booking, err := r.Queries.MarkBookingPaid(ctx, stringToUUID(id))
-	if err != nil {
-		return nil, fmt.Errorf("failed to mark booking as paid: %w", err)
-	}
-
-	return dbBookingToGQL(booking), nil
-}
-
 // AssignCleanerToBooking is the resolver for the assignCleanerToBooking field.
 func (r *mutationResolver) AssignCleanerToBooking(ctx context.Context, bookingID string, cleanerID string) (*model.Booking, error) {
 	claims := auth.GetUserFromContext(ctx)
@@ -351,11 +335,18 @@ func (r *mutationResolver) ConfirmBooking(ctx context.Context, id string) (*mode
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	// Validate status transition.
 	current, err := r.Queries.GetBookingByID(ctx, stringToUUID(id))
 	if err != nil {
 		return nil, fmt.Errorf("booking not found: %w", err)
 	}
+
+	// Idempotent: if already confirmed (e.g., auto-confirmed on payment), return as-is.
+	if current.Status == db.BookingStatusConfirmed {
+		gqlBooking := dbBookingToGQL(current)
+		r.enrichBooking(ctx, current, gqlBooking)
+		return gqlBooking, nil
+	}
+
 	if err := validateStatusTransition(current.Status, db.BookingStatusConfirmed); err != nil {
 		return nil, err
 	}

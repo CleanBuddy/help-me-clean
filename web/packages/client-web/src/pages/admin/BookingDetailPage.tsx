@@ -166,8 +166,7 @@ export default function BookingDetailPage() {
   // Build status timeline
   const timelineSteps = [
     { label: 'Creata', date: booking.createdAt, icon: FileText, done: true },
-    { label: 'Asignata', date: null, icon: UserPlus, done: ['ASSIGNED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) },
-    { label: 'Confirmata', date: null, icon: CheckCircle, done: ['CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) },
+    { label: 'Platita & Confirmata', date: booking.paidAt ?? null, icon: CheckCircle, done: ['CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) },
     { label: 'In desfasurare', date: booking.startedAt, icon: Clock, done: ['IN_PROGRESS', 'COMPLETED'].includes(booking.status) },
     { label: 'Finalizata', date: booking.completedAt, icon: CheckCircle, done: booking.status === 'COMPLETED' },
   ];

@@ -26,7 +26,9 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/ClientBadge';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Modal from '@/components/ui/Modal';
-import { CLIENT_BOOKING_DETAIL, CANCEL_BOOKING, MY_BOOKINGS, OPEN_BOOKING_CHAT, PAY_FOR_BOOKING, SUBMIT_REVIEW } from '@/graphql/operations';
+import { CLIENT_BOOKING_DETAIL, CANCEL_BOOKING, MY_BOOKINGS, OPEN_BOOKING_CHAT, CREATE_BOOKING_PAYMENT_INTENT, REQUEST_REFUND, SUBMIT_REVIEW } from '@/graphql/operations';
+import { StripeElementsWrapper } from '@/context/StripeContext';
+import StripePaymentForm from '@/components/payment/StripePaymentForm';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -131,7 +133,7 @@ export default function BookingDetailPage() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
 
-  const { data, loading, error } = useQuery<{ booking: BookingData }>(
+  const { data, loading, error, refetch } = useQuery<{ booking: BookingData }>(
     CLIENT_BOOKING_DETAIL,
     {
       variables: { id },
@@ -155,9 +157,21 @@ export default function BookingDetailPage() {
     },
   });
 
-  const [payForBooking, { loading: paying }] = useMutation(PAY_FOR_BOOKING, {
+  const [createPaymentIntent, { loading: creatingPayment }] = useMutation(CREATE_BOOKING_PAYMENT_INTENT);
+  const [requestRefundMutation, { loading: requestingRefund }] = useMutation(REQUEST_REFUND, {
+    onCompleted: () => {
+      setRefundModalOpen(false);
+      setRefundReason('');
+    },
     refetchQueries: [{ query: CLIENT_BOOKING_DETAIL, variables: { id } }],
   });
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
 
   const [submitReview, { loading: submittingReview }] = useMutation(SUBMIT_REVIEW, {
     onCompleted: () => {
@@ -512,10 +526,21 @@ export default function BookingDetailPage() {
                   {booking.paymentStatus !== 'paid' && (
                     <Button
                       className="w-full"
-                      loading={paying}
-                      onClick={() =>
-                        payForBooking({ variables: { id: booking.id } })
-                      }
+                      loading={creatingPayment}
+                      onClick={async () => {
+                        try {
+                          const { data: piData } = await createPaymentIntent({
+                            variables: { bookingId: booking.id },
+                          });
+                          const pi = piData.createBookingPaymentIntent;
+                          setPaymentClientSecret(pi.clientSecret);
+                          setPaymentAmount(pi.amount);
+                          setPaymentError(null);
+                          setShowPaymentModal(true);
+                        } catch {
+                          setPaymentError('Nu am putut initia plata. Incearca din nou.');
+                        }
+                      }}
                     >
                       <CreditCard className="h-4 w-4" />
                       Plateste acum
@@ -612,6 +637,25 @@ export default function BookingDetailPage() {
               </Card>
             )}
 
+            {/* Refund Request (for cancelled bookings that were paid) */}
+            {booking.status === 'CANCELLED' && booking.paymentStatus === 'paid' && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Rambursare
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Comanda a fost anulata. Poti solicita o rambursare.
+                </p>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => setRefundModalOpen(true)}
+                >
+                  Solicita rambursare
+                </Button>
+              </Card>
+            )}
+
             {/* Actions */}
             {canCancel && (
               <Card>
@@ -665,6 +709,81 @@ export default function BookingDetailPage() {
               onClick={handleCancel}
             >
               Confirma anularea
+            </Button>
+          </div>
+        </Modal>
+
+        {/* Stripe Payment Modal */}
+        <Modal
+          open={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          title="Plateste comanda"
+        >
+          {paymentClientSecret ? (
+            <StripeElementsWrapper clientSecret={paymentClientSecret}>
+              <StripePaymentForm
+                amount={paymentAmount}
+                onSuccess={() => {
+                  setShowPaymentModal(false);
+                  setPaymentClientSecret(null);
+                  refetch();
+                }}
+                onError={(msg) => setPaymentError(msg)}
+              />
+            </StripeElementsWrapper>
+          ) : (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          )}
+          {paymentError && (
+            <div className="mt-4 text-danger text-sm bg-red-50 px-4 py-3 rounded-xl">
+              {paymentError}
+            </div>
+          )}
+        </Modal>
+
+        {/* Refund Request Modal */}
+        <Modal
+          open={refundModalOpen}
+          onClose={() => setRefundModalOpen(false)}
+          title="Solicita rambursare"
+        >
+          <p className="text-sm text-gray-500 mb-4">
+            Descrie motivul pentru care doresti o rambursare. Cererea va fi analizata de echipa noastra.
+          </p>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Motivul rambursarii
+            </label>
+            <textarea
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+              rows={3}
+              placeholder="Explica motivul..."
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => setRefundModalOpen(false)}
+            >
+              Renunta
+            </Button>
+            <Button
+              loading={requestingRefund}
+              disabled={!refundReason.trim()}
+              onClick={() =>
+                requestRefundMutation({
+                  variables: {
+                    bookingId: booking.id,
+                    reason: refundReason.trim(),
+                  },
+                })
+              }
+            >
+              Trimite cererea
             </Button>
           </div>
         </Modal>

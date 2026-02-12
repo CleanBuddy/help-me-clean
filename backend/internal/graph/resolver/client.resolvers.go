@@ -162,28 +162,6 @@ func (r *mutationResolver) SetDefaultAddress(ctx context.Context, id string) (*m
 	return dbAddressToGQL(addr), nil
 }
 
-// AddPaymentMethod is the resolver for the addPaymentMethod field.
-func (r *mutationResolver) AddPaymentMethod(ctx context.Context, stripeToken string) (*model.PaymentMethod, error) {
-	claims := auth.GetUserFromContext(ctx)
-	if claims == nil {
-		return nil, fmt.Errorf("not authenticated")
-	}
-
-	// For MVP, create with mock card details from stripeToken.
-	pm, err := r.Queries.CreatePaymentMethod(ctx, db.CreatePaymentMethodParams{
-		UserID:                stringToUUID(claims.UserID),
-		StripePaymentMethodID: stringToTextVal(stripeToken),
-		CardLastFour:          stringToTextVal("4242"),
-		CardBrand:             stringToTextVal("visa"),
-		IsDefault:             pgtype.Bool{Bool: false, Valid: true},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to add payment method: %w", err)
-	}
-
-	return dbPaymentMethodToGQL(pm), nil
-}
-
 // DeletePaymentMethod is the resolver for the deletePaymentMethod field.
 func (r *mutationResolver) DeletePaymentMethod(ctx context.Context, id string) (bool, error) {
 	claims := auth.GetUserFromContext(ctx)

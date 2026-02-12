@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { Building2, Save, FileText, MapPin, Clock, ChevronDown, ChevronRight, CheckSquare, Square } from 'lucide-react';
+import { Building2, Save, FileText, MapPin, Clock, ChevronDown, ChevronRight, CheckSquare, Square, CreditCard, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -13,6 +14,9 @@ import {
   ACTIVE_CITIES,
   MY_COMPANY_SERVICE_AREAS,
   UPDATE_COMPANY_SERVICE_AREAS,
+  MY_CONNECT_STATUS,
+  INITIATE_CONNECT_ONBOARDING,
+  REFRESH_CONNECT_ONBOARDING,
 } from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -97,9 +101,60 @@ function buildDefaultSchedule(): WorkScheduleDay[] {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data, loading } = useQuery(MY_COMPANY);
   const [updateCompany, { loading: saving }] = useMutation(UPDATE_COMPANY_PROFILE);
   const company = data?.myCompany;
+
+  // Stripe Connect
+  const { data: connectData, loading: connectLoading, refetch: refetchConnect } = useQuery(MY_CONNECT_STATUS);
+  const [initiateOnboarding, { loading: initiatingOnboarding }] = useMutation(INITIATE_CONNECT_ONBOARDING);
+  const [refreshOnboarding, { loading: refreshingOnboarding }] = useMutation(REFRESH_CONNECT_ONBOARDING);
+  const [connectError, setConnectError] = useState('');
+  const [connectSuccess, setConnectSuccess] = useState('');
+
+  const connectStatus = connectData?.myConnectStatus;
+
+  // Handle Stripe redirect query params
+  useEffect(() => {
+    const stripeParam = searchParams.get('stripe');
+    if (stripeParam === 'complete') {
+      setConnectSuccess('Inregistrarea Stripe a fost finalizata cu succes! Statusul va fi actualizat in cateva momente.');
+      refetchConnect();
+      setSearchParams({}, { replace: true });
+      setTimeout(() => setConnectSuccess(''), 6000);
+    } else if (stripeParam === 'refresh') {
+      setConnectError('Sesiunea de inregistrare a expirat. Apasa butonul de mai jos pentru a reincerca.');
+      setSearchParams({}, { replace: true });
+      setTimeout(() => setConnectError(''), 8000);
+    }
+  }, [searchParams, setSearchParams, refetchConnect]);
+
+  const handleInitiateOnboarding = async () => {
+    setConnectError('');
+    try {
+      const { data: result } = await initiateOnboarding();
+      const url = result?.initiateConnectOnboarding?.url;
+      if (url) {
+        window.location.href = url;
+      }
+    } catch {
+      setConnectError('Nu am putut initia inregistrarea Stripe. Incearca din nou.');
+    }
+  };
+
+  const handleRefreshOnboarding = async () => {
+    setConnectError('');
+    try {
+      const { data: result } = await refreshOnboarding();
+      const url = result?.refreshConnectOnboarding?.url;
+      if (url) {
+        window.location.href = url;
+      }
+    } catch {
+      setConnectError('Nu am putut reinitia inregistrarea Stripe. Incearca din nou.');
+    }
+  };
 
   const { data: scheduleData } = useQuery(MY_COMPANY_WORK_SCHEDULE);
 
@@ -356,6 +411,102 @@ export default function SettingsPage() {
           <div className="mt-4 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
             <p className="font-medium mb-1">Motiv respingere:</p>
             <p>{company.rejectionReason}</p>
+          </div>
+        )}
+      </Card>
+
+      {/* Stripe Connect Integration */}
+      <Card className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <CreditCard className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Integrare Stripe</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-5">
+          Conecteaza-ti contul Stripe pentru a primi plati de la clienti. Stripe proceseaza platile in mod sigur si transfera fondurile in contul tau bancar.
+        </p>
+
+        {connectLoading ? (
+          <div className="flex items-center gap-3 py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            <span className="text-sm text-gray-500">Se incarca statusul Stripe...</span>
+          </div>
+        ) : connectStatus?.onboardingStatus === 'COMPLETE' ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-emerald-800">Cont Stripe conectat</p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  {connectStatus.accountId ? `ID: ${connectStatus.accountId}` : 'Integrat cu succes'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className={cn(
+                'flex items-center gap-2 p-3 rounded-xl border text-sm',
+                connectStatus.chargesEnabled
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-gray-50 border-gray-200 text-gray-500',
+              )}>
+                {connectStatus.chargesEnabled ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                Plati {connectStatus.chargesEnabled ? 'active' : 'inactive'}
+              </div>
+              <div className={cn(
+                'flex items-center gap-2 p-3 rounded-xl border text-sm',
+                connectStatus.payoutsEnabled
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-gray-50 border-gray-200 text-gray-500',
+              )}>
+                {connectStatus.payoutsEnabled ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                Transferuri {connectStatus.payoutsEnabled ? 'active' : 'inactive'}
+              </div>
+            </div>
+          </div>
+        ) : connectStatus?.onboardingStatus === 'PENDING' ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">Inregistrare in curs</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Finalizeaza inregistrarea in Stripe pentru a primi plati.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={handleRefreshOnboarding}
+              loading={refreshingOnboarding}
+            >
+              <ExternalLink className="h-4 w-4" />
+              Finalizeaza inregistrarea
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={handleInitiateOnboarding}
+            loading={initiatingOnboarding}
+          >
+            <ExternalLink className="h-4 w-4" />
+            Conecteaza cu Stripe
+          </Button>
+        )}
+
+        {connectSuccess && (
+          <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+            {connectSuccess}
+          </div>
+        )}
+        {connectError && (
+          <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            {connectError}
           </div>
         )}
       </Card>

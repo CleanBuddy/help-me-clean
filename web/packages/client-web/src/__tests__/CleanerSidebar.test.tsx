@@ -1,14 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import CleanerSidebar from '@/components/layout/CleanerSidebar';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import CleanerLayout from '@/components/layout/CleanerLayout';
 import { useAuth } from '@/context/AuthContext';
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
+vi.mock('@helpmeclean/shared', () => ({
+  cn: (...args: unknown[]) =>
+    args
+      .flat()
+      .filter((a) => typeof a === 'string' && a.length > 0)
+      .join(' '),
+}));
+
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
 
 const mockNavigate = vi.fn();
-
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -17,13 +26,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('@/context/AuthContext', () => ({
-  useAuth: vi.fn(),
-}));
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
-
-describe('CleanerSidebar', () => {
+describe('CleanerLayout sidebar', () => {
   const defaultAuth = {
     user: {
       id: '1',
@@ -44,51 +47,56 @@ describe('CleanerSidebar', () => {
     vi.mocked(useAuth).mockReturnValue(defaultAuth);
   });
 
-  const renderSidebar = () =>
+  const renderLayout = () =>
     render(
-      <MemoryRouter>
-        <CleanerSidebar />
+      <MemoryRouter initialEntries={['/worker']}>
+        <Routes>
+          <Route path="/worker" element={<CleanerLayout />}>
+            <Route index element={<div>Worker Page</div>} />
+          </Route>
+        </Routes>
       </MemoryRouter>,
     );
 
   it('shows "HelpMeClean" text', () => {
-    renderSidebar();
-    expect(screen.getByText('HelpMeClean')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('HelpMeClean').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows "Worker Dashboard" subtitle', () => {
-    renderSidebar();
-    expect(screen.getByText('Worker Dashboard')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Worker Dashboard').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows nav links: Dashboard, Comenzi, Program, Mesaje, Profil', () => {
-    renderSidebar();
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Comenzi')).toBeInTheDocument();
-    expect(screen.getByText('Program')).toBeInTheDocument();
-    expect(screen.getByText('Mesaje')).toBeInTheDocument();
-    expect(screen.getByText('Profil')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Comenzi').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Program').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Mesaje').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Profil').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows user name when authenticated', () => {
-    renderSidebar();
-    expect(screen.getByText('Ana Curatenie')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Ana Curatenie').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows user email when authenticated', () => {
-    renderSidebar();
-    expect(screen.getByText('ana.cleaner@test.dev')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('ana.cleaner@test.dev').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows Deconectare button', () => {
-    renderSidebar();
-    expect(screen.getByText('Deconectare')).toBeInTheDocument();
+    renderLayout();
+    expect(screen.getAllByText('Deconectare').length).toBeGreaterThanOrEqual(1);
   });
 
   it('calls logout on Deconectare click', async () => {
     const user = userEvent.setup();
-    renderSidebar();
-    await user.click(screen.getByText('Deconectare'));
+    renderLayout();
+    const logoutButtons = screen.getAllByText('Deconectare');
+    await user.click(logoutButtons[0]);
     expect(defaultAuth.logout).toHaveBeenCalledTimes(1);
   });
 });

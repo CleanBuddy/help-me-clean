@@ -38,7 +38,6 @@ const statusLabel: Record<string, string> = {
 const tabs: Array<{ label: string; value: string | undefined }> = [
   { label: 'Toate', value: undefined },
   { label: 'In asteptare', value: 'PENDING' },
-  { label: 'Asignate', value: 'ASSIGNED' },
   { label: 'Confirmate', value: 'CONFIRMED' },
   { label: 'In desfasurare', value: 'IN_PROGRESS' },
   { label: 'Finalizate', value: 'COMPLETED' },

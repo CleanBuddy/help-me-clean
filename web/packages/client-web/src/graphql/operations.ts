@@ -333,8 +333,11 @@ export const MY_PAYMENT_METHODS = gql`
   query MyPaymentMethods {
     myPaymentMethods {
       id
+      stripePaymentMethodId
       cardLastFour
       cardBrand
+      cardExpMonth
+      cardExpYear
       isDefault
     }
   }
@@ -2013,6 +2016,579 @@ export const UPDATE_CLEANER_SERVICE_AREAS = gql`
       name
       cityId
       cityName
+    }
+  }
+`;
+
+// ─── Payment Methods ──────────────────────────────────────────────────────
+
+export const CREATE_SETUP_INTENT = gql`
+  mutation CreateSetupIntent {
+    createSetupIntent {
+      clientSecret
+    }
+  }
+`;
+
+export const ATTACH_PAYMENT_METHOD = gql`
+  mutation AttachPaymentMethod($stripePaymentMethodId: String!) {
+    attachPaymentMethod(stripePaymentMethodId: $stripePaymentMethodId) {
+      id
+      cardLastFour
+      cardBrand
+      cardExpMonth
+      cardExpYear
+      isDefault
+    }
+  }
+`;
+
+export const DELETE_PAYMENT_METHOD = gql`
+  mutation DeletePaymentMethod($id: ID!) {
+    deletePaymentMethod(id: $id)
+  }
+`;
+
+export const SET_DEFAULT_PAYMENT_METHOD = gql`
+  mutation SetDefaultPaymentMethod($id: ID!) {
+    setDefaultPaymentMethod(id: $id) {
+      id
+      isDefault
+    }
+  }
+`;
+
+// ─── Stripe Payments ──────────────────────────────────────────────────────
+
+export const CREATE_BOOKING_PAYMENT_INTENT = gql`
+  mutation CreateBookingPaymentIntent($bookingId: ID!) {
+    createBookingPaymentIntent(bookingId: $bookingId) {
+      clientSecret
+      paymentIntentId
+      amount
+      currency
+    }
+  }
+`;
+
+export const REQUEST_REFUND = gql`
+  mutation RequestRefund($bookingId: ID!, $reason: String!) {
+    requestRefund(bookingId: $bookingId, reason: $reason) {
+      id
+      amount
+      reason
+      status
+      createdAt
+    }
+  }
+`;
+
+export const MY_PAYMENT_HISTORY = gql`
+  query MyPaymentHistory($first: Int, $after: String) {
+    myPaymentHistory(first: $first, after: $after) {
+      edges {
+        id
+        amount
+        currency
+        status
+        createdAt
+        paidAt
+        booking {
+          id
+          referenceCode
+          serviceName
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+    }
+  }
+`;
+
+export const BOOKING_PAYMENT_DETAILS = gql`
+  query BookingPaymentDetails($bookingId: ID!) {
+    bookingPaymentDetails(bookingId: $bookingId) {
+      id
+      bookingId
+      stripePaymentIntentId
+      amountTotal
+      amountCompany
+      amountPlatformFee
+      currency
+      status
+      failureReason
+      refundAmount
+      createdAt
+    }
+  }
+`;
+
+// ─── Stripe Connect (Company) ─────────────────────────────────────────────
+
+export const MY_CONNECT_STATUS = gql`
+  query MyConnectStatus {
+    myConnectStatus {
+      accountId
+      onboardingStatus
+      chargesEnabled
+      payoutsEnabled
+    }
+  }
+`;
+
+export const INITIATE_CONNECT_ONBOARDING = gql`
+  mutation InitiateConnectOnboarding {
+    initiateConnectOnboarding {
+      url
+    }
+  }
+`;
+
+export const REFRESH_CONNECT_ONBOARDING = gql`
+  mutation RefreshConnectOnboarding {
+    refreshConnectOnboarding {
+      url
+    }
+  }
+`;
+
+export const MY_PAYOUTS = gql`
+  query MyPayouts($first: Int, $after: String) {
+    myPayouts(first: $first, after: $after) {
+      id
+      amount
+      currency
+      periodFrom
+      periodTo
+      bookingCount
+      status
+      paidAt
+      createdAt
+      company {
+        id
+        companyName
+      }
+    }
+  }
+`;
+
+export const MY_PAYOUT_DETAIL = gql`
+  query MyPayoutDetail($id: ID!) {
+    myPayoutDetail(id: $id) {
+      id
+      amount
+      currency
+      periodFrom
+      periodTo
+      bookingCount
+      status
+      paidAt
+      createdAt
+      company {
+        id
+        companyName
+      }
+      lineItems {
+        id
+        amountGross
+        amountCommission
+        amountNet
+        booking {
+          id
+          referenceCode
+          serviceName
+          scheduledDate
+        }
+      }
+    }
+  }
+`;
+
+export const MY_COMPANY_EARNINGS = gql`
+  query MyCompanyEarnings($from: String!, $to: String!) {
+    myCompanyEarnings(from: $from, to: $to) {
+      totalGross
+      totalCommission
+      totalNet
+      bookingCount
+      averagePerBooking
+    }
+  }
+`;
+
+// ─── Billing & Invoices (Client) ──────────────────────────────────────────
+
+export const MY_BILLING_PROFILE = gql`
+  query MyBillingProfile {
+    myBillingProfile {
+      id
+      isCompany
+      companyName
+      cui
+      regNumber
+      address
+      city
+      county
+      isVatPayer
+      bankName
+      iban
+      isDefault
+    }
+  }
+`;
+
+export const UPSERT_BILLING_PROFILE = gql`
+  mutation UpsertBillingProfile($input: BillingProfileInput!) {
+    upsertBillingProfile(input: $input) {
+      id
+      isCompany
+      companyName
+      cui
+      regNumber
+      address
+      city
+      county
+      isVatPayer
+      bankName
+      iban
+    }
+  }
+`;
+
+export const MY_INVOICES = gql`
+  query MyInvoices($first: Int, $after: String) {
+    myInvoices(first: $first, after: $after) {
+      edges {
+        id
+        invoiceType
+        invoiceNumber
+        status
+        sellerCompanyName
+        buyerName
+        subtotalAmount
+        vatRate
+        vatAmount
+        totalAmount
+        currency
+        downloadUrl
+        issuedAt
+        createdAt
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+    }
+  }
+`;
+
+export const INVOICE_DETAIL = gql`
+  query InvoiceDetail($id: ID!) {
+    invoiceDetail(id: $id) {
+      id
+      invoiceType
+      invoiceNumber
+      status
+      sellerCompanyName
+      sellerCui
+      buyerName
+      buyerCui
+      subtotalAmount
+      vatRate
+      vatAmount
+      totalAmount
+      currency
+      efacturaStatus
+      downloadUrl
+      issuedAt
+      dueDate
+      notes
+      lineItems {
+        id
+        descriptionRo
+        quantity
+        unitPrice
+        vatRate
+        vatAmount
+        lineTotal
+        lineTotalWithVat
+      }
+      booking {
+        id
+        referenceCode
+        serviceName
+      }
+      company {
+        id
+        companyName
+      }
+      createdAt
+    }
+  }
+`;
+
+// ─── Company Invoices ─────────────────────────────────────────────────────
+
+export const COMPANY_INVOICES = gql`
+  query CompanyInvoices($status: InvoiceStatus, $first: Int, $after: String) {
+    companyInvoices(status: $status, first: $first, after: $after) {
+      edges {
+        id
+        invoiceType
+        invoiceNumber
+        status
+        buyerName
+        totalAmount
+        currency
+        efacturaStatus
+        downloadUrl
+        issuedAt
+        createdAt
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+    }
+  }
+`;
+
+export const GENERATE_BOOKING_INVOICE = gql`
+  mutation GenerateBookingInvoice($bookingId: ID!) {
+    generateBookingInvoice(bookingId: $bookingId) {
+      id
+      invoiceNumber
+      status
+      totalAmount
+      downloadUrl
+    }
+  }
+`;
+
+export const CANCEL_INVOICE = gql`
+  mutation CancelInvoice($id: ID!) {
+    cancelInvoice(id: $id) {
+      id
+      status
+    }
+  }
+`;
+
+export const TRANSMIT_TO_EFACTURA = gql`
+  mutation TransmitInvoiceToEFactura($id: ID!) {
+    transmitInvoiceToEFactura(id: $id) {
+      id
+      efacturaStatus
+    }
+  }
+`;
+
+// ─── Admin Payments ───────────────────────────────────────────────────────
+
+export const ALL_PAYMENT_TRANSACTIONS = gql`
+  query AllPaymentTransactions($status: PaymentTransactionStatus, $first: Int, $after: String) {
+    allPaymentTransactions(status: $status, first: $first, after: $after) {
+      id
+      bookingId
+      stripePaymentIntentId
+      amountTotal
+      amountCompany
+      amountPlatformFee
+      currency
+      status
+      failureReason
+      refundAmount
+      createdAt
+      booking {
+        id
+        referenceCode
+        serviceName
+        company {
+          id
+          companyName
+        }
+      }
+    }
+  }
+`;
+
+export const ALL_REFUND_REQUESTS = gql`
+  query AllRefundRequests($status: RefundStatus, $first: Int, $after: String) {
+    allRefundRequests(status: $status, first: $first, after: $after) {
+      id
+      amount
+      reason
+      status
+      processedAt
+      createdAt
+      booking {
+        id
+        referenceCode
+        serviceName
+      }
+      requestedBy {
+        id
+        fullName
+        email
+      }
+      approvedBy {
+        id
+        fullName
+      }
+    }
+  }
+`;
+
+export const PROCESS_REFUND = gql`
+  mutation ProcessRefund($refundRequestId: ID!, $approved: Boolean!) {
+    processRefund(refundRequestId: $refundRequestId, approved: $approved) {
+      id
+      status
+      processedAt
+    }
+  }
+`;
+
+export const ADMIN_ISSUE_REFUND = gql`
+  mutation AdminIssueRefund($bookingId: ID!, $amount: Int!, $reason: String!) {
+    adminIssueRefund(bookingId: $bookingId, amount: $amount, reason: $reason) {
+      id
+      amount
+      reason
+      status
+    }
+  }
+`;
+
+export const CREATE_MONTHLY_PAYOUT = gql`
+  mutation CreateMonthlyPayout($companyId: ID!, $periodFrom: String!, $periodTo: String!) {
+    createMonthlyPayout(companyId: $companyId, periodFrom: $periodFrom, periodTo: $periodTo) {
+      id
+      amount
+      bookingCount
+      status
+      company {
+        id
+        companyName
+      }
+    }
+  }
+`;
+
+export const ALL_PAYOUTS = gql`
+  query AllPayouts($companyId: ID, $status: PayoutStatus, $first: Int, $after: String) {
+    allPayouts(companyId: $companyId, status: $status, first: $first, after: $after) {
+      id
+      amount
+      currency
+      periodFrom
+      periodTo
+      bookingCount
+      status
+      paidAt
+      createdAt
+      company {
+        id
+        companyName
+      }
+    }
+  }
+`;
+
+export const PLATFORM_REVENUE_REPORT = gql`
+  query PlatformRevenueReport($from: String!, $to: String!) {
+    platformRevenueReport(from: $from, to: $to) {
+      totalRevenue
+      totalCommission
+      totalPayouts
+      pendingPayouts
+      totalRefunds
+      netRevenue
+      bookingCount
+    }
+  }
+`;
+
+export const MARK_BOOKING_PAID = gql`
+  mutation MarkBookingPaid($id: ID!) {
+    markBookingPaid(id: $id) {
+      id
+      paymentStatus
+    }
+  }
+`;
+
+// ─── Admin Invoices ───────────────────────────────────────────────────────
+
+export const ALL_INVOICES = gql`
+  query AllInvoices($type: InvoiceType, $status: InvoiceStatus, $companyId: ID, $first: Int, $after: String) {
+    allInvoices(type: $type, status: $status, companyId: $companyId, first: $first, after: $after) {
+      edges {
+        id
+        invoiceType
+        invoiceNumber
+        status
+        sellerCompanyName
+        buyerName
+        totalAmount
+        currency
+        efacturaStatus
+        downloadUrl
+        issuedAt
+        createdAt
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+    }
+  }
+`;
+
+export const GENERATE_COMMISSION_INVOICE = gql`
+  mutation GenerateCommissionInvoice($payoutId: ID!) {
+    generateCommissionInvoice(payoutId: $payoutId) {
+      id
+      invoiceNumber
+      status
+      totalAmount
+    }
+  }
+`;
+
+export const GENERATE_CREDIT_NOTE = gql`
+  mutation GenerateCreditNote($invoiceId: ID!, $amount: Int!, $reason: String!) {
+    generateCreditNote(invoiceId: $invoiceId, amount: $amount, reason: $reason) {
+      id
+      invoiceNumber
+      status
+      totalAmount
+    }
+  }
+`;
+
+export const INVOICE_ANALYTICS = gql`
+  query InvoiceAnalytics($from: String!, $to: String!) {
+    invoiceAnalytics(from: $from, to: $to) {
+      totalIssued
+      totalAmount
+      totalVat
+      byStatus {
+        status
+        count
+        totalAmount
+      }
+      byType {
+        type
+        count
+        totalAmount
+      }
     }
   }
 `;

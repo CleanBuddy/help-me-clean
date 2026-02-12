@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/joho/godotenv v1.5.1
+	github.com/stripe/stripe-go/v81 v81.4.0
 	github.com/vektah/gqlparser/v2 v2.5.31
 )
 

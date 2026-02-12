@@ -25,6 +25,9 @@ import (
 	"helpmeclean-backend/internal/graph"
 	"helpmeclean-backend/internal/graph/resolver"
 	"helpmeclean-backend/internal/pubsub"
+	"helpmeclean-backend/internal/service/invoice"
+	"helpmeclean-backend/internal/service/payment"
+	"helpmeclean-backend/internal/webhook"
 )
 
 func main() {
@@ -70,13 +73,31 @@ func main() {
 	// PubSub
 	ps := pubsub.New()
 
+	// Services
+	paymentSvc := payment.NewService(queries)
+	invoiceSvc := invoice.NewService(queries)
+
+	// Stripe webhook (must be BEFORE auth middleware)
+	stripeWebhook := webhook.NewStripeHandler(paymentSvc)
+	r.Post("/webhook/stripe", stripeWebhook.ServeHTTP)
+
+	// GraphQL resolver
+	res := &resolver.Resolver{
+		Pool:           pool,
+		Queries:        queries,
+		PubSub:         ps,
+		PaymentService: paymentSvc,
+		InvoiceService: invoiceSvc,
+	}
+
+	// Wire auto-confirm callback: when payment succeeds, create chat room.
+	paymentSvc.OnBookingConfirmed = func(ctx context.Context, booking db.Booking) {
+		res.CreateBookingChatFromPayment(ctx, booking)
+	}
+
 	// GraphQL server
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{
-		Resolvers: &resolver.Resolver{
-			Pool:    pool,
-			Queries: queries,
-			PubSub:  ps,
-		},
+		Resolvers: res,
 	}))
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})

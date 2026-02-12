@@ -6,7 +6,6 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import {
   CLIENT_BOOKING_DETAIL,
-  CONFIRM_BOOKING,
   START_JOB,
   COMPLETE_JOB,
   TODAYS_JOBS,
@@ -42,16 +41,14 @@ export default function JobDetailPage() {
     { query: CLIENT_BOOKING_DETAIL, variables: { id } },
   ];
 
-  const [confirmBooking, { loading: confirming }] = useMutation(CONFIRM_BOOKING, { refetchQueries });
   const [startJob, { loading: starting }] = useMutation(START_JOB, { refetchQueries });
   const [completeJob, { loading: completing }] = useMutation(COMPLETE_JOB, { refetchQueries });
 
-  const actionLoading = confirming || starting || completing;
+  const actionLoading = starting || completing;
 
-  const handleAction = async (action: 'confirm' | 'start' | 'complete') => {
+  const handleAction = async (action: 'start' | 'complete') => {
     setError('');
     try {
-      if (action === 'confirm') await confirmBooking({ variables: { id } });
       if (action === 'start') await startJob({ variables: { id } });
       if (action === 'complete') await completeJob({ variables: { id } });
     } catch {
@@ -199,16 +196,6 @@ export default function JobDetailPage() {
 
       {/* Actions */}
       <div className="mt-6 space-y-3">
-        {booking.status === 'ASSIGNED' && (
-          <Button
-            onClick={() => handleAction('confirm')}
-            loading={confirming}
-            disabled={actionLoading}
-            className="w-full"
-          >
-            Confirma comanda
-          </Button>
-        )}
         {booking.status === 'CONFIRMED' && (
           <Button
             onClick={() => handleAction('start')}

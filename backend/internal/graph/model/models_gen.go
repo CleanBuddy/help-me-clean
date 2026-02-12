@@ -69,6 +69,19 @@ type AvailabilitySlotInput struct {
 	IsAvailable bool   `json:"isAvailable"`
 }
 
+type BillingProfileInput struct {
+	IsCompany   bool    `json:"isCompany"`
+	CompanyName *string `json:"companyName,omitempty"`
+	Cui         *string `json:"cui,omitempty"`
+	RegNumber   *string `json:"regNumber,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	City        *string `json:"city,omitempty"`
+	County      *string `json:"county,omitempty"`
+	IsVatPayer  *bool   `json:"isVatPayer,omitempty"`
+	BankName    *string `json:"bankName,omitempty"`
+	Iban        *string `json:"iban,omitempty"`
+}
+
 type Booking struct {
 	ID                     string             `json:"id"`
 	ReferenceCode          string             `json:"referenceCode"`
@@ -228,6 +241,21 @@ type CleanerSuggestion struct {
 	MatchScore         float64         `json:"matchScore"`
 }
 
+type ClientBillingProfile struct {
+	ID          string  `json:"id"`
+	IsCompany   bool    `json:"isCompany"`
+	CompanyName *string `json:"companyName,omitempty"`
+	Cui         *string `json:"cui,omitempty"`
+	RegNumber   *string `json:"regNumber,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	City        *string `json:"city,omitempty"`
+	County      *string `json:"county,omitempty"`
+	IsVatPayer  bool    `json:"isVatPayer"`
+	BankName    *string `json:"bankName,omitempty"`
+	Iban        *string `json:"iban,omitempty"`
+	IsDefault   bool    `json:"isDefault"`
+}
+
 type Company struct {
 	ID                  string             `json:"id"`
 	CompanyName         string             `json:"companyName"`
@@ -284,11 +312,33 @@ type CompanyDocument struct {
 	UploadedAt   time.Time `json:"uploadedAt"`
 }
 
+type CompanyEarningsSummary struct {
+	TotalGross        int `json:"totalGross"`
+	TotalCommission   int `json:"totalCommission"`
+	TotalNet          int `json:"totalNet"`
+	BookingCount      int `json:"bookingCount"`
+	AveragePerBooking int `json:"averagePerBooking"`
+}
+
 type CompanyFinancialSummary struct {
 	CompletedBookings int     `json:"completedBookings"`
 	TotalRevenue      float64 `json:"totalRevenue"`
 	TotalCommission   float64 `json:"totalCommission"`
 	NetPayout         float64 `json:"netPayout"`
+}
+
+type CompanyPayout struct {
+	ID           string            `json:"id"`
+	Company      *Company          `json:"company,omitempty"`
+	Amount       int               `json:"amount"`
+	Currency     string            `json:"currency"`
+	PeriodFrom   string            `json:"periodFrom"`
+	PeriodTo     string            `json:"periodTo"`
+	BookingCount int               `json:"bookingCount"`
+	Status       PayoutStatus      `json:"status"`
+	PaidAt       *time.Time        `json:"paidAt,omitempty"`
+	LineItems    []*PayoutLineItem `json:"lineItems"`
+	CreatedAt    time.Time         `json:"createdAt"`
 }
 
 type CompanyPerformance struct {
@@ -305,6 +355,10 @@ type CompanyWorkSchedule struct {
 	StartTime string `json:"startTime"`
 	EndTime   string `json:"endTime"`
 	IsWorkDay bool   `json:"isWorkDay"`
+}
+
+type ConnectOnboardingLink struct {
+	URL string `json:"url"`
 }
 
 type Coordinates struct {
@@ -387,6 +441,69 @@ type InviteCleanerInput struct {
 	Phone    *string `json:"phone,omitempty"`
 }
 
+type Invoice struct {
+	ID                string             `json:"id"`
+	InvoiceType       InvoiceType        `json:"invoiceType"`
+	InvoiceNumber     *string            `json:"invoiceNumber,omitempty"`
+	Status            InvoiceStatus      `json:"status"`
+	SellerCompanyName string             `json:"sellerCompanyName"`
+	SellerCui         string             `json:"sellerCui"`
+	BuyerName         string             `json:"buyerName"`
+	BuyerCui          *string            `json:"buyerCui,omitempty"`
+	SubtotalAmount    int                `json:"subtotalAmount"`
+	VatRate           float64            `json:"vatRate"`
+	VatAmount         int                `json:"vatAmount"`
+	TotalAmount       int                `json:"totalAmount"`
+	Currency          string             `json:"currency"`
+	Booking           *Booking           `json:"booking,omitempty"`
+	Company           *Company           `json:"company,omitempty"`
+	EfacturaStatus    *string            `json:"efacturaStatus,omitempty"`
+	DownloadURL       *string            `json:"downloadUrl,omitempty"`
+	IssuedAt          *time.Time         `json:"issuedAt,omitempty"`
+	DueDate           *string            `json:"dueDate,omitempty"`
+	Notes             *string            `json:"notes,omitempty"`
+	LineItems         []*InvoiceLineItem `json:"lineItems"`
+	CreatedAt         time.Time          `json:"createdAt"`
+}
+
+type InvoiceAnalytics struct {
+	TotalIssued int                   `json:"totalIssued"`
+	TotalAmount int                   `json:"totalAmount"`
+	TotalVat    int                   `json:"totalVat"`
+	ByStatus    []*InvoiceStatusCount `json:"byStatus"`
+	ByType      []*InvoiceTypeCount   `json:"byType"`
+}
+
+type InvoiceConnection struct {
+	Edges      []*Invoice `json:"edges"`
+	PageInfo   *PageInfo  `json:"pageInfo"`
+	TotalCount int        `json:"totalCount"`
+}
+
+type InvoiceLineItem struct {
+	ID               string  `json:"id"`
+	DescriptionRo    string  `json:"descriptionRo"`
+	DescriptionEn    *string `json:"descriptionEn,omitempty"`
+	Quantity         float64 `json:"quantity"`
+	UnitPrice        int     `json:"unitPrice"`
+	VatRate          float64 `json:"vatRate"`
+	VatAmount        int     `json:"vatAmount"`
+	LineTotal        int     `json:"lineTotal"`
+	LineTotalWithVat int     `json:"lineTotalWithVat"`
+}
+
+type InvoiceStatusCount struct {
+	Status      InvoiceStatus `json:"status"`
+	Count       int           `json:"count"`
+	TotalAmount int           `json:"totalAmount"`
+}
+
+type InvoiceTypeCount struct {
+	Type        InvoiceType `json:"type"`
+	Count       int         `json:"count"`
+	TotalAmount int         `json:"totalAmount"`
+}
+
 type Mutation struct {
 }
 
@@ -411,11 +528,70 @@ type PageInfo struct {
 	EndCursor   *string `json:"endCursor,omitempty"`
 }
 
+type PaymentHistoryConnection struct {
+	Edges      []*PaymentHistoryEntry `json:"edges"`
+	PageInfo   *PageInfo              `json:"pageInfo"`
+	TotalCount int                    `json:"totalCount"`
+}
+
+type PaymentHistoryEntry struct {
+	ID        string                   `json:"id"`
+	Booking   *Booking                 `json:"booking,omitempty"`
+	Amount    int                      `json:"amount"`
+	Currency  string                   `json:"currency"`
+	Status    PaymentTransactionStatus `json:"status"`
+	PaidAt    *time.Time               `json:"paidAt,omitempty"`
+	CreatedAt time.Time                `json:"createdAt"`
+}
+
+type PaymentIntentResult struct {
+	ClientSecret    string `json:"clientSecret"`
+	PaymentIntentID string `json:"paymentIntentId"`
+	Amount          int    `json:"amount"`
+	Currency        string `json:"currency"`
+}
+
 type PaymentMethod struct {
-	ID           string `json:"id"`
-	CardLastFour string `json:"cardLastFour"`
-	CardBrand    string `json:"cardBrand"`
-	IsDefault    bool   `json:"isDefault"`
+	ID                    string `json:"id"`
+	StripePaymentMethodID string `json:"stripePaymentMethodId"`
+	CardLastFour          string `json:"cardLastFour"`
+	CardBrand             string `json:"cardBrand"`
+	CardExpMonth          *int   `json:"cardExpMonth,omitempty"`
+	CardExpYear           *int   `json:"cardExpYear,omitempty"`
+	IsDefault             bool   `json:"isDefault"`
+}
+
+type PaymentTransaction struct {
+	ID                    string                   `json:"id"`
+	BookingID             string                   `json:"bookingId"`
+	Booking               *Booking                 `json:"booking,omitempty"`
+	StripePaymentIntentID string                   `json:"stripePaymentIntentId"`
+	AmountTotal           int                      `json:"amountTotal"`
+	AmountCompany         int                      `json:"amountCompany"`
+	AmountPlatformFee     int                      `json:"amountPlatformFee"`
+	Currency              string                   `json:"currency"`
+	Status                PaymentTransactionStatus `json:"status"`
+	FailureReason         *string                  `json:"failureReason,omitempty"`
+	RefundAmount          *int                     `json:"refundAmount,omitempty"`
+	CreatedAt             time.Time                `json:"createdAt"`
+}
+
+type PayoutLineItem struct {
+	ID               string   `json:"id"`
+	Booking          *Booking `json:"booking,omitempty"`
+	AmountGross      int      `json:"amountGross"`
+	AmountCommission int      `json:"amountCommission"`
+	AmountNet        int      `json:"amountNet"`
+}
+
+type PlatformRevenueReport struct {
+	TotalRevenue    int `json:"totalRevenue"`
+	TotalCommission int `json:"totalCommission"`
+	TotalPayouts    int `json:"totalPayouts"`
+	PendingPayouts  int `json:"pendingPayouts"`
+	TotalRefunds    int `json:"totalRefunds"`
+	NetRevenue      int `json:"netRevenue"`
+	BookingCount    int `json:"bookingCount"`
 }
 
 type PlatformSetting struct {
@@ -472,6 +648,18 @@ type PriceEstimateInput struct {
 type Query struct {
 }
 
+type RefundRequest struct {
+	ID          string       `json:"id"`
+	Booking     *Booking     `json:"booking,omitempty"`
+	RequestedBy *User        `json:"requestedBy,omitempty"`
+	ApprovedBy  *User        `json:"approvedBy,omitempty"`
+	Amount      int          `json:"amount"`
+	Reason      string       `json:"reason"`
+	Status      RefundStatus `json:"status"`
+	ProcessedAt *time.Time   `json:"processedAt,omitempty"`
+	CreatedAt   time.Time    `json:"createdAt"`
+}
+
 type RevenueByMonth struct {
 	Month        string  `json:"month"`
 	Revenue      float64 `json:"revenue"`
@@ -526,6 +714,17 @@ type ServiceRevenue struct {
 	ServiceType  ServiceType `json:"serviceType"`
 	BookingCount int         `json:"bookingCount"`
 	Revenue      float64     `json:"revenue"`
+}
+
+type SetupIntentResult struct {
+	ClientSecret string `json:"clientSecret"`
+}
+
+type StripeConnectStatus struct {
+	AccountID        *string                 `json:"accountId,omitempty"`
+	OnboardingStatus ConnectOnboardingStatus `json:"onboardingStatus"`
+	ChargesEnabled   bool                    `json:"chargesEnabled"`
+	PayoutsEnabled   bool                    `json:"payoutsEnabled"`
 }
 
 type SubmitReviewInput struct {
@@ -874,6 +1073,372 @@ func (e *CompanyType) UnmarshalJSON(b []byte) error {
 }
 
 func (e CompanyType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ConnectOnboardingStatus string
+
+const (
+	ConnectOnboardingStatusNotStarted ConnectOnboardingStatus = "NOT_STARTED"
+	ConnectOnboardingStatusPending    ConnectOnboardingStatus = "PENDING"
+	ConnectOnboardingStatusComplete   ConnectOnboardingStatus = "COMPLETE"
+	ConnectOnboardingStatusRestricted ConnectOnboardingStatus = "RESTRICTED"
+)
+
+var AllConnectOnboardingStatus = []ConnectOnboardingStatus{
+	ConnectOnboardingStatusNotStarted,
+	ConnectOnboardingStatusPending,
+	ConnectOnboardingStatusComplete,
+	ConnectOnboardingStatusRestricted,
+}
+
+func (e ConnectOnboardingStatus) IsValid() bool {
+	switch e {
+	case ConnectOnboardingStatusNotStarted, ConnectOnboardingStatusPending, ConnectOnboardingStatusComplete, ConnectOnboardingStatusRestricted:
+		return true
+	}
+	return false
+}
+
+func (e ConnectOnboardingStatus) String() string {
+	return string(e)
+}
+
+func (e *ConnectOnboardingStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ConnectOnboardingStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ConnectOnboardingStatus", str)
+	}
+	return nil
+}
+
+func (e ConnectOnboardingStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ConnectOnboardingStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ConnectOnboardingStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type InvoiceStatus string
+
+const (
+	InvoiceStatusDraft       InvoiceStatus = "DRAFT"
+	InvoiceStatusIssued      InvoiceStatus = "ISSUED"
+	InvoiceStatusSent        InvoiceStatus = "SENT"
+	InvoiceStatusTransmitted InvoiceStatus = "TRANSMITTED"
+	InvoiceStatusPaid        InvoiceStatus = "PAID"
+	InvoiceStatusCancelled   InvoiceStatus = "CANCELLED"
+	InvoiceStatusCreditNote  InvoiceStatus = "CREDIT_NOTE"
+)
+
+var AllInvoiceStatus = []InvoiceStatus{
+	InvoiceStatusDraft,
+	InvoiceStatusIssued,
+	InvoiceStatusSent,
+	InvoiceStatusTransmitted,
+	InvoiceStatusPaid,
+	InvoiceStatusCancelled,
+	InvoiceStatusCreditNote,
+}
+
+func (e InvoiceStatus) IsValid() bool {
+	switch e {
+	case InvoiceStatusDraft, InvoiceStatusIssued, InvoiceStatusSent, InvoiceStatusTransmitted, InvoiceStatusPaid, InvoiceStatusCancelled, InvoiceStatusCreditNote:
+		return true
+	}
+	return false
+}
+
+func (e InvoiceStatus) String() string {
+	return string(e)
+}
+
+func (e *InvoiceStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InvoiceStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InvoiceStatus", str)
+	}
+	return nil
+}
+
+func (e InvoiceStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *InvoiceStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e InvoiceStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type InvoiceType string
+
+const (
+	InvoiceTypeClientService      InvoiceType = "CLIENT_SERVICE"
+	InvoiceTypePlatformCommission InvoiceType = "PLATFORM_COMMISSION"
+)
+
+var AllInvoiceType = []InvoiceType{
+	InvoiceTypeClientService,
+	InvoiceTypePlatformCommission,
+}
+
+func (e InvoiceType) IsValid() bool {
+	switch e {
+	case InvoiceTypeClientService, InvoiceTypePlatformCommission:
+		return true
+	}
+	return false
+}
+
+func (e InvoiceType) String() string {
+	return string(e)
+}
+
+func (e *InvoiceType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InvoiceType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InvoiceType", str)
+	}
+	return nil
+}
+
+func (e InvoiceType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *InvoiceType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e InvoiceType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PaymentTransactionStatus string
+
+const (
+	PaymentTransactionStatusPending           PaymentTransactionStatus = "PENDING"
+	PaymentTransactionStatusRequiresAction    PaymentTransactionStatus = "REQUIRES_ACTION"
+	PaymentTransactionStatusProcessing        PaymentTransactionStatus = "PROCESSING"
+	PaymentTransactionStatusSucceeded         PaymentTransactionStatus = "SUCCEEDED"
+	PaymentTransactionStatusFailed            PaymentTransactionStatus = "FAILED"
+	PaymentTransactionStatusRefunded          PaymentTransactionStatus = "REFUNDED"
+	PaymentTransactionStatusPartiallyRefunded PaymentTransactionStatus = "PARTIALLY_REFUNDED"
+	PaymentTransactionStatusCancelled         PaymentTransactionStatus = "CANCELLED"
+)
+
+var AllPaymentTransactionStatus = []PaymentTransactionStatus{
+	PaymentTransactionStatusPending,
+	PaymentTransactionStatusRequiresAction,
+	PaymentTransactionStatusProcessing,
+	PaymentTransactionStatusSucceeded,
+	PaymentTransactionStatusFailed,
+	PaymentTransactionStatusRefunded,
+	PaymentTransactionStatusPartiallyRefunded,
+	PaymentTransactionStatusCancelled,
+}
+
+func (e PaymentTransactionStatus) IsValid() bool {
+	switch e {
+	case PaymentTransactionStatusPending, PaymentTransactionStatusRequiresAction, PaymentTransactionStatusProcessing, PaymentTransactionStatusSucceeded, PaymentTransactionStatusFailed, PaymentTransactionStatusRefunded, PaymentTransactionStatusPartiallyRefunded, PaymentTransactionStatusCancelled:
+		return true
+	}
+	return false
+}
+
+func (e PaymentTransactionStatus) String() string {
+	return string(e)
+}
+
+func (e *PaymentTransactionStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PaymentTransactionStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PaymentTransactionStatus", str)
+	}
+	return nil
+}
+
+func (e PaymentTransactionStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PaymentTransactionStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PaymentTransactionStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PayoutStatus string
+
+const (
+	PayoutStatusPending    PayoutStatus = "PENDING"
+	PayoutStatusProcessing PayoutStatus = "PROCESSING"
+	PayoutStatusPaid       PayoutStatus = "PAID"
+	PayoutStatusFailed     PayoutStatus = "FAILED"
+	PayoutStatusCancelled  PayoutStatus = "CANCELLED"
+)
+
+var AllPayoutStatus = []PayoutStatus{
+	PayoutStatusPending,
+	PayoutStatusProcessing,
+	PayoutStatusPaid,
+	PayoutStatusFailed,
+	PayoutStatusCancelled,
+}
+
+func (e PayoutStatus) IsValid() bool {
+	switch e {
+	case PayoutStatusPending, PayoutStatusProcessing, PayoutStatusPaid, PayoutStatusFailed, PayoutStatusCancelled:
+		return true
+	}
+	return false
+}
+
+func (e PayoutStatus) String() string {
+	return string(e)
+}
+
+func (e *PayoutStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PayoutStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PayoutStatus", str)
+	}
+	return nil
+}
+
+func (e PayoutStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PayoutStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PayoutStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type RefundStatus string
+
+const (
+	RefundStatusRequested RefundStatus = "REQUESTED"
+	RefundStatusApproved  RefundStatus = "APPROVED"
+	RefundStatusProcessed RefundStatus = "PROCESSED"
+	RefundStatusRejected  RefundStatus = "REJECTED"
+)
+
+var AllRefundStatus = []RefundStatus{
+	RefundStatusRequested,
+	RefundStatusApproved,
+	RefundStatusProcessed,
+	RefundStatusRejected,
+}
+
+func (e RefundStatus) IsValid() bool {
+	switch e {
+	case RefundStatusRequested, RefundStatusApproved, RefundStatusProcessed, RefundStatusRejected:
+		return true
+	}
+	return false
+}
+
+func (e RefundStatus) String() string {
+	return string(e)
+}
+
+func (e *RefundStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RefundStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RefundStatus", str)
+	}
+	return nil
+}
+
+func (e RefundStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RefundStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RefundStatus) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
