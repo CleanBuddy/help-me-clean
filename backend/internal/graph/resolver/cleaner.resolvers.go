@@ -437,7 +437,7 @@ func (r *mutationResolver) DeleteCleanerDocument(ctx context.Context, id string)
 // ReviewCleanerDocument is the resolver for the reviewCleanerDocument field.
 func (r *mutationResolver) ReviewCleanerDocument(ctx context.Context, id string, approved bool, rejectionReason *string) (*model.CleanerDocument, error) {
 	claims := auth.GetUserFromContext(ctx)
-	if claims == nil || claims.Role != "admin" {
+	if claims == nil || claims.Role != "global_admin" {
 		return nil, fmt.Errorf("not authorized")
 	}
 
@@ -467,7 +467,7 @@ func (r *mutationResolver) ReviewCleanerDocument(ctx context.Context, id string,
 // ActivateCleaner is the resolver for the activateCleaner field.
 func (r *mutationResolver) ActivateCleaner(ctx context.Context, id string) (*model.CleanerProfile, error) {
 	claims := auth.GetUserFromContext(ctx)
-	if claims == nil || claims.Role != "admin" {
+	if claims == nil || claims.Role != "global_admin" {
 		return nil, fmt.Errorf("not authorized")
 	}
 
@@ -1006,7 +1006,7 @@ func (r *queryResolver) CleanerDocuments(ctx context.Context, cleanerID string) 
 // PendingCleanerDocuments is the resolver for the pendingCleanerDocuments field.
 func (r *queryResolver) PendingCleanerDocuments(ctx context.Context) ([]*model.CleanerDocument, error) {
 	claims := auth.GetUserFromContext(ctx)
-	if claims == nil || claims.Role != "admin" {
+	if claims == nil || claims.Role != "global_admin" {
 		return nil, fmt.Errorf("not authorized")
 	}
 

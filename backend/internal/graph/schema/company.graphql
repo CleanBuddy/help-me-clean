@@ -86,6 +86,7 @@ extend type Mutation {
   claimCompany(claimToken: String!): Company!
   updateCompanyProfile(input: UpdateCompanyInput!): Company!
   uploadCompanyDocument(companyId: ID!, documentType: String!, file: Upload!): CompanyDocument!
+  deleteCompanyDocument(id: ID!): Boolean!
   approveCompany(id: ID!): Company!
   rejectCompany(id: ID!, reason: String!): Company!
   suspendCompany(id: ID!, reason: String!): Company!

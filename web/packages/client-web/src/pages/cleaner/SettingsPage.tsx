@@ -7,12 +7,16 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import FileUpload from '@/components/ui/FileUpload';
+import DocumentCard from '@/components/ui/DocumentCard';
 import {
   MY_CLEANER_PROFILE,
   MY_CLEANER_STATS,
   UPDATE_CLEANER_PROFILE,
   ACCEPT_INVITATION,
   MY_CLEANER_SERVICE_AREAS,
+  UPLOAD_CLEANER_DOCUMENT,
+  DELETE_CLEANER_DOCUMENT,
 } from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -22,6 +26,7 @@ type StatusVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 const statusVariant: Record<string, StatusVariant> = {
   ACTIVE: 'success',
   INVITED: 'warning',
+  PENDING_REVIEW: 'warning',
   SUSPENDED: 'danger',
   INACTIVE: 'default',
 };
@@ -29,9 +34,25 @@ const statusVariant: Record<string, StatusVariant> = {
 const statusLabel: Record<string, string> = {
   ACTIVE: 'Activ',
   INVITED: 'Invitat',
+  PENDING_REVIEW: 'In asteptare',
   SUSPENDED: 'Suspendat',
   INACTIVE: 'Inactiv',
 };
+
+const REQUIRED_CLEANER_DOCS: { type: string; label: string }[] = [
+  { type: 'cazier_judiciar', label: 'Cazier Judiciar' },
+  { type: 'contract_munca', label: 'Contract de Munca' },
+];
+
+interface CleanerDocument {
+  id: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  uploadedAt: string;
+  rejectionReason?: string;
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -84,6 +105,37 @@ export default function SettingsPage() {
   const [acceptInvitation, { loading: accepting }] = useMutation(ACCEPT_INVITATION, {
     refetchQueries: [{ query: MY_CLEANER_PROFILE }],
   });
+
+  // ─── Document upload state ────────────────────────────────────────────
+  const [uploadDocument, { loading: uploading }] = useMutation(UPLOAD_CLEANER_DOCUMENT, {
+    refetchQueries: [{ query: MY_CLEANER_PROFILE }],
+  });
+  const [deleteDocument, { loading: deleting }] = useMutation(DELETE_CLEANER_DOCUMENT, {
+    refetchQueries: [{ query: MY_CLEANER_PROFILE }],
+  });
+  const [uploadingType, setUploadingType] = useState('');
+
+  const handleUploadDoc = async (file: File, documentType: string) => {
+    if (!profile) return;
+    setUploadingType(documentType);
+    try {
+      await uploadDocument({
+        variables: { cleanerId: profile.id, documentType, file },
+      });
+    } catch {
+      // Error handled by Apollo
+    } finally {
+      setUploadingType('');
+    }
+  };
+
+  const handleDeleteDoc = async (docId: string) => {
+    try {
+      await deleteDocument({ variables: { id: docId } });
+    } catch {
+      // Error handled by Apollo
+    }
+  };
 
   const handleAcceptInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,6 +287,55 @@ export default function SettingsPage() {
           </p>
         </div>
       </Card>
+
+      {/* My Documents */}
+      {profile && (
+        <Card className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-5 w-5 text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Documentele mele</h2>
+          </div>
+          {profile.status === 'PENDING_REVIEW' && (
+            <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700">
+              Incarca documentele necesare pentru a fi activat de administrator.
+            </div>
+          )}
+          <div className="space-y-4">
+            {REQUIRED_CLEANER_DOCS.map((reqDoc) => {
+              const docs: CleanerDocument[] = profile.documents ?? [];
+              const existingDoc = docs.find((d: CleanerDocument) => d.documentType === reqDoc.type);
+              return (
+                <div key={reqDoc.type}>
+                  {existingDoc ? (
+                    <DocumentCard
+                      id={existingDoc.id}
+                      documentType={existingDoc.documentType}
+                      documentTypeLabel={reqDoc.label}
+                      fileName={existingDoc.fileName}
+                      fileUrl={existingDoc.fileUrl}
+                      status={existingDoc.status}
+                      uploadedAt={existingDoc.uploadedAt}
+                      rejectionReason={existingDoc.rejectionReason}
+                      onDelete={handleDeleteDoc}
+                      deleteLoading={deleting}
+                    />
+                  ) : (
+                    <div className="p-4 rounded-xl border border-dashed border-gray-300 bg-gray-50">
+                      <p className="text-sm font-medium text-gray-700 mb-3">{reqDoc.label}</p>
+                      <FileUpload
+                        onFileSelect={(file) => handleUploadDoc(file, reqDoc.type)}
+                        loading={uploading && uploadingType === reqDoc.type}
+                        disabled={uploading}
+                        label={`Incarca ${reqDoc.label}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Editable Profile Form */}
       <Card className="mb-6">

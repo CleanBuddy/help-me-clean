@@ -2683,6 +2683,12 @@ export const UPLOAD_COMPANY_DOCUMENT = gql`
   }
 `;
 
+export const DELETE_COMPANY_DOCUMENT = gql`
+  mutation DeleteCompanyDocument($id: ID!) {
+    deleteCompanyDocument(id: $id)
+  }
+`;
+
 export const REVIEW_COMPANY_DOCUMENT = gql`
   mutation ReviewCompanyDocument($id: ID!, $approved: Boolean!, $rejectionReason: String) {
     reviewCompanyDocument(id: $id, approved: $approved, rejectionReason: $rejectionReason) {

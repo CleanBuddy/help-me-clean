@@ -20,6 +20,7 @@ import {
   INITIATE_CONNECT_ONBOARDING,
   REFRESH_CONNECT_ONBOARDING,
   UPLOAD_COMPANY_DOCUMENT,
+  DELETE_COMPANY_DOCUMENT,
 } from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -126,6 +127,9 @@ export default function SettingsPage() {
   const [uploadDocument, { loading: uploading }] = useMutation(UPLOAD_COMPANY_DOCUMENT, {
     refetchQueries: [{ query: MY_COMPANY }],
   });
+  const [deleteDocument, { loading: deleting }] = useMutation(DELETE_COMPANY_DOCUMENT, {
+    refetchQueries: [{ query: MY_COMPANY }],
+  });
   const [uploadingType, setUploadingType] = useState('');
 
   const handleUploadDocument = async (file: File, documentType: string) => {
@@ -143,6 +147,14 @@ export default function SettingsPage() {
       // Error handled by Apollo
     } finally {
       setUploadingType('');
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    try {
+      await deleteDocument({ variables: { id: docId } });
+    } catch {
+      // Error handled by Apollo
     }
   };
 
@@ -674,6 +686,8 @@ export default function SettingsPage() {
                     status={existingDoc.status}
                     uploadedAt={existingDoc.uploadedAt}
                     rejectionReason={existingDoc.rejectionReason}
+                    onDelete={handleDeleteDocument}
+                    deleteLoading={deleting}
                   />
                 ) : (
                   <div className="p-4 rounded-xl border border-dashed border-gray-300 bg-gray-50">

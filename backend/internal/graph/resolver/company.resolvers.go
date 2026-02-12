@@ -167,6 +167,41 @@ func (r *mutationResolver) UploadCompanyDocument(ctx context.Context, companyID 
 	return dbCompanyDocToGQL(doc), nil
 }
 
+// DeleteCompanyDocument is the resolver for the deleteCompanyDocument field.
+func (r *mutationResolver) DeleteCompanyDocument(ctx context.Context, id string) (bool, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return false, fmt.Errorf("not authenticated")
+	}
+
+	// Verify the document belongs to the caller's company.
+	doc, err := r.Queries.GetCompanyDocument(ctx, stringToUUID(id))
+	if err != nil {
+		return false, fmt.Errorf("document not found: %w", err)
+	}
+
+	// Only allow deletion of pending or rejected documents.
+	if doc.Status != "pending" && doc.Status != "rejected" {
+		return false, fmt.Errorf("cannot delete an approved document")
+	}
+
+	// Verify ownership: caller must be admin of the company that owns the doc.
+	if claims.Role == "company_admin" {
+		company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+		if err != nil || company.ID != doc.CompanyID {
+			return false, fmt.Errorf("not authorized")
+		}
+	} else if claims.Role != "global_admin" {
+		return false, fmt.Errorf("not authorized")
+	}
+
+	if err := r.Queries.DeleteCompanyDocument(ctx, stringToUUID(id)); err != nil {
+		return false, fmt.Errorf("failed to delete document: %w", err)
+	}
+
+	return true, nil
+}
+
 // ApproveCompany is the resolver for the approveCompany field.
 func (r *mutationResolver) ApproveCompany(ctx context.Context, id string) (*model.Company, error) {
 	claims := auth.GetUserFromContext(ctx)
@@ -221,7 +256,7 @@ func (r *mutationResolver) SuspendCompany(ctx context.Context, id string, reason
 // ReviewCompanyDocument is the resolver for the reviewCompanyDocument field.
 func (r *mutationResolver) ReviewCompanyDocument(ctx context.Context, id string, approved bool, rejectionReason *string) (*model.CompanyDocument, error) {
 	claims := auth.GetUserFromContext(ctx)
-	if claims == nil || claims.Role != "admin" {
+	if claims == nil || claims.Role != "global_admin" {
 		return nil, fmt.Errorf("not authorized")
 	}
 
@@ -488,7 +523,7 @@ func (r *queryResolver) CompanyChatRooms(ctx context.Context) ([]*model.ChatRoom
 // PendingCompanyDocuments is the resolver for the pendingCompanyDocuments field.
 func (r *queryResolver) PendingCompanyDocuments(ctx context.Context) ([]*model.CompanyDocument, error) {
 	claims := auth.GetUserFromContext(ctx)
-	if claims == nil || claims.Role != "admin" {
+	if claims == nil || claims.Role != "global_admin" {
 		return nil, fmt.Errorf("not authorized")
 	}
 
