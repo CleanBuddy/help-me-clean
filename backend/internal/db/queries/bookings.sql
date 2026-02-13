@@ -26,8 +26,9 @@ SELECT * FROM bookings WHERE cleaner_id = $1 AND scheduled_date = CURRENT_DATE O
 INSERT INTO bookings (
     reference_code, client_user_id, address_id, service_type, scheduled_date,
     scheduled_start_time, estimated_duration_hours, property_type, num_rooms,
-    num_bathrooms, area_sqm, has_pets, special_instructions, hourly_rate, estimated_total
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    num_bathrooms, area_sqm, has_pets, special_instructions, hourly_rate, estimated_total,
+    recurring_group_id, occurrence_number
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 RETURNING *;
 
 -- name: UpdateBookingStatus :one
@@ -146,3 +147,7 @@ SELECT COUNT(*) FROM bookings WHERE
 -- name: UpdateBookingSchedule :one
 UPDATE bookings SET scheduled_date = $2, scheduled_start_time = $3, updated_at = NOW()
 WHERE id = $1 RETURNING *;
+
+-- name: InsertBookingExtra :exec
+INSERT INTO booking_extras (booking_id, extra_id, price, quantity)
+VALUES ($1, $2, $3, $4);

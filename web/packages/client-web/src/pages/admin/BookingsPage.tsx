@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Calendar, Building2, User, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ClipboardList, Calendar, Building2, User, Search, ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -59,6 +59,8 @@ interface BookingEdge {
   estimatedTotal: number;
   status: string;
   paymentStatus: string;
+  recurringGroupId?: string;
+  occurrenceNumber?: number | null;
   createdAt: string;
   client: { id: string; fullName: string; email: string } | null;
   company: { id: string; companyName: string } | null;
@@ -202,6 +204,12 @@ export default function BookingsPage() {
                       <Badge variant={statusVariant[booking.status] ?? 'default'}>
                         {statusLabel[booking.status] ?? booking.status}
                       </Badge>
+                      {booking.recurringGroupId && (
+                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Repeat className="h-3 w-3" />
+                          Recurent
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 mt-0.5">{booking.serviceName}</p>
                     <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">

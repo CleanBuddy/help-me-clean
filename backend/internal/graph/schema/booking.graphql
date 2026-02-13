@@ -48,6 +48,8 @@ type Booking {
   cancellationReason: String
   paymentStatus: String!
   paidAt: DateTime
+  recurringGroupId: ID
+  occurrenceNumber: Int
   timeSlots: [BookingTimeSlot!]!
   review: Review
   chatRoom: ChatRoom
@@ -120,6 +122,7 @@ input CreateBookingInput {
   guestPhone: String
   preferredCleanerId: ID
   suggestedStartTime: String
+  recurrence: RecurrenceInput
 }
 
 input ExtraInput {

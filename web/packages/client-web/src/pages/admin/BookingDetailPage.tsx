@@ -18,6 +18,7 @@ import {
   Star,
   Search,
   Check,
+  Repeat,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -205,6 +206,23 @@ export default function BookingDetailPage() {
           </Button>
         )}
       </div>
+
+      {booking.recurringGroupId && (
+        <Card className="mb-6">
+          <div className="flex items-center gap-3">
+            <Repeat className="h-5 w-5 text-blue-600 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Programare recurenta
+                {booking.occurrenceNumber && ` — Sesiunea #${booking.occurrenceNumber}`}
+              </p>
+              <p className="text-xs text-gray-500">
+                Aceasta comanda face parte dintr-o serie recurenta.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}

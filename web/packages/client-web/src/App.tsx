@@ -30,6 +30,7 @@ import AddressesPage from '@/pages/client/AddressesPage';
 import PaymentMethodsPage from '@/pages/client/PaymentMethodsPage';
 import PaymentHistoryPage from '@/pages/client/PaymentHistoryPage';
 import ClientInvoicesPage from '@/pages/client/InvoicesPage';
+import RecurringGroupDetailPage from '@/pages/client/RecurringGroupDetailPage';
 
 // Company pages
 import CompanyDashboardPage from '@/pages/company/DashboardPage';
@@ -150,6 +151,7 @@ function AppRoutes() {
         <Route index element={<ClientDashboardPage />} />
         <Route path="comenzi" element={<MyBookingsPage />} />
         <Route path="comenzi/:id" element={<ClientBookingDetailPage />} />
+        <Route path="recurente/:id" element={<RecurringGroupDetailPage />} />
         <Route path="mesaje" element={<ChatPage />} />
         <Route path="mesaje/:roomId" element={<ChatPage />} />
         <Route path="adrese" element={<AddressesPage />} />

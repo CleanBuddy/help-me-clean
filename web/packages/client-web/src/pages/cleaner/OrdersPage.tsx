@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { Link } from 'react-router-dom';
-import { Search, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ClipboardList, Repeat } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
@@ -171,6 +171,12 @@ export default function OrdersPage() {
                           <Badge variant={statusColor[status] ?? 'default'}>
                             {statusLabel[status] ?? status}
                           </Badge>
+                          {!!booking.recurringGroupId && (
+                            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Repeat className="h-3 w-3" />
+                              Recurent
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600">
                           {booking.serviceName as string} &middot;{' '}

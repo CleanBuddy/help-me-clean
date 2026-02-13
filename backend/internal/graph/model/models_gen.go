@@ -112,6 +112,8 @@ type Booking struct {
 	CancellationReason     *string            `json:"cancellationReason,omitempty"`
 	PaymentStatus          string             `json:"paymentStatus"`
 	PaidAt                 *time.Time         `json:"paidAt,omitempty"`
+	RecurringGroupID       *string            `json:"recurringGroupId,omitempty"`
+	OccurrenceNumber       *int               `json:"occurrenceNumber,omitempty"`
 	TimeSlots              []*BookingTimeSlot `json:"timeSlots"`
 	Review                 *Review            `json:"review,omitempty"`
 	ChatRoom               *ChatRoom          `json:"chatRoom,omitempty"`
@@ -401,6 +403,7 @@ type CreateBookingInput struct {
 	GuestPhone          *string          `json:"guestPhone,omitempty"`
 	PreferredCleanerID  *string          `json:"preferredCleanerId,omitempty"`
 	SuggestedStartTime  *string          `json:"suggestedStartTime,omitempty"`
+	Recurrence          *RecurrenceInput `json:"recurrence,omitempty"`
 }
 
 type CreateServiceDefinitionInput struct {
@@ -692,6 +695,40 @@ type PriceEstimateInput struct {
 }
 
 type Query struct {
+}
+
+type RecurrenceInput struct {
+	Type      RecurrenceType `json:"type"`
+	DayOfWeek int            `json:"dayOfWeek"`
+}
+
+type RecurringBookingGroup struct {
+	ID                          string          `json:"id"`
+	Client                      *User           `json:"client,omitempty"`
+	Company                     *Company        `json:"company,omitempty"`
+	PreferredCleaner            *CleanerProfile `json:"preferredCleaner,omitempty"`
+	Address                     *Address        `json:"address,omitempty"`
+	RecurrenceType              RecurrenceType  `json:"recurrenceType"`
+	DayOfWeek                   *int            `json:"dayOfWeek,omitempty"`
+	PreferredTime               string          `json:"preferredTime"`
+	ServiceType                 ServiceType     `json:"serviceType"`
+	ServiceName                 string          `json:"serviceName"`
+	PropertyType                *string         `json:"propertyType,omitempty"`
+	NumRooms                    *int            `json:"numRooms,omitempty"`
+	NumBathrooms                *int            `json:"numBathrooms,omitempty"`
+	AreaSqm                     *int            `json:"areaSqm,omitempty"`
+	HasPets                     *bool           `json:"hasPets,omitempty"`
+	SpecialInstructions         *string         `json:"specialInstructions,omitempty"`
+	HourlyRate                  float64         `json:"hourlyRate"`
+	EstimatedTotalPerOccurrence float64         `json:"estimatedTotalPerOccurrence"`
+	IsActive                    bool            `json:"isActive"`
+	CancelledAt                 *time.Time      `json:"cancelledAt,omitempty"`
+	CancellationReason          *string         `json:"cancellationReason,omitempty"`
+	Occurrences                 []*Booking      `json:"occurrences"`
+	UpcomingOccurrences         []*Booking      `json:"upcomingOccurrences"`
+	TotalOccurrences            int             `json:"totalOccurrences"`
+	CompletedOccurrences        int             `json:"completedOccurrences"`
+	CreatedAt                   time.Time       `json:"createdAt"`
 }
 
 type RefundRequest struct {
@@ -1485,6 +1522,63 @@ func (e *PayoutStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e PayoutStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type RecurrenceType string
+
+const (
+	RecurrenceTypeWeekly   RecurrenceType = "WEEKLY"
+	RecurrenceTypeBiweekly RecurrenceType = "BIWEEKLY"
+	RecurrenceTypeMonthly  RecurrenceType = "MONTHLY"
+)
+
+var AllRecurrenceType = []RecurrenceType{
+	RecurrenceTypeWeekly,
+	RecurrenceTypeBiweekly,
+	RecurrenceTypeMonthly,
+}
+
+func (e RecurrenceType) IsValid() bool {
+	switch e {
+	case RecurrenceTypeWeekly, RecurrenceTypeBiweekly, RecurrenceTypeMonthly:
+		return true
+	}
+	return false
+}
+
+func (e RecurrenceType) String() string {
+	return string(e)
+}
+
+func (e *RecurrenceType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RecurrenceType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RecurrenceType", str)
+	}
+	return nil
+}
+
+func (e RecurrenceType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RecurrenceType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RecurrenceType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

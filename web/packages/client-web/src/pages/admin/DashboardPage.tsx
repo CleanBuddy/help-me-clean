@@ -8,6 +8,7 @@ import {
   Star,
   AlertCircle,
   FileText,
+  Repeat,
 } from 'lucide-react';
 import {
   BarChart,
@@ -196,9 +197,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Pending Documents */}
+      {/* Pending Documents & Recurring */}
       {!statsLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <StatCard
             icon={FileText}
             label="Documente companie in asteptare"
@@ -210,6 +211,12 @@ export default function DashboardPage() {
             label="Documente lucratori in asteptare"
             value={pendingCleanerDocs.length}
             color="danger"
+          />
+          <StatCard
+            icon={Repeat}
+            label="Rezervari recurente"
+            value={bookingStatuses.length > 0 ? 'Activ' : '--'}
+            color="primary"
           />
         </div>
       )}

@@ -8,10 +8,9 @@ package resolver
 import (
 	"context"
 	"fmt"
-
+	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
-	"helpmeclean-backend/internal/auth"
 	"helpmeclean-backend/internal/personality"
 )
 
@@ -153,33 +152,4 @@ func (r *queryResolver) CleanerPersonalityAssessment(ctx context.Context, cleane
 	}
 
 	return dbPersonalityAssessmentToGQL(assessment), nil
-}
-
-// dbPersonalityAssessmentToGQL converts a DB personality assessment to GraphQL model.
-func dbPersonalityAssessmentToGQL(a db.PersonalityAssessment) *model.PersonalityAssessment {
-	facetScores := []*model.PersonalityFacetScore{
-		{FacetCode: "A1", FacetName: "Încredere", Score: int(a.TrustScore), MaxScore: 20, IsFlagged: a.TrustScore < 10},
-		{FacetCode: "A2", FacetName: "Moralitate", Score: int(a.MoralityScore), MaxScore: 20, IsFlagged: a.MoralityScore < 10},
-		{FacetCode: "A3", FacetName: "Altruism", Score: int(a.AltruismScore), MaxScore: 20, IsFlagged: a.AltruismScore < 10},
-		{FacetCode: "C2", FacetName: "Ordine", Score: int(a.OrderlinessScore), MaxScore: 20, IsFlagged: a.OrderlinessScore < 10},
-		{FacetCode: "C3", FacetName: "Responsabilitate", Score: int(a.DutifulnessScore), MaxScore: 20, IsFlagged: a.DutifulnessScore < 10},
-		{FacetCode: "C5", FacetName: "Autodisciplină", Score: int(a.SelfDisciplineScore), MaxScore: 20, IsFlagged: a.SelfDisciplineScore < 10},
-		{FacetCode: "C6", FacetName: "Prudență", Score: int(a.CautiousnessScore), MaxScore: 20, IsFlagged: a.CautiousnessScore < 10},
-	}
-
-	flaggedFacets := a.FlaggedFacets
-	if flaggedFacets == nil {
-		flaggedFacets = []string{}
-	}
-
-	return &model.PersonalityAssessment{
-		ID:             uuidToString(a.ID),
-		CleanerID:      uuidToString(a.CleanerID),
-		FacetScores:    facetScores,
-		IntegrityAvg:   numericToFloat(a.IntegrityAvg),
-		WorkQualityAvg: numericToFloat(a.WorkQualityAvg),
-		HasConcerns:    a.HasConcerns,
-		FlaggedFacets:  flaggedFacets,
-		CompletedAt:    timestamptzToTime(a.CompletedAt),
-	}
 }

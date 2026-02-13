@@ -132,6 +132,7 @@ export const CREATE_BOOKING_REQUEST = gql`
       referenceCode
       status
       estimatedTotal
+      recurringGroupId
     }
   }
 `;
@@ -148,6 +149,8 @@ export const MY_BOOKINGS = gql`
         scheduledStartTime
         estimatedTotal
         status
+        recurringGroupId
+        occurrenceNumber
         createdAt
       }
       pageInfo {
@@ -180,6 +183,8 @@ export const CLIENT_BOOKING_DETAIL = gql`
       hasPets
       paymentStatus
       paidAt
+      recurringGroupId
+      occurrenceNumber
       createdAt
       address {
         streetAddress
@@ -248,6 +253,135 @@ export const SUBMIT_REVIEW = gql`
       rating
       comment
       createdAt
+    }
+  }
+`;
+
+// ─── Recurring Bookings ─────────────────────────────────────────────────────
+
+export const MY_RECURRING_GROUPS = gql`
+  query MyRecurringGroups {
+    myRecurringGroups {
+      id
+      recurrenceType
+      dayOfWeek
+      preferredTime
+      serviceType
+      serviceName
+      hourlyRate
+      estimatedTotalPerOccurrence
+      isActive
+      cancelledAt
+      totalOccurrences
+      completedOccurrences
+      createdAt
+      preferredCleaner {
+        id
+        fullName
+      }
+      company {
+        id
+        companyName
+      }
+      upcomingOccurrences {
+        id
+        scheduledDate
+        scheduledStartTime
+        status
+      }
+    }
+  }
+`;
+
+export const RECURRING_GROUP_DETAIL = gql`
+  query RecurringGroupDetail($id: ID!) {
+    recurringGroup(id: $id) {
+      id
+      recurrenceType
+      dayOfWeek
+      preferredTime
+      serviceType
+      serviceName
+      hourlyRate
+      estimatedTotalPerOccurrence
+      isActive
+      cancelledAt
+      cancellationReason
+      totalOccurrences
+      completedOccurrences
+      createdAt
+      client {
+        id
+        fullName
+        email
+        phone
+      }
+      preferredCleaner {
+        id
+        fullName
+        phone
+      }
+      company {
+        id
+        companyName
+        contactPhone
+      }
+      address {
+        streetAddress
+        city
+        county
+        floor
+        apartment
+      }
+      occurrences {
+        id
+        referenceCode
+        scheduledDate
+        scheduledStartTime
+        estimatedTotal
+        status
+        paymentStatus
+        occurrenceNumber
+        cleaner {
+          id
+          fullName
+        }
+      }
+      upcomingOccurrences {
+        id
+        scheduledDate
+        scheduledStartTime
+        status
+        occurrenceNumber
+      }
+    }
+  }
+`;
+
+export const CANCEL_RECURRING_GROUP = gql`
+  mutation CancelRecurringGroup($id: ID!, $reason: String) {
+    cancelRecurringGroup(id: $id, reason: $reason) {
+      id
+      isActive
+      cancelledAt
+    }
+  }
+`;
+
+export const PAUSE_RECURRING_GROUP = gql`
+  mutation PauseRecurringGroup($id: ID!) {
+    pauseRecurringGroup(id: $id) {
+      id
+      isActive
+    }
+  }
+`;
+
+export const RESUME_RECURRING_GROUP = gql`
+  mutation ResumeRecurringGroup($id: ID!) {
+    resumeRecurringGroup(id: $id) {
+      id
+      isActive
     }
   }
 `;
@@ -964,6 +1098,8 @@ export const ADMIN_BOOKING_DETAIL = gql`
       platformCommissionPct
       status
       paymentStatus
+      recurringGroupId
+      occurrenceNumber
       startedAt
       completedAt
       cancelledAt
@@ -1397,6 +1533,8 @@ export const SEARCH_BOOKINGS = gql`
         estimatedTotal
         status
         paymentStatus
+        recurringGroupId
+        occurrenceNumber
         createdAt
         client {
           id
@@ -1766,6 +1904,8 @@ export const SEARCH_CLEANER_BOOKINGS = gql`
         hourlyRate
         estimatedTotal
         status
+        recurringGroupId
+        occurrenceNumber
         createdAt
         client {
           id

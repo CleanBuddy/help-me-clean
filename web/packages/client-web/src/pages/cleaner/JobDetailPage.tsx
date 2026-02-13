@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { ArrowLeft, Calendar, Check } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, Repeat } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -85,6 +85,17 @@ export default function JobDetailPage() {
         </div>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
+
+      {/* Recurring info */}
+      {booking.recurringGroupId && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 mb-6">
+          <Repeat className="h-4 w-4 text-blue-600 shrink-0" />
+          <span className="text-sm text-blue-800">
+            Programare recurenta
+            {booking.occurrenceNumber && ` \u2014 Sesiunea #${booking.occurrenceNumber}`}
+          </span>
+        </div>
+      )}
 
       {/* Schedule */}
       <Card className="mb-4">

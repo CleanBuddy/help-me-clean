@@ -312,6 +312,12 @@ func dbBookingToGQL(b db.Booking) *model.Booking {
 	if paymentStatus == "" {
 		paymentStatus = "pending"
 	}
+	var recurringGroupID *string
+	if b.RecurringGroupID.Valid {
+		s := uuidToString(b.RecurringGroupID)
+		recurringGroupID = &s
+	}
+
 	return &model.Booking{
 		ID:                     uuidToString(b.ID),
 		ReferenceCode:          b.ReferenceCode,
@@ -336,6 +342,8 @@ func dbBookingToGQL(b db.Booking) *model.Booking {
 		}(),
 		PlatformCommissionPct: numericToFloat(b.PlatformCommissionPct),
 		Status:                dbBookingStatusToGQL(b.Status),
+		RecurringGroupID:      recurringGroupID,
+		OccurrenceNumber:      int4Ptr(b.OccurrenceNumber),
 		StartedAt:             timestamptzToTimePtr(b.StartedAt),
 		CompletedAt:           timestamptzToTimePtr(b.CompletedAt),
 		CancelledAt:           timestamptzToTimePtr(b.CancelledAt),
@@ -614,6 +622,66 @@ func dbCleanerDocToGQL(d db.CleanerDocument) *model.CleanerDocument {
 		UploadedAt:      timestamptzToTime(d.UploadedAt),
 		ReviewedAt:      timestamptzToTimePtr(d.ReviewedAt),
 		RejectionReason: textPtr(d.RejectionReason),
+	}
+}
+
+func dbPersonalityAssessmentToGQL(a db.PersonalityAssessment) *model.PersonalityAssessment {
+	facetScores := []*model.PersonalityFacetScore{
+		{FacetCode: "A1", FacetName: "Încredere", Score: int(a.TrustScore), MaxScore: 20, IsFlagged: a.TrustScore < 10},
+		{FacetCode: "A2", FacetName: "Moralitate", Score: int(a.MoralityScore), MaxScore: 20, IsFlagged: a.MoralityScore < 10},
+		{FacetCode: "A3", FacetName: "Altruism", Score: int(a.AltruismScore), MaxScore: 20, IsFlagged: a.AltruismScore < 10},
+		{FacetCode: "C2", FacetName: "Ordine", Score: int(a.OrderlinessScore), MaxScore: 20, IsFlagged: a.OrderlinessScore < 10},
+		{FacetCode: "C3", FacetName: "Responsabilitate", Score: int(a.DutifulnessScore), MaxScore: 20, IsFlagged: a.DutifulnessScore < 10},
+		{FacetCode: "C5", FacetName: "Autodisciplină", Score: int(a.SelfDisciplineScore), MaxScore: 20, IsFlagged: a.SelfDisciplineScore < 10},
+		{FacetCode: "C6", FacetName: "Prudență", Score: int(a.CautiousnessScore), MaxScore: 20, IsFlagged: a.CautiousnessScore < 10},
+	}
+
+	flaggedFacets := a.FlaggedFacets
+	if flaggedFacets == nil {
+		flaggedFacets = []string{}
+	}
+
+	return &model.PersonalityAssessment{
+		ID:             uuidToString(a.ID),
+		CleanerID:      uuidToString(a.CleanerID),
+		FacetScores:    facetScores,
+		IntegrityAvg:   numericToFloat(a.IntegrityAvg),
+		WorkQualityAvg: numericToFloat(a.WorkQualityAvg),
+		HasConcerns:    a.HasConcerns,
+		FlaggedFacets:  flaggedFacets,
+		CompletedAt:    timestamptzToTime(a.CompletedAt),
+	}
+}
+
+func dbRecurrenceTypeToGQL(r db.RecurrenceType) model.RecurrenceType {
+	return model.RecurrenceType(strings.ToUpper(string(r)))
+}
+
+func gqlRecurrenceTypeToDb(r model.RecurrenceType) db.RecurrenceType {
+	return db.RecurrenceType(strings.ToLower(string(r)))
+}
+
+func dbRecurringGroupToGQL(g db.RecurringBookingGroup) *model.RecurringBookingGroup {
+	return &model.RecurringBookingGroup{
+		ID:                         uuidToString(g.ID),
+		RecurrenceType:             dbRecurrenceTypeToGQL(g.RecurrenceType),
+		DayOfWeek:                  int4Ptr(g.DayOfWeek),
+		PreferredTime:              timeToString(g.PreferredTime),
+		ServiceType:                dbServiceTypeToGQL(g.ServiceType),
+		PropertyType:               textPtr(g.PropertyType),
+		NumRooms:                   int4Ptr(g.NumRooms),
+		NumBathrooms:               int4Ptr(g.NumBathrooms),
+		AreaSqm:                    int4Ptr(g.AreaSqm),
+		HasPets:                    boolPtr(g.HasPets),
+		SpecialInstructions:        textPtr(g.SpecialInstructions),
+		HourlyRate:                 numericToFloat(g.HourlyRate),
+		EstimatedTotalPerOccurrence: numericToFloat(g.EstimatedTotalPerOccurrence),
+		IsActive:                   boolVal(g.IsActive),
+		CancelledAt:                timestamptzToTimePtr(g.CancelledAt),
+		CancellationReason:         textPtr(g.CancellationReason),
+		Occurrences:                []*model.Booking{},
+		UpcomingOccurrences:        []*model.Booking{},
+		CreatedAt:                  timestamptzToTime(g.CreatedAt),
 	}
 }
 

@@ -19,6 +19,7 @@ import {
   CreditCard,
   Star,
   Check,
+  Repeat,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
@@ -84,6 +85,8 @@ interface BookingData {
   hasPets?: boolean;
   paymentStatus?: string;
   paidAt?: string;
+  recurringGroupId?: string;
+  occurrenceNumber?: number;
   createdAt: string;
   address: BookingAddress;
   company?: BookingCompany;
@@ -239,6 +242,20 @@ export default function BookingDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           <span className="text-sm font-medium">Inapoi la comenzi</span>
         </button>
+
+        {/* Recurring group banner */}
+        {booking.recurringGroupId && (
+          <div
+            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 mb-6 cursor-pointer hover:bg-blue-100 transition-colors"
+            onClick={() => navigate(`/cont/recurente/${booking.recurringGroupId}`)}
+          >
+            <Repeat className="h-4 w-4 text-blue-600 shrink-0" />
+            <span className="text-sm text-blue-800">
+              Parte din seria recurenta
+              {booking.occurrenceNumber && ` — Programarea #${booking.occurrenceNumber}`}
+            </span>
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">

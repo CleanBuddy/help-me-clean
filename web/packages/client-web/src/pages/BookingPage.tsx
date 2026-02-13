@@ -35,6 +35,7 @@ import {
   AlertCircle,
   CreditCard,
   Loader2,
+  Repeat,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
@@ -191,6 +192,9 @@ interface BookingFormState {
   preferredCleanerId: string;
   suggestedStartTime: string;
   specialInstructions: string;
+  isRecurring: boolean;
+  recurrenceType: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | '';
+  recurrenceDayOfWeek: number;
 }
 
 // ---- Constants --------------------------------------------------------------
@@ -316,6 +320,7 @@ export default function BookingPage() {
   const [bookingResult, setBookingResult] = useState<{
     referenceCode: string;
     id: string;
+    recurringGroupId?: string;
   } | null>(null);
 
   const [authError, setAuthError] = useState('');
@@ -357,6 +362,9 @@ export default function BookingPage() {
     preferredCleanerId: '',
     suggestedStartTime: '',
     specialInstructions: '',
+    isRecurring: false,
+    recurrenceType: '',
+    recurrenceDayOfWeek: 1,
   });
 
   // ---- Data fetching --------------------------------------------------------
@@ -534,6 +542,12 @@ export default function BookingPage() {
         extras: form.extras.filter((e) => e.quantity > 0),
         preferredCleanerId: form.preferredCleanerId || undefined,
         suggestedStartTime: form.suggestedStartTime || undefined,
+        ...(form.isRecurring && form.recurrenceType ? {
+          recurrence: {
+            type: form.recurrenceType,
+            dayOfWeek: form.recurrenceDayOfWeek,
+          },
+        } : {}),
       };
 
       if (form.useSavedAddress) {
@@ -554,6 +568,7 @@ export default function BookingPage() {
       setBookingResult({
         referenceCode: data.createBookingRequest.referenceCode,
         id: data.createBookingRequest.id,
+        recurringGroupId: data.createBookingRequest.recurringGroupId,
       });
     } catch (err) {
       console.error('Booking creation failed:', err);
@@ -579,6 +594,12 @@ export default function BookingPage() {
       extras: form.extras.filter((e) => e.quantity > 0),
       preferredCleanerId: form.preferredCleanerId || undefined,
       suggestedStartTime: form.suggestedStartTime || undefined,
+      ...(form.isRecurring && form.recurrenceType ? {
+        recurrence: {
+          type: form.recurrenceType,
+          dayOfWeek: form.recurrenceDayOfWeek,
+        },
+      } : {}),
     };
     if (form.useSavedAddress) {
       input.addressId = form.useSavedAddress;
@@ -616,6 +637,7 @@ export default function BookingPage() {
       const { data } = await createBooking({ variables: { input } });
       const bookingId = data.createBookingRequest.id;
       const refCode = data.createBookingRequest.referenceCode;
+      const recurringGrpId = data.createBookingRequest.recurringGroupId;
 
       // 2. Create PaymentIntent
       try {
@@ -628,7 +650,7 @@ export default function BookingPage() {
         const stripe = await stripePromise;
         if (!stripe) {
           setPaymentError('Stripe nu s-a incarcat. Poti plati ulterior din pagina comenzii.');
-          setBookingResult({ referenceCode: refCode, id: bookingId });
+          setBookingResult({ referenceCode: refCode, id: bookingId, recurringGroupId: recurringGrpId });
           return;
         }
 
@@ -641,15 +663,15 @@ export default function BookingPage() {
           setPaymentError(
             `Plata a esuat: ${stripeError.message}. Rezervarea ${refCode} a fost creata. Poti plati ulterior din pagina comenzii.`,
           );
-          setBookingResult({ referenceCode: refCode, id: bookingId });
+          setBookingResult({ referenceCode: refCode, id: bookingId, recurringGroupId: recurringGrpId });
         } else if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') {
-          setBookingResult({ referenceCode: refCode, id: bookingId });
+          setBookingResult({ referenceCode: refCode, id: bookingId, recurringGroupId: recurringGrpId });
         }
       } catch {
         setPaymentError(
           `Rezervarea ${refCode} a fost creata, dar plata nu a putut fi initiata. Poti plati ulterior din pagina comenzii.`,
         );
-        setBookingResult({ referenceCode: refCode, id: bookingId });
+        setBookingResult({ referenceCode: refCode, id: bookingId, recurringGroupId: recurringGrpId });
       }
     } catch (err) {
       console.error('Booking creation failed:', err);
@@ -738,17 +760,36 @@ export default function BookingPage() {
           )}>
             {bookingResult.referenceCode}
           </div>
+          {bookingResult.recurringGroupId && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 mb-4 text-sm text-blue-800">
+              <Repeat className="h-4 w-4 text-blue-600 shrink-0" />
+              <span>Serie recurenta creata — 8 programari au fost generate automat.</span>
+            </div>
+          )}
           <p className="text-sm text-gray-400 mb-8">
             {hasPaymentError
               ? 'Poti plati din pagina comenzii tale.'
-              : 'Poti comunica cu curatorul prin chat din pagina comenzii.'}
+              : bookingResult.recurringGroupId
+                ? 'Gestioneaza seria recurenta din pagina Comenzile mele.'
+                : 'Poti comunica cu curatorul prin chat din pagina comenzii.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {isAuthenticated && (
-              <Button onClick={() => navigate(`/cont/comenzi/${bookingResult.id}`)}>
-                {hasPaymentError ? 'Plateste acum' : 'Vezi comenzile mele'}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              <>
+                <Button onClick={() => navigate(`/cont/comenzi/${bookingResult.id}`)}>
+                  {hasPaymentError ? 'Plateste acum' : 'Vezi comenzile mele'}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                {bookingResult.recurringGroupId && (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/cont/recurente/${bookingResult.recurringGroupId}`)}
+                  >
+                    <Repeat className="h-4 w-4" />
+                    Vezi seria recurenta
+                  </Button>
+                )}
+              </>
             )}
             <Button variant="outline" onClick={() => navigate('/')}>
               Inapoi la pagina principala
@@ -1854,6 +1895,109 @@ function StepSchedule({
           )}
         </div>
       )}
+
+      {/* Recurring booking section */}
+      <div className="mt-8 pt-6 border-t border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+          <Repeat className="h-5 w-5 text-blue-600" />
+          Programare recurenta
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Programeaza curatenia sa se repete automat.
+        </p>
+
+        {/* Toggle */}
+        <label className="flex items-center gap-3 cursor-pointer mb-4">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={form.isRecurring}
+              onChange={(e) =>
+                updateForm({
+                  isRecurring: e.target.checked,
+                  recurrenceType: e.target.checked ? 'WEEKLY' : '',
+                })
+              }
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-blue-600 transition-colors" />
+            <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+          </div>
+          <span className="text-sm font-medium text-gray-700">
+            Vreau curatenie recurenta
+          </span>
+        </label>
+
+        {form.isRecurring && (
+          <div className="space-y-4 pl-1">
+            {/* Frequency */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Frecventa
+              </label>
+              <div className="flex gap-2">
+                {([
+                  { value: 'WEEKLY', label: 'Saptamanal' },
+                  { value: 'BIWEEKLY', label: 'Bisaptamanal' },
+                  { value: 'MONTHLY', label: 'Lunar' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => updateForm({ recurrenceType: opt.value })}
+                    className={cn(
+                      'px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer border',
+                      form.recurrenceType === opt.value
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50',
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Day of week */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Zi preferata
+              </label>
+              <div className="flex gap-1.5">
+                {['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri', 'Sambata', 'Duminica'].map(
+                  (day, idx) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => updateForm({ recurrenceDayOfWeek: idx + 1 })}
+                      className={cn(
+                        'px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer border',
+                        form.recurrenceDayOfWeek === idx + 1
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300',
+                      )}
+                    >
+                      {day.slice(0, 3)}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+
+            {/* Info banner */}
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100">
+              <Repeat className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">8 programari vor fi create automat</p>
+                <p className="text-blue-600">
+                  Acelasi curatator va fi alocat pentru fiecare sesiune. Poti anula oricand seria.
+                  Platesti per sesiune.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -2620,6 +2764,29 @@ function StepSummary({
             <p className="text-sm text-gray-400">Niciun interval selectat.</p>
           )}
         </Card>
+
+        {/* Recurrence summary */}
+        {form.isRecurring && form.recurrenceType && (
+          <Card>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Programare recurenta
+            </h3>
+            <div className="flex items-center gap-3 text-sm">
+              <Repeat className="h-4 w-4 text-blue-600 shrink-0" />
+              <div>
+                <span className="font-medium text-gray-900">
+                  {form.recurrenceType === 'WEEKLY' ? 'Saptamanal' : form.recurrenceType === 'BIWEEKLY' ? 'Bisaptamanal' : 'Lunar'}
+                </span>
+                <span className="text-gray-500 ml-2">
+                  — {['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri', 'Sambata', 'Duminica'][form.recurrenceDayOfWeek - 1]}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              8 programari vor fi create automat. Platesti per sesiune.
+            </p>
+          </Card>
+        )}
 
         {/* Address summary */}
         <Card>
