@@ -890,6 +890,21 @@ export const COMPANY = gql`
           reviewedAt
           rejectionReason
         }
+        personalityAssessment {
+          id
+          facetScores {
+            facetCode
+            facetName
+            score
+            maxScore
+            isFlagged
+          }
+          integrityAvg
+          workQualityAvg
+          hasConcerns
+          flaggedFacets
+          completedAt
+        }
       }
     }
   }
@@ -1650,6 +1665,10 @@ export const MY_CLEANER_PROFILE = gql`
         status
         uploadedAt
         rejectionReason
+      }
+      personalityAssessment {
+        id
+        completedAt
       }
     }
   }
@@ -2796,6 +2815,78 @@ export const ACTIVATE_CLEANER = gql`
     activateCleaner(id: $id) {
       id
       status
+    }
+  }
+`;
+
+// ─── Personality Assessment ──────────────────────────────────────────────────
+
+export const PERSONALITY_QUESTIONS = gql`
+  query PersonalityQuestions {
+    personalityQuestions {
+      number
+      facetCode
+      text
+    }
+  }
+`;
+
+export const MY_PERSONALITY_ASSESSMENT = gql`
+  query MyPersonalityAssessment {
+    myPersonalityAssessment {
+      id
+      facetScores {
+        facetCode
+        facetName
+        score
+        maxScore
+        isFlagged
+      }
+      integrityAvg
+      workQualityAvg
+      hasConcerns
+      flaggedFacets
+      completedAt
+    }
+  }
+`;
+
+export const CLEANER_PERSONALITY_ASSESSMENT = gql`
+  query CleanerPersonalityAssessment($cleanerId: ID!) {
+    cleanerPersonalityAssessment(cleanerId: $cleanerId) {
+      id
+      facetScores {
+        facetCode
+        facetName
+        score
+        maxScore
+        isFlagged
+      }
+      integrityAvg
+      workQualityAvg
+      hasConcerns
+      flaggedFacets
+      completedAt
+    }
+  }
+`;
+
+export const SUBMIT_PERSONALITY_ASSESSMENT = gql`
+  mutation SubmitPersonalityAssessment($answers: [PersonalityAnswerInput!]!) {
+    submitPersonalityAssessment(answers: $answers) {
+      id
+      facetScores {
+        facetCode
+        facetName
+        score
+        maxScore
+        isFlagged
+      }
+      integrityAvg
+      workQualityAvg
+      hasConcerns
+      flaggedFacets
+      completedAt
     }
   }
 `;

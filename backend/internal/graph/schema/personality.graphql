@@ -1,0 +1,39 @@
+type PersonalityQuestion {
+  number: Int!
+  facetCode: String!
+  text: String!
+}
+
+type PersonalityFacetScore {
+  facetCode: String!
+  facetName: String!
+  score: Int!
+  maxScore: Int!
+  isFlagged: Boolean!
+}
+
+type PersonalityAssessment {
+  id: ID!
+  cleanerId: ID!
+  facetScores: [PersonalityFacetScore!]!
+  integrityAvg: Float!
+  workQualityAvg: Float!
+  hasConcerns: Boolean!
+  flaggedFacets: [String!]!
+  completedAt: DateTime!
+}
+
+input PersonalityAnswerInput {
+  questionNumber: Int!
+  response: Int!
+}
+
+extend type Query {
+  personalityQuestions: [PersonalityQuestion!]!
+  myPersonalityAssessment: PersonalityAssessment
+  cleanerPersonalityAssessment(cleanerId: ID!): PersonalityAssessment
+}
+
+extend type Mutation {
+  submitPersonalityAssessment(answers: [PersonalityAnswerInput!]!): PersonalityAssessment!
+}

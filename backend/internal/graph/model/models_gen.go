@@ -214,23 +214,24 @@ type CleanerPerformance struct {
 }
 
 type CleanerProfile struct {
-	ID                 string              `json:"id"`
-	UserID             *string             `json:"userId,omitempty"`
-	User               *User               `json:"user,omitempty"`
-	Company            *Company            `json:"company"`
-	FullName           string              `json:"fullName"`
-	Phone              *string             `json:"phone,omitempty"`
-	Email              *string             `json:"email,omitempty"`
-	Bio                *string             `json:"bio,omitempty"`
-	AvatarURL          *string             `json:"avatarUrl,omitempty"`
-	Status             CleanerStatus       `json:"status"`
-	IsCompanyAdmin     bool                `json:"isCompanyAdmin"`
-	InviteToken        *string             `json:"inviteToken,omitempty"`
-	RatingAvg          float64             `json:"ratingAvg"`
-	TotalJobsCompleted int                 `json:"totalJobsCompleted"`
-	Documents          []*CleanerDocument  `json:"documents"`
-	Availability       []*AvailabilitySlot `json:"availability"`
-	CreatedAt          time.Time           `json:"createdAt"`
+	ID                    string                 `json:"id"`
+	UserID                *string                `json:"userId,omitempty"`
+	User                  *User                  `json:"user,omitempty"`
+	Company               *Company               `json:"company"`
+	FullName              string                 `json:"fullName"`
+	Phone                 *string                `json:"phone,omitempty"`
+	Email                 *string                `json:"email,omitempty"`
+	Bio                   *string                `json:"bio,omitempty"`
+	AvatarURL             *string                `json:"avatarUrl,omitempty"`
+	Status                CleanerStatus          `json:"status"`
+	IsCompanyAdmin        bool                   `json:"isCompanyAdmin"`
+	InviteToken           *string                `json:"inviteToken,omitempty"`
+	RatingAvg             float64                `json:"ratingAvg"`
+	TotalJobsCompleted    int                    `json:"totalJobsCompleted"`
+	Documents             []*CleanerDocument     `json:"documents"`
+	PersonalityAssessment *PersonalityAssessment `json:"personalityAssessment,omitempty"`
+	Availability          []*AvailabilitySlot    `json:"availability"`
+	CreatedAt             time.Time              `json:"createdAt"`
 }
 
 type CleanerStats struct {
@@ -597,6 +598,36 @@ type PayoutLineItem struct {
 	AmountGross      int      `json:"amountGross"`
 	AmountCommission int      `json:"amountCommission"`
 	AmountNet        int      `json:"amountNet"`
+}
+
+type PersonalityAnswerInput struct {
+	QuestionNumber int `json:"questionNumber"`
+	Response       int `json:"response"`
+}
+
+type PersonalityAssessment struct {
+	ID             string                   `json:"id"`
+	CleanerID      string                   `json:"cleanerId"`
+	FacetScores    []*PersonalityFacetScore `json:"facetScores"`
+	IntegrityAvg   float64                  `json:"integrityAvg"`
+	WorkQualityAvg float64                  `json:"workQualityAvg"`
+	HasConcerns    bool                     `json:"hasConcerns"`
+	FlaggedFacets  []string                 `json:"flaggedFacets"`
+	CompletedAt    time.Time                `json:"completedAt"`
+}
+
+type PersonalityFacetScore struct {
+	FacetCode string `json:"facetCode"`
+	FacetName string `json:"facetName"`
+	Score     int    `json:"score"`
+	MaxScore  int    `json:"maxScore"`
+	IsFlagged bool   `json:"isFlagged"`
+}
+
+type PersonalityQuestion struct {
+	Number    int    `json:"number"`
+	FacetCode string `json:"facetCode"`
+	Text      string `json:"text"`
 }
 
 type PlatformRevenueReport struct {

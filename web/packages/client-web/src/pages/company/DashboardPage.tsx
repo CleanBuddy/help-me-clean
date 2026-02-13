@@ -202,7 +202,7 @@ export default function DashboardPage() {
           <KpiCard
             icon={ClipboardList}
             label="Comenzi finalizate"
-            value={company?.totalJobsCompleted ?? 0}
+            value={financial?.completedBookings ?? company?.totalJobsCompleted ?? 0}
             colorBg="bg-blue-600/10"
             colorText="text-blue-600"
           />

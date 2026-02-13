@@ -5,20 +5,27 @@ SELECT
     (SELECT COUNT(*) FROM cleaners WHERE status = 'active') AS active_cleaners,
     (SELECT COUNT(*) FROM bookings) AS total_bookings,
     (SELECT COUNT(*) FROM bookings WHERE status = 'completed') AS completed_bookings,
-    (SELECT COALESCE(SUM(platform_commission_amount), 0) FROM bookings WHERE status = 'completed') AS total_revenue;
+    (SELECT COALESCE(SUM(COALESCE(final_total, estimated_total)), 0) FROM bookings WHERE status = 'completed') AS total_revenue,
+    (SELECT COALESCE(SUM(platform_commission_amount), 0) FROM bookings WHERE status = 'completed') AS total_commission,
+    (SELECT COUNT(*) FROM bookings WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)) AS bookings_this_month,
+    (SELECT COALESCE(SUM(COALESCE(final_total, estimated_total)), 0) FROM bookings WHERE status = 'completed' AND completed_at >= DATE_TRUNC('month', CURRENT_DATE)) AS revenue_this_month,
+    (SELECT COALESCE(SUM(platform_commission_amount), 0) FROM bookings WHERE status = 'completed' AND completed_at >= DATE_TRUNC('month', CURRENT_DATE)) AS commission_this_month,
+    (SELECT COUNT(*) FROM users WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)) AS new_clients_this_month,
+    (SELECT COUNT(*) FROM companies WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)) AS new_companies_this_month,
+    (SELECT COALESCE(AVG(rating), 0) FROM reviews) AS average_rating;
 
 -- name: GetBookingCountByStatus :many
 SELECT status, COUNT(*) AS count FROM bookings GROUP BY status;
 
 -- name: GetRevenueByMonth :many
 SELECT
-    DATE_TRUNC('month', completed_at) AS month,
-    SUM(final_total) AS total_revenue,
-    SUM(platform_commission_amount) AS commission_revenue,
+    TO_CHAR(DATE_TRUNC('month', completed_at), 'YYYY-MM') AS month,
+    COALESCE(SUM(COALESCE(final_total, estimated_total)), 0)::bigint AS total_revenue,
+    COALESCE(SUM(COALESCE(platform_commission_amount, 0)), 0)::bigint AS commission_revenue,
     COUNT(*) AS booking_count
 FROM bookings
 WHERE status = 'completed' AND completed_at IS NOT NULL
-GROUP BY DATE_TRUNC('month', completed_at)
+GROUP BY TO_CHAR(DATE_TRUNC('month', completed_at), 'YYYY-MM')
 ORDER BY month DESC
 LIMIT $1;
 

@@ -210,23 +210,24 @@ type ComplexityRoot struct {
 	}
 
 	CleanerProfile struct {
-		Availability       func(childComplexity int) int
-		AvatarURL          func(childComplexity int) int
-		Bio                func(childComplexity int) int
-		Company            func(childComplexity int) int
-		CreatedAt          func(childComplexity int) int
-		Documents          func(childComplexity int) int
-		Email              func(childComplexity int) int
-		FullName           func(childComplexity int) int
-		ID                 func(childComplexity int) int
-		InviteToken        func(childComplexity int) int
-		IsCompanyAdmin     func(childComplexity int) int
-		Phone              func(childComplexity int) int
-		RatingAvg          func(childComplexity int) int
-		Status             func(childComplexity int) int
-		TotalJobsCompleted func(childComplexity int) int
-		User               func(childComplexity int) int
-		UserID             func(childComplexity int) int
+		Availability          func(childComplexity int) int
+		AvatarURL             func(childComplexity int) int
+		Bio                   func(childComplexity int) int
+		Company               func(childComplexity int) int
+		CreatedAt             func(childComplexity int) int
+		Documents             func(childComplexity int) int
+		Email                 func(childComplexity int) int
+		FullName              func(childComplexity int) int
+		ID                    func(childComplexity int) int
+		InviteToken           func(childComplexity int) int
+		IsCompanyAdmin        func(childComplexity int) int
+		PersonalityAssessment func(childComplexity int) int
+		Phone                 func(childComplexity int) int
+		RatingAvg             func(childComplexity int) int
+		Status                func(childComplexity int) int
+		TotalJobsCompleted    func(childComplexity int) int
+		User                  func(childComplexity int) int
+		UserID                func(childComplexity int) int
 	}
 
 	CleanerStats struct {
@@ -509,6 +510,7 @@ type ComplexityRoot struct {
 		SetDefaultPaymentMethod       func(childComplexity int, id string) int
 		SignInWithGoogle              func(childComplexity int, idToken string, role model.UserRole) int
 		StartJob                      func(childComplexity int, id string) int
+		SubmitPersonalityAssessment   func(childComplexity int, answers []*model.PersonalityAnswerInput) int
 		SubmitReview                  func(childComplexity int, input model.SubmitReviewInput) int
 		SuspendCompany                func(childComplexity int, id string, reason string) int
 		SuspendUser                   func(childComplexity int, id string, reason string) int
@@ -610,6 +612,31 @@ type ComplexityRoot struct {
 		ID               func(childComplexity int) int
 	}
 
+	PersonalityAssessment struct {
+		CleanerID      func(childComplexity int) int
+		CompletedAt    func(childComplexity int) int
+		FacetScores    func(childComplexity int) int
+		FlaggedFacets  func(childComplexity int) int
+		HasConcerns    func(childComplexity int) int
+		ID             func(childComplexity int) int
+		IntegrityAvg   func(childComplexity int) int
+		WorkQualityAvg func(childComplexity int) int
+	}
+
+	PersonalityFacetScore struct {
+		FacetCode func(childComplexity int) int
+		FacetName func(childComplexity int) int
+		IsFlagged func(childComplexity int) int
+		MaxScore  func(childComplexity int) int
+		Score     func(childComplexity int) int
+	}
+
+	PersonalityQuestion struct {
+		FacetCode func(childComplexity int) int
+		Number    func(childComplexity int) int
+		Text      func(childComplexity int) int
+	}
+
 	PlatformRevenueReport struct {
 		BookingCount    func(childComplexity int) int
 		NetRevenue      func(childComplexity int) int
@@ -686,6 +713,7 @@ type ComplexityRoot struct {
 		CleanerDocuments             func(childComplexity int, cleanerID string) int
 		CleanerEarningsByDateRange   func(childComplexity int, from string, to string) int
 		CleanerPerformance           func(childComplexity int, cleanerID string) int
+		CleanerPersonalityAssessment func(childComplexity int, cleanerID string) int
 		CleanerServiceAreas          func(childComplexity int, cleanerID string) int
 		Companies                    func(childComplexity int, status *model.CompanyStatus, first *int, after *string) int
 		Company                      func(childComplexity int, id string) int
@@ -727,9 +755,11 @@ type ComplexityRoot struct {
 		MyPaymentMethods             func(childComplexity int) int
 		MyPayoutDetail               func(childComplexity int, id string) int
 		MyPayouts                    func(childComplexity int, first *int, after *string) int
+		MyPersonalityAssessment      func(childComplexity int) int
 		PendingCleanerDocuments      func(childComplexity int) int
 		PendingCompanyApplications   func(childComplexity int) int
 		PendingCompanyDocuments      func(childComplexity int) int
+		PersonalityQuestions         func(childComplexity int) int
 		PlatformRevenueReport        func(childComplexity int, from string, to string) int
 		PlatformSettings             func(childComplexity int) int
 		PlatformStats                func(childComplexity int, dateFrom *string, dateTo *string) int
@@ -939,6 +969,7 @@ type MutationResolver interface {
 	ProcessRefund(ctx context.Context, refundRequestID string, approved bool) (*model.RefundRequest, error)
 	AdminIssueRefund(ctx context.Context, bookingID string, amount int, reason string) (*model.RefundRequest, error)
 	MarkBookingPaid(ctx context.Context, id string) (*model.Booking, error)
+	SubmitPersonalityAssessment(ctx context.Context, answers []*model.PersonalityAnswerInput) (*model.PersonalityAssessment, error)
 	SubmitReview(ctx context.Context, input model.SubmitReviewInput) (*model.Review, error)
 	UpdateServiceDefinition(ctx context.Context, input model.UpdateServiceDefinitionInput) (*model.ServiceDefinition, error)
 	CreateServiceDefinition(ctx context.Context, input model.CreateServiceDefinitionInput) (*model.ServiceDefinition, error)
@@ -1026,6 +1057,9 @@ type QueryResolver interface {
 	AllRefundRequests(ctx context.Context, status *model.RefundStatus, first *int, after *string) ([]*model.RefundRequest, error)
 	AllPayouts(ctx context.Context, companyID *string, status *model.PayoutStatus, first *int, after *string) ([]*model.CompanyPayout, error)
 	PlatformRevenueReport(ctx context.Context, from string, to string) (*model.PlatformRevenueReport, error)
+	PersonalityQuestions(ctx context.Context) ([]*model.PersonalityQuestion, error)
+	MyPersonalityAssessment(ctx context.Context) (*model.PersonalityAssessment, error)
+	CleanerPersonalityAssessment(ctx context.Context, cleanerID string) (*model.PersonalityAssessment, error)
 	AvailableServices(ctx context.Context) ([]*model.ServiceDefinition, error)
 	AvailableExtras(ctx context.Context) ([]*model.ServiceExtra, error)
 	EstimatePrice(ctx context.Context, input model.PriceEstimateInput) (*model.PriceEstimate, error)
@@ -1803,6 +1837,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CleanerProfile.IsCompanyAdmin(childComplexity), true
+	case "CleanerProfile.personalityAssessment":
+		if e.complexity.CleanerProfile.PersonalityAssessment == nil {
+			break
+		}
+
+		return e.complexity.CleanerProfile.PersonalityAssessment(childComplexity), true
 	case "CleanerProfile.phone":
 		if e.complexity.CleanerProfile.Phone == nil {
 			break
@@ -3393,6 +3433,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.StartJob(childComplexity, args["id"].(string)), true
+	case "Mutation.submitPersonalityAssessment":
+		if e.complexity.Mutation.SubmitPersonalityAssessment == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_submitPersonalityAssessment_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SubmitPersonalityAssessment(childComplexity, args["answers"].([]*model.PersonalityAnswerInput)), true
 	case "Mutation.submitReview":
 		if e.complexity.Mutation.SubmitReview == nil {
 			break
@@ -3945,6 +3996,105 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PayoutLineItem.ID(childComplexity), true
 
+	case "PersonalityAssessment.cleanerId":
+		if e.complexity.PersonalityAssessment.CleanerID == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.CleanerID(childComplexity), true
+	case "PersonalityAssessment.completedAt":
+		if e.complexity.PersonalityAssessment.CompletedAt == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.CompletedAt(childComplexity), true
+	case "PersonalityAssessment.facetScores":
+		if e.complexity.PersonalityAssessment.FacetScores == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.FacetScores(childComplexity), true
+	case "PersonalityAssessment.flaggedFacets":
+		if e.complexity.PersonalityAssessment.FlaggedFacets == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.FlaggedFacets(childComplexity), true
+	case "PersonalityAssessment.hasConcerns":
+		if e.complexity.PersonalityAssessment.HasConcerns == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.HasConcerns(childComplexity), true
+	case "PersonalityAssessment.id":
+		if e.complexity.PersonalityAssessment.ID == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.ID(childComplexity), true
+	case "PersonalityAssessment.integrityAvg":
+		if e.complexity.PersonalityAssessment.IntegrityAvg == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.IntegrityAvg(childComplexity), true
+	case "PersonalityAssessment.workQualityAvg":
+		if e.complexity.PersonalityAssessment.WorkQualityAvg == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.WorkQualityAvg(childComplexity), true
+
+	case "PersonalityFacetScore.facetCode":
+		if e.complexity.PersonalityFacetScore.FacetCode == nil {
+			break
+		}
+
+		return e.complexity.PersonalityFacetScore.FacetCode(childComplexity), true
+	case "PersonalityFacetScore.facetName":
+		if e.complexity.PersonalityFacetScore.FacetName == nil {
+			break
+		}
+
+		return e.complexity.PersonalityFacetScore.FacetName(childComplexity), true
+	case "PersonalityFacetScore.isFlagged":
+		if e.complexity.PersonalityFacetScore.IsFlagged == nil {
+			break
+		}
+
+		return e.complexity.PersonalityFacetScore.IsFlagged(childComplexity), true
+	case "PersonalityFacetScore.maxScore":
+		if e.complexity.PersonalityFacetScore.MaxScore == nil {
+			break
+		}
+
+		return e.complexity.PersonalityFacetScore.MaxScore(childComplexity), true
+	case "PersonalityFacetScore.score":
+		if e.complexity.PersonalityFacetScore.Score == nil {
+			break
+		}
+
+		return e.complexity.PersonalityFacetScore.Score(childComplexity), true
+
+	case "PersonalityQuestion.facetCode":
+		if e.complexity.PersonalityQuestion.FacetCode == nil {
+			break
+		}
+
+		return e.complexity.PersonalityQuestion.FacetCode(childComplexity), true
+	case "PersonalityQuestion.number":
+		if e.complexity.PersonalityQuestion.Number == nil {
+			break
+		}
+
+		return e.complexity.PersonalityQuestion.Number(childComplexity), true
+	case "PersonalityQuestion.text":
+		if e.complexity.PersonalityQuestion.Text == nil {
+			break
+		}
+
+		return e.complexity.PersonalityQuestion.Text(childComplexity), true
+
 	case "PlatformRevenueReport.bookingCount":
 		if e.complexity.PlatformRevenueReport.BookingCount == nil {
 			break
@@ -4380,6 +4530,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.CleanerPerformance(childComplexity, args["cleanerId"].(string)), true
+	case "Query.cleanerPersonalityAssessment":
+		if e.complexity.Query.CleanerPersonalityAssessment == nil {
+			break
+		}
+
+		args, err := ec.field_Query_cleanerPersonalityAssessment_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CleanerPersonalityAssessment(childComplexity, args["cleanerId"].(string)), true
 	case "Query.cleanerServiceAreas":
 		if e.complexity.Query.CleanerServiceAreas == nil {
 			break
@@ -4746,6 +4907,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyPayouts(childComplexity, args["first"].(*int), args["after"].(*string)), true
+	case "Query.myPersonalityAssessment":
+		if e.complexity.Query.MyPersonalityAssessment == nil {
+			break
+		}
+
+		return e.complexity.Query.MyPersonalityAssessment(childComplexity), true
 	case "Query.pendingCleanerDocuments":
 		if e.complexity.Query.PendingCleanerDocuments == nil {
 			break
@@ -4764,6 +4931,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.PendingCompanyDocuments(childComplexity), true
+	case "Query.personalityQuestions":
+		if e.complexity.Query.PersonalityQuestions == nil {
+			break
+		}
+
+		return e.complexity.Query.PersonalityQuestions(childComplexity), true
 	case "Query.platformRevenueReport":
 		if e.complexity.Query.PlatformRevenueReport == nil {
 			break
@@ -5412,6 +5585,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateServiceExtraInput,
 		ec.unmarshalInputExtraInput,
 		ec.unmarshalInputInviteCleanerInput,
+		ec.unmarshalInputPersonalityAnswerInput,
 		ec.unmarshalInputPriceEstimateInput,
 		ec.unmarshalInputSubmitReviewInput,
 		ec.unmarshalInputTimeSlotInput,
@@ -5535,7 +5709,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/admin.graphql" "schema/analytics.graphql" "schema/auth.graphql" "schema/booking.graphql" "schema/chat.graphql" "schema/cleaner.graphql" "schema/client.graphql" "schema/company.graphql" "schema/invoice.graphql" "schema/location.graphql" "schema/notification.graphql" "schema/payment.graphql" "schema/review.graphql" "schema/schema.graphql" "schema/service.graphql" "schema/settings.graphql" "schema/user.graphql"
+//go:embed "schema/admin.graphql" "schema/analytics.graphql" "schema/auth.graphql" "schema/booking.graphql" "schema/chat.graphql" "schema/cleaner.graphql" "schema/client.graphql" "schema/company.graphql" "schema/invoice.graphql" "schema/location.graphql" "schema/notification.graphql" "schema/payment.graphql" "schema/personality.graphql" "schema/review.graphql" "schema/schema.graphql" "schema/service.graphql" "schema/settings.graphql" "schema/user.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -5559,6 +5733,7 @@ var sources = []*ast.Source{
 	{Name: "schema/location.graphql", Input: sourceData("schema/location.graphql"), BuiltIn: false},
 	{Name: "schema/notification.graphql", Input: sourceData("schema/notification.graphql"), BuiltIn: false},
 	{Name: "schema/payment.graphql", Input: sourceData("schema/payment.graphql"), BuiltIn: false},
+	{Name: "schema/personality.graphql", Input: sourceData("schema/personality.graphql"), BuiltIn: false},
 	{Name: "schema/review.graphql", Input: sourceData("schema/review.graphql"), BuiltIn: false},
 	{Name: "schema/schema.graphql", Input: sourceData("schema/schema.graphql"), BuiltIn: false},
 	{Name: "schema/service.graphql", Input: sourceData("schema/service.graphql"), BuiltIn: false},
@@ -6341,6 +6516,17 @@ func (ec *executionContext) field_Mutation_startJob_args(ctx context.Context, ra
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_submitPersonalityAssessment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "answers", ec.unmarshalNPersonalityAnswerInput2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAnswerInputᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["answers"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_submitReview_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6908,6 +7094,17 @@ func (ec *executionContext) field_Query_cleanerEarningsByDateRange_args(ctx cont
 }
 
 func (ec *executionContext) field_Query_cleanerPerformance_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_cleanerPersonalityAssessment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
@@ -8484,6 +8681,8 @@ func (ec *executionContext) fieldContext_Booking_cleaner(_ context.Context, fiel
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -11781,6 +11980,53 @@ func (ec *executionContext) fieldContext_CleanerProfile_documents(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _CleanerProfile_personalityAssessment(ctx context.Context, field graphql.CollectedField, obj *model.CleanerProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerProfile_personalityAssessment,
+		func(ctx context.Context) (any, error) {
+			return obj.PersonalityAssessment, nil
+		},
+		nil,
+		ec.marshalOPersonalityAssessment2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAssessment,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerProfile_personalityAssessment(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PersonalityAssessment_id(ctx, field)
+			case "cleanerId":
+				return ec.fieldContext_PersonalityAssessment_cleanerId(ctx, field)
+			case "facetScores":
+				return ec.fieldContext_PersonalityAssessment_facetScores(ctx, field)
+			case "integrityAvg":
+				return ec.fieldContext_PersonalityAssessment_integrityAvg(ctx, field)
+			case "workQualityAvg":
+				return ec.fieldContext_PersonalityAssessment_workQualityAvg(ctx, field)
+			case "hasConcerns":
+				return ec.fieldContext_PersonalityAssessment_hasConcerns(ctx, field)
+			case "flaggedFacets":
+				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CleanerProfile_availability(ctx context.Context, field graphql.CollectedField, obj *model.CleanerProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12050,6 +12296,8 @@ func (ec *executionContext) fieldContext_CleanerSuggestion_cleaner(_ context.Con
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -13279,6 +13527,8 @@ func (ec *executionContext) fieldContext_Company_cleaners(_ context.Context, fie
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -18419,6 +18669,8 @@ func (ec *executionContext) fieldContext_Mutation_inviteCleaner(ctx context.Cont
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -18495,6 +18747,8 @@ func (ec *executionContext) fieldContext_Mutation_inviteSelfAsCleaner(_ context.
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -18561,6 +18815,8 @@ func (ec *executionContext) fieldContext_Mutation_updateCleanerStatus(ctx contex
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -18638,6 +18894,8 @@ func (ec *executionContext) fieldContext_Mutation_acceptInvitation(ctx context.C
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -18821,6 +19079,8 @@ func (ec *executionContext) fieldContext_Mutation_updateCleanerProfile(ctx conte
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -19163,6 +19423,8 @@ func (ec *executionContext) fieldContext_Mutation_activateCleaner(ctx context.Co
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -21608,6 +21870,65 @@ func (ec *executionContext) fieldContext_Mutation_markBookingPaid(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_submitPersonalityAssessment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_submitPersonalityAssessment,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SubmitPersonalityAssessment(ctx, fc.Args["answers"].([]*model.PersonalityAnswerInput))
+		},
+		nil,
+		ec.marshalNPersonalityAssessment2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAssessment,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_submitPersonalityAssessment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PersonalityAssessment_id(ctx, field)
+			case "cleanerId":
+				return ec.fieldContext_PersonalityAssessment_cleanerId(ctx, field)
+			case "facetScores":
+				return ec.fieldContext_PersonalityAssessment_facetScores(ctx, field)
+			case "integrityAvg":
+				return ec.fieldContext_PersonalityAssessment_integrityAvg(ctx, field)
+			case "workQualityAvg":
+				return ec.fieldContext_PersonalityAssessment_workQualityAvg(ctx, field)
+			case "hasConcerns":
+				return ec.fieldContext_PersonalityAssessment_hasConcerns(ctx, field)
+			case "flaggedFacets":
+				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_submitPersonalityAssessment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_submitReview(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -23859,6 +24180,482 @@ func (ec *executionContext) fieldContext_PayoutLineItem_amountNet(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _PersonalityAssessment_id(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityAssessment_cleanerId(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_cleanerId,
+		func(ctx context.Context) (any, error) {
+			return obj.CleanerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_cleanerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityAssessment_facetScores(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_facetScores,
+		func(ctx context.Context) (any, error) {
+			return obj.FacetScores, nil
+		},
+		nil,
+		ec.marshalNPersonalityFacetScore2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityFacetScoreᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_facetScores(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "facetCode":
+				return ec.fieldContext_PersonalityFacetScore_facetCode(ctx, field)
+			case "facetName":
+				return ec.fieldContext_PersonalityFacetScore_facetName(ctx, field)
+			case "score":
+				return ec.fieldContext_PersonalityFacetScore_score(ctx, field)
+			case "maxScore":
+				return ec.fieldContext_PersonalityFacetScore_maxScore(ctx, field)
+			case "isFlagged":
+				return ec.fieldContext_PersonalityFacetScore_isFlagged(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityFacetScore", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityAssessment_integrityAvg(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_integrityAvg,
+		func(ctx context.Context) (any, error) {
+			return obj.IntegrityAvg, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_integrityAvg(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityAssessment_workQualityAvg(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_workQualityAvg,
+		func(ctx context.Context) (any, error) {
+			return obj.WorkQualityAvg, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_workQualityAvg(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityAssessment_hasConcerns(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_hasConcerns,
+		func(ctx context.Context) (any, error) {
+			return obj.HasConcerns, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_hasConcerns(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityAssessment_flaggedFacets(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_flaggedFacets,
+		func(ctx context.Context) (any, error) {
+			return obj.FlaggedFacets, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_flaggedFacets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityAssessment_completedAt(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_completedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CompletedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_completedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityFacetScore_facetCode(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityFacetScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityFacetScore_facetCode,
+		func(ctx context.Context) (any, error) {
+			return obj.FacetCode, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityFacetScore_facetCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityFacetScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityFacetScore_facetName(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityFacetScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityFacetScore_facetName,
+		func(ctx context.Context) (any, error) {
+			return obj.FacetName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityFacetScore_facetName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityFacetScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityFacetScore_score(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityFacetScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityFacetScore_score,
+		func(ctx context.Context) (any, error) {
+			return obj.Score, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityFacetScore_score(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityFacetScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityFacetScore_maxScore(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityFacetScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityFacetScore_maxScore,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxScore, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityFacetScore_maxScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityFacetScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityFacetScore_isFlagged(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityFacetScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityFacetScore_isFlagged,
+		func(ctx context.Context) (any, error) {
+			return obj.IsFlagged, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityFacetScore_isFlagged(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityFacetScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityQuestion_number(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityQuestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityQuestion_number,
+		func(ctx context.Context) (any, error) {
+			return obj.Number, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityQuestion_number(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityQuestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityQuestion_facetCode(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityQuestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityQuestion_facetCode,
+		func(ctx context.Context) (any, error) {
+			return obj.FacetCode, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityQuestion_facetCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityQuestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityQuestion_text(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityQuestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityQuestion_text,
+		func(ctx context.Context) (any, error) {
+			return obj.Text, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityQuestion_text(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityQuestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PlatformRevenueReport_totalRevenue(ctx context.Context, field graphql.CollectedField, obj *model.PlatformRevenueReport) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -25242,6 +26039,8 @@ func (ec *executionContext) fieldContext_Query_allCleaners(_ context.Context, fi
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -26566,6 +27365,8 @@ func (ec *executionContext) fieldContext_Query_myCleaners(_ context.Context, fie
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -26631,6 +27432,8 @@ func (ec *executionContext) fieldContext_Query_myCleanerProfile(_ context.Contex
 				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
 			case "documents":
 				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
 			case "availability":
 				return ec.fieldContext_CleanerProfile_availability(ctx, field)
 			case "createdAt":
@@ -29131,6 +29934,149 @@ func (ec *executionContext) fieldContext_Query_platformRevenueReport(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_platformRevenueReport_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_personalityQuestions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_personalityQuestions,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().PersonalityQuestions(ctx)
+		},
+		nil,
+		ec.marshalNPersonalityQuestion2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityQuestionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_personalityQuestions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "number":
+				return ec.fieldContext_PersonalityQuestion_number(ctx, field)
+			case "facetCode":
+				return ec.fieldContext_PersonalityQuestion_facetCode(ctx, field)
+			case "text":
+				return ec.fieldContext_PersonalityQuestion_text(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityQuestion", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myPersonalityAssessment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myPersonalityAssessment,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyPersonalityAssessment(ctx)
+		},
+		nil,
+		ec.marshalOPersonalityAssessment2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAssessment,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myPersonalityAssessment(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PersonalityAssessment_id(ctx, field)
+			case "cleanerId":
+				return ec.fieldContext_PersonalityAssessment_cleanerId(ctx, field)
+			case "facetScores":
+				return ec.fieldContext_PersonalityAssessment_facetScores(ctx, field)
+			case "integrityAvg":
+				return ec.fieldContext_PersonalityAssessment_integrityAvg(ctx, field)
+			case "workQualityAvg":
+				return ec.fieldContext_PersonalityAssessment_workQualityAvg(ctx, field)
+			case "hasConcerns":
+				return ec.fieldContext_PersonalityAssessment_hasConcerns(ctx, field)
+			case "flaggedFacets":
+				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_cleanerPersonalityAssessment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_cleanerPersonalityAssessment,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().CleanerPersonalityAssessment(ctx, fc.Args["cleanerId"].(string))
+		},
+		nil,
+		ec.marshalOPersonalityAssessment2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAssessment,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_cleanerPersonalityAssessment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PersonalityAssessment_id(ctx, field)
+			case "cleanerId":
+				return ec.fieldContext_PersonalityAssessment_cleanerId(ctx, field)
+			case "facetScores":
+				return ec.fieldContext_PersonalityAssessment_facetScores(ctx, field)
+			case "integrityAvg":
+				return ec.fieldContext_PersonalityAssessment_integrityAvg(ctx, field)
+			case "workQualityAvg":
+				return ec.fieldContext_PersonalityAssessment_workQualityAvg(ctx, field)
+			case "hasConcerns":
+				return ec.fieldContext_PersonalityAssessment_hasConcerns(ctx, field)
+			case "flaggedFacets":
+				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_cleanerPersonalityAssessment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -34389,6 +35335,40 @@ func (ec *executionContext) unmarshalInputInviteCleanerInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPersonalityAnswerInput(ctx context.Context, obj any) (model.PersonalityAnswerInput, error) {
+	var it model.PersonalityAnswerInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"questionNumber", "response"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "questionNumber":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("questionNumber"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.QuestionNumber = data
+		case "response":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("response"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Response = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPriceEstimateInput(ctx context.Context, obj any) (model.PriceEstimateInput, error) {
 	var it model.PriceEstimateInput
 	asMap := map[string]any{}
@@ -36090,6 +37070,8 @@ func (ec *executionContext) _CleanerProfile(ctx context.Context, sel ast.Selecti
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "personalityAssessment":
+			out.Values[i] = ec._CleanerProfile_personalityAssessment(ctx, field, obj)
 		case "availability":
 			out.Values[i] = ec._CleanerProfile_availability(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -38089,6 +39071,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "submitPersonalityAssessment":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_submitPersonalityAssessment(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "submitReview":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_submitReview(ctx, field)
@@ -38675,6 +39664,188 @@ func (ec *executionContext) _PayoutLineItem(ctx context.Context, sel ast.Selecti
 			}
 		case "amountNet":
 			out.Values[i] = ec._PayoutLineItem_amountNet(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var personalityAssessmentImplementors = []string{"PersonalityAssessment"}
+
+func (ec *executionContext) _PersonalityAssessment(ctx context.Context, sel ast.SelectionSet, obj *model.PersonalityAssessment) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, personalityAssessmentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PersonalityAssessment")
+		case "id":
+			out.Values[i] = ec._PersonalityAssessment_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cleanerId":
+			out.Values[i] = ec._PersonalityAssessment_cleanerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "facetScores":
+			out.Values[i] = ec._PersonalityAssessment_facetScores(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "integrityAvg":
+			out.Values[i] = ec._PersonalityAssessment_integrityAvg(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "workQualityAvg":
+			out.Values[i] = ec._PersonalityAssessment_workQualityAvg(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasConcerns":
+			out.Values[i] = ec._PersonalityAssessment_hasConcerns(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "flaggedFacets":
+			out.Values[i] = ec._PersonalityAssessment_flaggedFacets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "completedAt":
+			out.Values[i] = ec._PersonalityAssessment_completedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var personalityFacetScoreImplementors = []string{"PersonalityFacetScore"}
+
+func (ec *executionContext) _PersonalityFacetScore(ctx context.Context, sel ast.SelectionSet, obj *model.PersonalityFacetScore) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, personalityFacetScoreImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PersonalityFacetScore")
+		case "facetCode":
+			out.Values[i] = ec._PersonalityFacetScore_facetCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "facetName":
+			out.Values[i] = ec._PersonalityFacetScore_facetName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "score":
+			out.Values[i] = ec._PersonalityFacetScore_score(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxScore":
+			out.Values[i] = ec._PersonalityFacetScore_maxScore(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isFlagged":
+			out.Values[i] = ec._PersonalityFacetScore_isFlagged(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var personalityQuestionImplementors = []string{"PersonalityQuestion"}
+
+func (ec *executionContext) _PersonalityQuestion(ctx context.Context, sel ast.SelectionSet, obj *model.PersonalityQuestion) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, personalityQuestionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PersonalityQuestion")
+		case "number":
+			out.Values[i] = ec._PersonalityQuestion_number(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "facetCode":
+			out.Values[i] = ec._PersonalityQuestion_facetCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "text":
+			out.Values[i] = ec._PersonalityQuestion_text(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -40724,6 +41895,66 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "personalityQuestions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_personalityQuestions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myPersonalityAssessment":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myPersonalityAssessment(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "cleanerPersonalityAssessment":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_cleanerPersonalityAssessment(ctx, field)
 				return res
 			}
 
@@ -44364,6 +45595,148 @@ func (ec *executionContext) marshalNPayoutStatus2helpmecleanᚑbackendᚋinterna
 	return v
 }
 
+func (ec *executionContext) unmarshalNPersonalityAnswerInput2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAnswerInputᚄ(ctx context.Context, v any) ([]*model.PersonalityAnswerInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.PersonalityAnswerInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPersonalityAnswerInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAnswerInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNPersonalityAnswerInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAnswerInput(ctx context.Context, v any) (*model.PersonalityAnswerInput, error) {
+	res, err := ec.unmarshalInputPersonalityAnswerInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPersonalityAssessment2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAssessment(ctx context.Context, sel ast.SelectionSet, v model.PersonalityAssessment) graphql.Marshaler {
+	return ec._PersonalityAssessment(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPersonalityAssessment2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAssessment(ctx context.Context, sel ast.SelectionSet, v *model.PersonalityAssessment) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PersonalityAssessment(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPersonalityFacetScore2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityFacetScoreᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PersonalityFacetScore) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPersonalityFacetScore2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityFacetScore(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPersonalityFacetScore2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityFacetScore(ctx context.Context, sel ast.SelectionSet, v *model.PersonalityFacetScore) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PersonalityFacetScore(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPersonalityQuestion2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityQuestionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PersonalityQuestion) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPersonalityQuestion2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityQuestion(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPersonalityQuestion2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityQuestion(ctx context.Context, sel ast.SelectionSet, v *model.PersonalityQuestion) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PersonalityQuestion(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPlatformRevenueReport2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPlatformRevenueReport(ctx context.Context, sel ast.SelectionSet, v model.PlatformRevenueReport) graphql.Marshaler {
 	return ec._PlatformRevenueReport(ctx, sel, &v)
 }
@@ -44885,6 +46258,36 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNStripeConnectStatus2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐStripeConnectStatus(ctx context.Context, sel ast.SelectionSet, v model.StripeConnectStatus) graphql.Marshaler {
@@ -45692,6 +47095,13 @@ func (ec *executionContext) marshalOPayoutStatus2ᚖhelpmecleanᚑbackendᚋinte
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) marshalOPersonalityAssessment2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityAssessment(ctx context.Context, sel ast.SelectionSet, v *model.PersonalityAssessment) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PersonalityAssessment(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalORefundStatus2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐRefundStatus(ctx context.Context, v any) (*model.RefundStatus, error) {

@@ -153,29 +153,18 @@ func (r *queryResolver) PlatformStats(ctx context.Context, dateFrom *string, dat
 		return nil, fmt.Errorf("failed to get platform stats: %w", err)
 	}
 
-	// Parse TotalRevenue from interface{}.
-	var totalRevenue float64
-	switch v := stats.TotalRevenue.(type) {
-	case float64:
-		totalRevenue = v
-	case int64:
-		totalRevenue = float64(v)
-	case string:
-		fmt.Sscanf(v, "%f", &totalRevenue)
-	}
-
 	return &model.PlatformStats{
 		TotalClients:            int(stats.TotalUsers),
 		TotalCompanies:          int(stats.ActiveCompanies),
 		TotalCleaners:           int(stats.ActiveCleaners),
 		TotalBookings:           int(stats.TotalBookings),
-		TotalRevenue:            totalRevenue,
-		PlatformCommissionTotal: totalRevenue,
-		AverageRating:           0,
-		BookingsThisMonth:       0,
-		RevenueThisMonth:        0,
-		NewClientsThisMonth:     0,
-		NewCompaniesThisMonth:   0,
+		TotalRevenue:            interfaceToFloat(stats.TotalRevenue),
+		PlatformCommissionTotal: interfaceToFloat(stats.TotalCommission),
+		AverageRating:           interfaceToFloat(stats.AverageRating),
+		BookingsThisMonth:       int(stats.BookingsThisMonth),
+		RevenueThisMonth:        interfaceToFloat(stats.RevenueThisMonth),
+		NewClientsThisMonth:     int(stats.NewClientsThisMonth),
+		NewCompaniesThisMonth:   int(stats.NewCompaniesThisMonth),
 	}, nil
 }
 
@@ -221,11 +210,8 @@ func (r *queryResolver) RevenueByMonth(ctx context.Context, months *int) ([]*mod
 
 	result := make([]*model.RevenueByMonth, len(rows))
 	for i, row := range rows {
-		// The Month field is a pgtype.Interval from DATE_TRUNC.
-		// We format it as a string representation.
-		monthStr := fmt.Sprintf("%d months", row.Month.Months)
 		result[i] = &model.RevenueByMonth{
-			Month:        monthStr,
+			Month:        row.Month,
 			Revenue:      float64(row.TotalRevenue),
 			Commission:   float64(row.CommissionRevenue),
 			BookingCount: int(row.BookingCount),

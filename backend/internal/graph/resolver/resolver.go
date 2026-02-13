@@ -42,6 +42,11 @@ func (r *Resolver) cleanerWithCompany(ctx context.Context, c db.Cleaner) (*model
 		}
 	}
 
+	// Load personality assessment if exists.
+	if assessment, err := r.Queries.GetPersonalityAssessmentByCleanerID(ctx, c.ID); err == nil {
+		profile.PersonalityAssessment = dbPersonalityAssessmentToGQL(assessment)
+	}
+
 	return profile, nil
 }
 

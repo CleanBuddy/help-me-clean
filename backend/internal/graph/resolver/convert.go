@@ -89,6 +89,29 @@ func float8Ptr(f pgtype.Float8) *float64 {
 	return &f.Float64
 }
 
+// interfaceToFloat converts an interface{} value (from COALESCE/SUM SQL results) to float64.
+func interfaceToFloat(v interface{}) float64 {
+	if v == nil {
+		return 0
+	}
+	switch val := v.(type) {
+	case float64:
+		return val
+	case int64:
+		return float64(val)
+	case int32:
+		return float64(val)
+	case string:
+		var f float64
+		fmt.Sscanf(val, "%f", &f)
+		return f
+	case pgtype.Numeric:
+		return numericToFloat(val)
+	default:
+		return 0
+	}
+}
+
 func numericToFloat(n pgtype.Numeric) float64 {
 	if !n.Valid {
 		return 0

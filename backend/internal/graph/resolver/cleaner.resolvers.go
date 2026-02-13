@@ -471,7 +471,17 @@ func (r *mutationResolver) ActivateCleaner(ctx context.Context, id string) (*mod
 		return nil, fmt.Errorf("not authorized")
 	}
 
-	cleaner, err := r.Queries.ActivateCleanerStatus(ctx, stringToUUID(id))
+	// Require personality assessment before activation.
+	cleanerUUID := stringToUUID(id)
+	has, err := r.Queries.HasPersonalityAssessment(ctx, cleanerUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check personality assessment: %w", err)
+	}
+	if !has {
+		return nil, fmt.Errorf("cleaner must complete personality assessment before activation")
+	}
+
+	cleaner, err := r.Queries.ActivateCleanerStatus(ctx, cleanerUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to activate cleaner: %w", err)
 	}

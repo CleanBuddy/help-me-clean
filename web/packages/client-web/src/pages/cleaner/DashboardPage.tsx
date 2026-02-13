@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { Link } from 'react-router-dom';
-import { Star, Briefcase, TrendingUp, MessageSquare, Clock, MapPin, Calendar } from 'lucide-react';
+import { Star, Briefcase, TrendingUp, MessageSquare, Clock, MapPin, Calendar, FileText, ArrowRight } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { cn } from '@helpmeclean/shared';
 import {
-  MY_CLEANER_STATS, TODAYS_JOBS, CLEANER_EARNINGS_BY_DATE_RANGE, MY_CLEANER_REVIEWS,
+  MY_CLEANER_STATS, TODAYS_JOBS, CLEANER_EARNINGS_BY_DATE_RANGE, MY_CLEANER_REVIEWS, MY_CLEANER_PROFILE,
 } from '@/graphql/operations';
 
 function toYYYYMMDD(date: Date): string {
@@ -91,6 +92,7 @@ export default function DashboardPage() {
     return { from: toYYYYMMDD(ago), to: toYYYYMMDD(now) };
   }, []);
 
+  const { data: profileData, loading: profileLoading } = useQuery(MY_CLEANER_PROFILE);
   const { data: statsData, loading: statsLoading } = useQuery(MY_CLEANER_STATS);
   const { data: jobsData, loading: jobsLoading } = useQuery(TODAYS_JOBS);
   const { data: earningsData, loading: earningsLoading } = useQuery(CLEANER_EARNINGS_BY_DATE_RANGE, {
@@ -100,6 +102,7 @@ export default function DashboardPage() {
     variables: { limit: 5, offset: 0 },
   });
 
+  const profile = profileData?.myCleanerProfile;
   const stats = statsData?.myCleanerStats;
   const jobs: Job[] = jobsData?.todaysJobs ?? [];
   const earningsRaw: EarningPoint[] = earningsData?.cleanerEarningsByDateRange ?? [];
@@ -110,7 +113,9 @@ export default function DashboardPage() {
     [earningsRaw],
   );
 
-  if (statsLoading) {
+  const needsPersonalityTest = profile?.status === 'PENDING_REVIEW' && !profile?.personalityAssessment;
+
+  if (statsLoading || profileLoading) {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
@@ -124,6 +129,32 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 mt-1">Bine ai venit!</p>
       </div>
+
+      {/* Personality Test CTA Banner */}
+      {needsPersonalityTest && (
+        <div className="mb-8">
+          <div className="p-6 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-white/10 rounded-xl shrink-0">
+                <FileText className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-2">Completează testul de personalitate</h3>
+                <p className="text-blue-50 mb-4">
+                  Pentru a fi activat ca și curățător, trebuie să completezi un scurt test de personalitate
+                  (28 de întrebări, ~5-6 minute). Acest test ne ajută să oferim servicii de calitate clienților noștri.
+                </p>
+                <Link to="/worker/test-personalitate">
+                  <Button variant="secondary" className="gap-2">
+                    Începe testul
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

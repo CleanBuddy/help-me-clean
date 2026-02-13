@@ -490,8 +490,38 @@ export default function BookingDetailPage() {
               </Card>
             )}
 
-            {/* Payment */}
-            {booking.status === 'COMPLETED' && (
+            {/* Payment — show for any unpaid booking with company, or any paid booking */}
+            {booking.paymentStatus === 'paid' && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Plata
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                        <CreditCard className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {booking.finalTotal ?? booking.estimatedTotal} RON
+                        </div>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                      Platit
+                    </span>
+                  </div>
+                  {booking.paidAt && (
+                    <p className="text-xs text-gray-500">
+                      Platit pe {formatDate(booking.paidAt)}
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {booking.paymentStatus !== 'paid' && booking.company && !booking.status.startsWith('CANCELLED') && (
               <Card>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
                   Plata
@@ -508,43 +538,35 @@ export default function BookingDetailPage() {
                         </div>
                       </div>
                     </div>
-                    {booking.paymentStatus === 'paid' ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                        Platit
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                        In asteptare
-                      </span>
-                    )}
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                      In asteptare
+                    </span>
                   </div>
-                  {booking.paymentStatus === 'paid' && booking.paidAt && (
-                    <p className="text-xs text-gray-500">
-                      Platit pe {formatDate(booking.paidAt)}
-                    </p>
-                  )}
-                  {booking.paymentStatus !== 'paid' && (
-                    <Button
-                      className="w-full"
-                      loading={creatingPayment}
-                      onClick={async () => {
-                        try {
-                          const { data: piData } = await createPaymentIntent({
-                            variables: { bookingId: booking.id },
-                          });
-                          const pi = piData.createBookingPaymentIntent;
-                          setPaymentClientSecret(pi.clientSecret);
-                          setPaymentAmount(pi.amount);
-                          setPaymentError(null);
-                          setShowPaymentModal(true);
-                        } catch {
-                          setPaymentError('Nu am putut initia plata. Incearca din nou.');
-                        }
-                      }}
-                    >
-                      <CreditCard className="h-4 w-4" />
-                      Plateste acum
-                    </Button>
+                  <Button
+                    className="w-full"
+                    loading={creatingPayment}
+                    onClick={async () => {
+                      try {
+                        const { data: piData } = await createPaymentIntent({
+                          variables: { bookingId: booking.id },
+                        });
+                        const pi = piData.createBookingPaymentIntent;
+                        setPaymentClientSecret(pi.clientSecret);
+                        setPaymentAmount(pi.amount);
+                        setPaymentError(null);
+                        setShowPaymentModal(true);
+                      } catch {
+                        setPaymentError('Nu am putut initia plata. Incearca din nou.');
+                      }
+                    }}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Plateste acum
+                  </Button>
+                  {paymentError && (
+                    <div className="text-danger text-sm bg-red-50 px-4 py-3 rounded-xl">
+                      {paymentError}
+                    </div>
                   )}
                 </div>
               </Card>

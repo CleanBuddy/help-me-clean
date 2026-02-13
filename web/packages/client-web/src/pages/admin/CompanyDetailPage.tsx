@@ -29,6 +29,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import DocumentCard from '@/components/ui/DocumentCard';
+import PersonalityScoreCard from '@/components/PersonalityScoreCard';
 import {
   COMPANY,
   APPROVE_COMPANY,
@@ -121,6 +122,22 @@ interface CompanyDocument {
   rejectionReason?: string | null;
 }
 
+interface PersonalityAssessment {
+  id: string;
+  facetScores: Array<{
+    facetCode: string;
+    facetName: string;
+    score: number;
+    maxScore: number;
+    isFlagged: boolean;
+  }>;
+  integrityAvg: number;
+  workQualityAvg: number;
+  hasConcerns: boolean;
+  flaggedFacets: string[];
+  completedAt: string;
+}
+
 interface CleanerWithDocs {
   id: string;
   fullName: string;
@@ -128,6 +145,7 @@ interface CleanerWithDocs {
   phone: string;
   status: string;
   documents: CompanyDocument[];
+  personalityAssessment?: PersonalityAssessment | null;
 }
 
 interface EditableField {
@@ -803,8 +821,9 @@ export default function CompanyDetailPage() {
                   const allDocsApproved =
                     cleaner.documents.length > 0 &&
                     cleaner.documents.every((d) => d.status === 'APPROVED');
+                  const hasPersonalityAssessment = !!cleaner.personalityAssessment;
                   const canActivate =
-                    cleaner.status === 'PENDING_REVIEW' && allDocsApproved;
+                    cleaner.status === 'PENDING_REVIEW' && allDocsApproved && hasPersonalityAssessment;
 
                   return (
                     <Card key={cleaner.id}>
@@ -841,32 +860,43 @@ export default function CompanyDetailPage() {
                           </Button>
                         )}
                       </div>
-                      {cleaner.documents.length === 0 ? (
-                        <p className="text-sm text-gray-400">
-                          Niciun document incarcat.
-                        </p>
-                      ) : (
-                        <div className="space-y-3">
-                          {cleaner.documents.map((doc) => (
-                            <DocumentCard
-                              key={doc.id}
-                              id={doc.id}
-                              documentType={doc.documentType}
-                              documentTypeLabel={
-                                cleanerDocTypeLabel[doc.documentType] ?? doc.documentType
-                              }
-                              fileName={doc.fileName}
-                              fileUrl={doc.fileUrl}
-                              status={doc.status}
-                              uploadedAt={doc.uploadedAt}
-                              rejectionReason={doc.rejectionReason}
-                              onApprove={handleApproveCleanerDoc}
-                              onReject={handleRejectCleanerDoc}
-                              reviewLoading={reviewingCleanerDoc}
-                            />
-                          ))}
-                        </div>
-                      )}
+
+                      {/* Personality Assessment */}
+                      <div className="mb-4">
+                        <h5 className="text-sm font-semibold text-gray-700 mb-2">Test de personalitate</h5>
+                        <PersonalityScoreCard assessment={cleaner.personalityAssessment as any} compact />
+                      </div>
+
+                      {/* Documents */}
+                      <div>
+                        <h5 className="text-sm font-semibold text-gray-700 mb-2">Documente</h5>
+                        {cleaner.documents.length === 0 ? (
+                          <p className="text-sm text-gray-400">
+                            Niciun document incarcat.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {cleaner.documents.map((doc) => (
+                              <DocumentCard
+                                key={doc.id}
+                                id={doc.id}
+                                documentType={doc.documentType}
+                                documentTypeLabel={
+                                  cleanerDocTypeLabel[doc.documentType] ?? doc.documentType
+                                }
+                                fileName={doc.fileName}
+                                fileUrl={doc.fileUrl}
+                                status={doc.status}
+                                uploadedAt={doc.uploadedAt}
+                                rejectionReason={doc.rejectionReason}
+                                onApprove={handleApproveCleanerDoc}
+                                onReject={handleRejectCleanerDoc}
+                                reviewLoading={reviewingCleanerDoc}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </Card>
                   );
                 })}

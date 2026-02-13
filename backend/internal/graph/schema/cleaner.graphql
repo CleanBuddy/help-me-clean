@@ -22,6 +22,7 @@ type CleanerProfile {
   ratingAvg: Float!
   totalJobsCompleted: Int!
   documents: [CleanerDocument!]!
+  personalityAssessment: PersonalityAssessment
   availability: [AvailabilitySlot!]!
   createdAt: DateTime!
 }

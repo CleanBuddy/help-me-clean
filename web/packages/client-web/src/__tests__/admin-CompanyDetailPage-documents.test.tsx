@@ -87,6 +87,19 @@ const mockCompanyWithDocs = {
         email: 'maria@test.com',
         phone: '0722111222',
         status: 'PENDING_REVIEW',
+        personalityAssessment: {
+          id: 'pa-1',
+          cleanerId: 'cl-1',
+          integrityAvg: 16.5,
+          workQualityAvg: 17.0,
+          hasConcerns: false,
+          flaggedFacets: [],
+          facetScores: [
+            { facetCode: 'A1', facetName: 'Onestitate', score: 17, maxScore: 20, isFlagged: false },
+            { facetCode: 'A2', facetName: 'Responsabilitate', score: 16, maxScore: 20, isFlagged: false },
+          ],
+          completedAt: '2025-06-01T00:00:00Z',
+        },
         documents: [
           {
             id: 'cdoc-1',

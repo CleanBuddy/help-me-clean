@@ -48,6 +48,7 @@ import CleanerOrdersPage from '@/pages/cleaner/OrdersPage';
 import CleanerCalendarPage from '@/pages/cleaner/CalendarPage';
 import CleanerJobDetailPage from '@/pages/cleaner/JobDetailPage';
 import CleanerSettingsPage from '@/pages/cleaner/SettingsPage';
+import PersonalityTestPage from '@/pages/cleaner/PersonalityTestPage';
 
 // Admin pages
 import AdminDashboardPage from '@/pages/admin/DashboardPage';
@@ -195,6 +196,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<CleanerDashboardPage />} />
+        <Route path="test-personalitate" element={<PersonalityTestPage />} />
         <Route path="comenzi" element={<CleanerOrdersPage />} />
         <Route path="comenzi/:id" element={<CleanerJobDetailPage />} />
         <Route path="program" element={<CleanerCalendarPage />} />
