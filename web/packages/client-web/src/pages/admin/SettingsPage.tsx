@@ -87,25 +87,23 @@ const tabs: { key: TabKey; label: string; icon: typeof Settings }[] = [
 ];
 
 const SETTING_GROUPS: { title: string; keys: string[] }[] = [
-  { title: 'Business', keys: ['commission_pct', 'min_booking_hours', 'max_booking_hours', 'default_hourly_rate'] },
+  { title: 'Business', keys: ['platform_commission_pct', 'min_booking_hours', 'max_booking_hours', 'default_hourly_rate'] },
   { title: 'Contact', keys: ['support_email', 'support_phone'] },
-  { title: 'Politici', keys: ['privacy_policy_url', 'terms_url', 'cancellation_policy_url', 'refund_policy_url'] },
+  { title: 'Politici', keys: ['privacy_url', 'terms_url'] },
 ];
 
 const SETTING_LABELS: Record<string, string> = {
-  commission_pct: 'Comision platforma (%)',
+  platform_commission_pct: 'Comision platforma (%)',
   min_booking_hours: 'Ore minime rezervare',
   max_booking_hours: 'Ore maxime rezervare',
   default_hourly_rate: 'Tarif orar implicit (RON)',
   support_email: 'Email suport',
   support_phone: 'Telefon suport',
-  privacy_policy_url: 'URL Politica confidentialitate',
+  privacy_url: 'URL Politica confidentialitate',
   terms_url: 'URL Termeni si conditii',
-  cancellation_policy_url: 'URL Politica anulare',
-  refund_policy_url: 'URL Politica rambursare',
 };
 
-const NUMBER_KEYS = new Set(['commission_pct', 'min_booking_hours', 'max_booking_hours', 'default_hourly_rate']);
+const NUMBER_KEYS = new Set(['platform_commission_pct', 'min_booking_hours', 'max_booking_hours', 'default_hourly_rate']);
 
 const SERVICE_TYPE_OPTIONS = [
   { value: 'STANDARD', label: 'Standard' },
