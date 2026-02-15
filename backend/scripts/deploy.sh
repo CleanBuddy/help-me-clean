@@ -5,7 +5,7 @@
 set -e
 
 PROJECT_ID="help-me-clean-486919"
-REGION="europe-west1"
+REGION="eu-central2"
 
 # Check arguments
 if [ "$#" -ne 1 ]; then

@@ -49,11 +49,11 @@ steps:
     waitFor: ['push-image']
 
 substitutions:
-  _REGION: 'europe-west1'
+  _REGION: 'eu-central2'
   _ARTIFACT_REGISTRY_REPO: 'helpmeclean'
 
 options:
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
 timeout: 1200s
