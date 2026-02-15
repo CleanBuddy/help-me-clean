@@ -1,6 +1,0 @@
-platform :ios, '16.0'
-
-target 'HelpMeClean' do
-  use_frameworks!
-  pod 'Apollo', '~> 1.0'
-end
