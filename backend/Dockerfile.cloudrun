@@ -1,0 +1,50 @@
+# Multi-stage build optimized for Cloud Run
+FROM golang:1.24-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
+
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Generate sqlc and gqlgen code
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest && \
+    go install github.com/99designs/gqlgen@latest && \
+    cd internal/db && sqlc generate && cd ../.. && \
+    go run github.com/99designs/gqlgen generate
+
+# Build optimized binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -a -installsuffix cgo \
+    -o /server ./cmd/server
+
+# Final stage - minimal image
+FROM scratch
+
+# Copy certificates for HTTPS
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+# Copy binary
+COPY --from=builder /server /server
+
+# Copy migrations (if needed at runtime)
+COPY --from=builder /app/internal/db/migrations /migrations
+
+# Cloud Run sets PORT env var, default to 8080
+ENV PORT=8080
+ENV TZ=Europe/Bucharest
+
+EXPOSE 8080
+
+# Run as non-root (Cloud Run best practice)
+USER nobody:nobody
+
+ENTRYPOINT ["/server"]

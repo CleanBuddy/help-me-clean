@@ -1,0 +1,59 @@
+# Cloud Build configuration for PRODUCTION deployment
+# Same as cloudbuild.yaml but with production-specific settings
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.cloudrun'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/helpmeclean-backend:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/helpmeclean-backend:prod'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/helpmeclean-backend:latest-prod'
+      - '.'
+    dir: 'backend'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/helpmeclean-backend'
+    waitFor: ['build-image']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'helpmeclean-backend-prod'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/helpmeclean-backend:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--min-instances=1'
+      - '--max-instances=20'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--timeout=300'
+      - '--concurrency=80'
+      - '--port=8080'
+      - '--set-env-vars=ENVIRONMENT=production'
+      - '--set-secrets=DATABASE_URL=prod_DATABASE_URL:latest,JWT_SECRET=prod_JWT_SECRET:latest,GOOGLE_CLIENT_ID=prod_GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_ID_IOS=prod_GOOGLE_CLIENT_ID_IOS:latest,GOOGLE_CLIENT_ID_ANDROID=prod_GOOGLE_CLIENT_ID_ANDROID:latest,STRIPE_SECRET_KEY=prod_STRIPE_SECRET_KEY:latest,STRIPE_PUBLISHABLE_KEY=prod_STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=prod_STRIPE_WEBHOOK_SECRET:latest,FACTUREAZA_API_KEY=prod_FACTUREAZA_API_KEY:latest,GCS_BUCKET=prod_GCS_BUCKET:latest,FIREBASE_SERVICE_ACCOUNT_KEY=prod_FIREBASE_SERVICE_ACCOUNT_KEY:latest'
+      - '--set-env-vars=^@^JWT_EXPIRY=24h@FACTUREAZA_API_URL=https://api.factureaza.ro/api/v1/@PLATFORM_COMPANY_NAME=HelpMeClean SRL@PLATFORM_CUI=RO12345678@PLATFORM_REG_NUMBER=J40/1234/2024@PLATFORM_ADDRESS=Str. Exemplu nr. 1@PLATFORM_CITY=Bucuresti@PLATFORM_COUNTY=Bucuresti@PLATFORM_IS_VAT_PAYER=true@PLATFORM_BANK_NAME=ING Bank@PLATFORM_IBAN=RO49AAAA1B31007593840000@STRIPE_CONNECT_RETURN_URL=https://helpmeclean.ro/firma/setari?stripe=complete@STRIPE_CONNECT_REFRESH_URL=https://helpmeclean.ro/firma/setari?stripe=refresh@ALLOWED_ORIGINS=https://helpmeclean.ro,https://dashboard.helpmeclean.ro,https://admin.helpmeclean.ro'
+    waitFor: ['push-image']
+
+substitutions:
+  _REGION: 'europe-west1'
+  _ARTIFACT_REGISTRY_REPO: 'helpmeclean'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s

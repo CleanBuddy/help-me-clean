@@ -1,0 +1,52 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore.
+
+.gcloudignore
+.git
+.gitignore
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+tmp/
+
+# Environment & Secrets
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+docs/
+
+# Tests
+*_test.go
+testdata/
+
+# Docker (we use Dockerfile.cloudrun)
+Dockerfile
+docker-compose.yml
+
+# Build artifacts
+bin/
+dist/
