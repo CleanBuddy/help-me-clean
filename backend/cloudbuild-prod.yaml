@@ -49,7 +49,7 @@ steps:
     waitFor: ['push-image']
 
 substitutions:
-  _REGION: 'eu-central2'
+  _REGION: 'europe-central2'
   _ARTIFACT_REGISTRY_REPO: 'helpmeclean'
 
 options:

@@ -5,7 +5,7 @@
 set -e  # Exit on error
 
 PROJECT_ID="help-me-clean-486919"
-REGION="eu-central2"
+REGION="europe-central2"
 ARTIFACT_REPO="helpmeclean"
 
 echo "🚀 Starting GCP Cloud Run setup for project: $PROJECT_ID"

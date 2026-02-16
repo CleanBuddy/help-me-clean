@@ -53,7 +53,7 @@ steps:
 
 # Substitution variables (defaults for development)
 substitutions:
-  _REGION: 'eu-central2'
+  _REGION: 'europe-central2'
   _ARTIFACT_REGISTRY_REPO: 'helpmeclean'
   _ENV: 'dev'
   _SERVICE_NAME: 'helpmeclean-backend-dev'
