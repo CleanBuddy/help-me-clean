@@ -1,10 +1,11 @@
 #!/bin/bash
 # HelpMeClean.ro - Create all GCP Secret Manager secrets for Development
 # Follows the naming pattern: dev_{secret_name}
+# Single GCP project for both dev and production
 
 set -e  # Exit on error
 
-PROJECT_ID="helpmeclean-dev"
+PROJECT_ID="help-me-clean"
 
 echo "🔐 Setting up GCP Secret Manager secrets for Development"
 echo "Project: ${PROJECT_ID}"
@@ -20,7 +21,7 @@ fi
 gcloud config set project ${PROJECT_ID}
 
 echo ""
-echo "📝 Creating secrets (you'll be prompted for each value)..."
+echo "📝 Creating dev_ secrets (you'll be prompted for each value)..."
 echo ""
 
 # Security Configuration (NEW - Phase 1-4)
@@ -156,17 +157,17 @@ read -r val
 echo -n "$val" | gcloud secrets create dev_use_local_storage --data-file=- 2>/dev/null || \
     (echo -n "$val" | gcloud secrets versions add dev_use_local_storage --data-file=-)
 
-echo -n "Enter GCS_BUCKET (helpmeclean-dev-uploads): "
+echo -n "Enter GCS_BUCKET (help-me-clean-dev-uploads): "
 read -r val
 echo -n "$val" | gcloud secrets create dev_gcs_bucket --data-file=- 2>/dev/null || \
     (echo -n "$val" | gcloud secrets versions add dev_gcs_bucket --data-file=-)
 
-echo -n "Enter GCS_PROJECT_ID (helpmeclean-dev): "
+echo -n "Enter GCS_PROJECT_ID (help-me-clean): "
 read -r val
 echo -n "$val" | gcloud secrets create dev_gcs_project_id --data-file=- 2>/dev/null || \
     (echo -n "$val" | gcloud secrets versions add dev_gcs_project_id --data-file=-)
 
-echo -n "Enter FIREBASE_PROJECT_ID (helpmeclean-dev): "
+echo -n "Enter FIREBASE_PROJECT_ID (help-me-clean): "
 read -r val
 echo -n "$val" | gcloud secrets create dev_firebase_project_id --data-file=- 2>/dev/null || \
     (echo -n "$val" | gcloud secrets versions add dev_firebase_project_id --data-file=-)
@@ -182,7 +183,8 @@ echo -n "$val" | gcloud secrets create dev_allowed_origins --data-file=- 2>/dev/
 echo ""
 echo "✅ All development secrets created!"
 echo ""
-echo "📝 Grant Secret Manager access to Cloud Run service account:"
+echo "📝 Grant Secret Manager access to Cloud Run service accounts:"
+echo "PROJECT_NUMBER=\$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')"
 echo "gcloud projects add-iam-policy-binding ${PROJECT_ID} \\"
-echo "  --member=\"serviceAccount:\$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')-compute@developer.gserviceaccount.com\" \\"
+echo "  --member=\"serviceAccount:\${PROJECT_NUMBER}-compute@developer.gserviceaccount.com\" \\"
 echo "  --role=\"roles/secretmanager.secretAccessor\""

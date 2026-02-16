@@ -7,17 +7,26 @@ set -e  # Exit on error
 echo "🚀 Deploying HelpMeClean Backend to GCP Development..."
 
 # Configuration
-PROJECT_ID="helpmeclean-dev"
+PROJECT_ID="help-me-clean"
 REGION="europe-west1"
 SERVICE_NAME="helpmeclean-backend-dev"
-IMAGE="gcr.io/${PROJECT_ID}/backend:latest"
+IMAGE="gcr.io/${PROJECT_ID}/backend:dev"
 
 # Set GCP project
 echo "📦 Setting GCP project: ${PROJECT_ID}"
 gcloud config set project ${PROJECT_ID}
 
+# Build and push Docker image
+echo "🔨 Building Docker image..."
+cd backend
+docker build -t ${IMAGE} .
+
+echo "📤 Pushing to Container Registry..."
+docker push ${IMAGE}
+cd ..
+
 # Deploy to Cloud Run with ALL configuration via secrets
-echo "🔧 Deploying to Cloud Run with Secret Manager configuration..."
+echo "🔧 Deploying to Cloud Run (Development service)..."
 gcloud run deploy ${SERVICE_NAME} \
   --image ${IMAGE} \
   --platform managed \
@@ -62,7 +71,7 @@ echo "🔗 Service URL:"
 gcloud run services describe ${SERVICE_NAME} --region ${REGION} --format='value(status.url)'
 echo ""
 echo "📊 View logs:"
-echo "gcloud logs tail --follow --project=${PROJECT_ID}"
+echo "gcloud logs tail --follow --project=${PROJECT_ID} --filter=\"resource.labels.service_name=${SERVICE_NAME}\""
 echo ""
 echo "🧪 Test health endpoint:"
 SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} --region ${REGION} --format='value(status.url)')

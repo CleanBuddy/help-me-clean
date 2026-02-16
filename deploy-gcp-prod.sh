@@ -15,17 +15,26 @@ if [ "$confirm" != "yes" ]; then
 fi
 
 # Configuration
-PROJECT_ID="helpmeclean-prod"
+PROJECT_ID="help-me-clean"
 REGION="europe-west1"
-SERVICE_NAME="helpmeclean-backend"
-IMAGE="gcr.io/${PROJECT_ID}/backend:latest"
+SERVICE_NAME="helpmeclean-backend-prod"
+IMAGE="gcr.io/${PROJECT_ID}/backend:prod"
 
 # Set GCP project
 echo "📦 Setting GCP project: ${PROJECT_ID}"
 gcloud config set project ${PROJECT_ID}
 
+# Build and push Docker image
+echo "🔨 Building Docker image..."
+cd backend
+docker build -t ${IMAGE} .
+
+echo "📤 Pushing to Container Registry..."
+docker push ${IMAGE}
+cd ..
+
 # Deploy to Cloud Run with ALL configuration via secrets
-echo "🔧 Deploying to Cloud Run with Secret Manager configuration..."
+echo "🔧 Deploying to Cloud Run (Production service)..."
 gcloud run deploy ${SERVICE_NAME} \
   --image ${IMAGE} \
   --platform managed \
@@ -81,7 +90,7 @@ SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} --region ${REGION} --
 echo "${SERVICE_URL}"
 echo ""
 echo "📊 View logs:"
-echo "gcloud logs tail --follow --project=${PROJECT_ID}"
+echo "gcloud logs tail --follow --project=${PROJECT_ID} --filter=\"resource.labels.service_name=${SERVICE_NAME}\""
 echo ""
 echo "🧪 Test endpoints:"
 echo "curl ${SERVICE_URL}/health"

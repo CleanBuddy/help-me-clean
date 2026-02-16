@@ -4,7 +4,7 @@
 
 set -e  # Exit on error
 
-PROJECT_ID="helpmeclean-prod"
+PROJECT_ID="help-me-clean"
 
 echo "🔐 Setting up GCP Secret Manager secrets for Production"
 echo "Project: ${PROJECT_ID}"
