@@ -13,6 +13,7 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"helpmeclean-backend/internal/storage"
 	"strings"
 	"time"
 
@@ -310,6 +311,64 @@ func (r *mutationResolver) UpdateCleanerProfile(ctx context.Context, input model
 	return r.cleanerWithCompany(ctx, updated)
 }
 
+// UploadCleanerAvatar is the resolver for the uploadCleanerAvatar field.
+func (r *mutationResolver) UploadCleanerAvatar(ctx context.Context, cleanerID string, file graphql.Upload) (*model.CleanerProfile, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Get cleaner record
+	cleaner, err := r.Queries.GetCleanerByID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner not found: %w", err)
+	}
+
+	// Authorization: user must be the cleaner OR company admin OR global admin
+	isOwnProfile := cleaner.UserID.Valid && uuidToString(cleaner.UserID) == claims.UserID
+	isCompanyAdmin := false
+	if claims.Role == "company_admin" {
+		company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+		if err == nil {
+			isCompanyAdmin = company.ID == cleaner.CompanyID
+		}
+	}
+
+	if !isOwnProfile && !isCompanyAdmin && claims.Role != "global_admin" {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	// Validate file type (images only)
+	if !isImageFile(file.Filename) {
+		return nil, fmt.Errorf("doar imagini sunt permise (jpg, png, webp)")
+	}
+
+	// Validate file size (max 10MB)
+	if file.Size > 10*1024*1024 {
+		return nil, fmt.Errorf("fisierul depaseste limita de 10MB")
+	}
+
+	// Build GCS path: uploads/cleaners/{cleanerId}/avatars
+	path := fmt.Sprintf("uploads/cleaners/%s/avatars", cleanerID)
+
+	// Upload to GCS with public access
+	avatarURL, err := r.Storage.Upload(ctx, path, file.Filename, file.File, storage.StorageTypePublic)
+	if err != nil {
+		return nil, fmt.Errorf("eroare la incarcarea imaginii: %w", err)
+	}
+
+	// Update cleaner avatar
+	updated, err := r.Queries.UpdateCleanerAvatar(ctx, db.UpdateCleanerAvatarParams{
+		ID:        stringToUUID(cleanerID),
+		AvatarUrl: stringToText(&avatarURL),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update avatar: %w", err)
+	}
+
+	return r.cleanerWithCompany(ctx, updated)
+}
+
 // SetCleanerDateOverride is the resolver for the setCleanerDateOverride field.
 func (r *mutationResolver) SetCleanerDateOverride(ctx context.Context, date string, isAvailable bool, startTime string, endTime string) (*model.CleanerDateOverride, error) {
 	claims := auth.GetUserFromContext(ctx)
@@ -402,8 +461,8 @@ func (r *mutationResolver) UploadCleanerDocument(ctx context.Context, cleanerID 
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	subdir := fmt.Sprintf("cleaners/%s", cleanerID)
-	fileURL, err := r.Storage.Upload(ctx, subdir, file.Filename, file.File)
+	path := fmt.Sprintf("uploads/cleaners/%s/documents", cleanerID)
+	fileURL, err := r.Storage.Upload(ctx, path, file.Filename, file.File, storage.StorageTypePrivate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload file: %w", err)
 	}

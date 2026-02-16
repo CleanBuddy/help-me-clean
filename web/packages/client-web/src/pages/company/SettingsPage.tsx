@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import FileUpload from '@/components/ui/FileUpload';
 import DocumentCard from '@/components/ui/DocumentCard';
+import AvatarUpload from '@/components/ui/AvatarUpload';
 import { cn } from '@helpmeclean/shared';
 import {
   MY_COMPANY,
@@ -21,6 +22,7 @@ import {
   REFRESH_CONNECT_ONBOARDING,
   UPLOAD_COMPANY_DOCUMENT,
   DELETE_COMPANY_DOCUMENT,
+  UPLOAD_COMPANY_LOGO,
 } from '@/graphql/operations';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -124,6 +126,9 @@ export default function SettingsPage() {
   const connectStatus = connectData?.myConnectStatus;
 
   // Document upload
+  const [uploadLogo, { loading: uploadingLogo }] = useMutation(UPLOAD_COMPANY_LOGO, {
+    refetchQueries: [{ query: MY_COMPANY }],
+  });
   const [uploadDocument, { loading: uploading }] = useMutation(UPLOAD_COMPANY_DOCUMENT, {
     refetchQueries: [{ query: MY_COMPANY }],
   });
@@ -131,6 +136,12 @@ export default function SettingsPage() {
     refetchQueries: [{ query: MY_COMPANY }],
   });
   const [uploadingType, setUploadingType] = useState('');
+
+  const handleUploadLogo = async (file: File) => {
+    await uploadLogo({
+      variables: { file },
+    });
+  };
 
   const handleUploadDocument = async (file: File, documentType: string) => {
     if (!company) return;
@@ -422,6 +433,34 @@ export default function SettingsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Setari</h1>
+
+      {/* Logo Upload */}
+      <Card className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Building2 className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Logo firma</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-5">
+          Logo-ul firmei va fi afisat in profilul public si pe facturile generate.
+        </p>
+
+        <div className="flex items-center gap-8">
+          <AvatarUpload
+            currentUrl={company.logoUrl}
+            onUpload={handleUploadLogo}
+            loading={uploadingLogo}
+            size="xl"
+          />
+          <div className="flex-1">
+            <p className="text-sm text-gray-600 mb-2">
+              Incarca logo-ul companiei tale
+            </p>
+            <p className="text-xs text-gray-400">
+              Recomandat: 800x600 pixeli. Formate acceptate: JPG, PNG, WEBP. Max 10MB
+            </p>
+          </div>
+        </div>
+      </Card>
 
       {/* Company Info (read-only) */}
       <Card className="mb-6">

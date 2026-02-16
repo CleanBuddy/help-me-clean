@@ -1,0 +1,22 @@
+# Go dependencies
+go.sum
+vendor/
+
+# Build artifacts
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Cloud Function deployment artifacts
+.gcloudignore

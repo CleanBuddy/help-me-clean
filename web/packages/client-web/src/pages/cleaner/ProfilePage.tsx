@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { Star, Briefcase, CalendarCheck, TrendingUp, FileText } from 'lucide-react';
+import { Star, Briefcase, CalendarCheck, TrendingUp, FileText, User as UserIcon } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import FileUpload from '@/components/ui/FileUpload';
 import DocumentCard from '@/components/ui/DocumentCard';
+import AvatarUpload from '@/components/ui/AvatarUpload';
 import { useAuth } from '@/context/AuthContext';
 import {
   MY_CLEANER_PROFILE,
@@ -14,6 +15,7 @@ import {
   ACCEPT_INVITATION,
   UPLOAD_CLEANER_DOCUMENT,
   DELETE_CLEANER_DOCUMENT,
+  UPLOAD_CLEANER_AVATAR,
 } from '@/graphql/operations';
 
 const REQUIRED_CLEANER_DOCS: { type: string; label: string }[] = [
@@ -54,6 +56,9 @@ export default function ProfilePage() {
   const [deleteDocument, { loading: deleting }] = useMutation(DELETE_CLEANER_DOCUMENT, {
     refetchQueries: [{ query: MY_CLEANER_PROFILE }],
   });
+  const [uploadAvatar, { loading: uploadingAvatar }] = useMutation(UPLOAD_CLEANER_AVATAR, {
+    refetchQueries: [{ query: MY_CLEANER_PROFILE }],
+  });
   const [uploadingType, setUploadingType] = useState('');
 
   const handleUploadDoc = async (file: File, documentType: string) => {
@@ -73,6 +78,17 @@ export default function ProfilePage() {
   const handleDeleteDoc = async (docId: string) => {
     try {
       await deleteDocument({ variables: { id: docId } });
+    } catch {
+      // Error handled by Apollo
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!profile?.id) return;
+    try {
+      await uploadAvatar({
+        variables: { cleanerId: profile.id, file },
+      });
     } catch {
       // Error handled by Apollo
     }
@@ -142,6 +158,35 @@ export default function ProfilePage() {
               </div>
             </div>
           </Card>
+
+          {/* Avatar Upload */}
+          {profile && (
+            <Card className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <UserIcon className="h-5 w-5 text-gray-500" />
+                <h2 className="text-lg font-semibold text-gray-900">Poza de profil</h2>
+              </div>
+              <p className="text-sm text-gray-500 mb-5">
+                Incarca o imagine pentru profilul tau. Aceasta va fi afisata clientilor si echipei.
+              </p>
+              <div className="flex items-center gap-8">
+                <AvatarUpload
+                  currentUrl={profile.avatarUrl}
+                  onUpload={handleAvatarUpload}
+                  loading={uploadingAvatar}
+                  size="xl"
+                />
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Alege o fotografie profesionala
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Recomandat: 400x400 pixeli. Formate acceptate: JPG, PNG, WEBP. Max 10MB
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Stats */}
           {stats && (

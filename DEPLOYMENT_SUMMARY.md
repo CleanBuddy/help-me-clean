@@ -199,7 +199,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_xxx
 
 - **[DEPLOY_NOW.md](DEPLOY_NOW.md)** - Initial GCP setup guide
 - **[backend/GCP_SETUP.md](backend/GCP_SETUP.md)** - Detailed GCP configuration
-- **[SETUP_TRIGGERS.md](SETUP_TRIGGERS.md)** - Cloud Build triggers setup
+- **[SETUP_TRIGGERS.md](SETUP_TRIGGERS.md)** - Cloud Build triggers with path filtering
 - **[VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)** - Vercel deployment guide
 - **[backend/SECRETS_TEMPLATE.md](backend/SECRETS_TEMPLATE.md)** - All environment variables
 

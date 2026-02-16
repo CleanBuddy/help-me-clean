@@ -85,3 +85,6 @@ SELECT
     COALESCE(SUM(platform_commission_amount) FILTER (WHERE status = 'completed'), 0)::numeric AS total_commission,
     COALESCE(SUM(COALESCE(final_total, estimated_total) - COALESCE(platform_commission_amount, 0)) FILTER (WHERE status = 'completed'), 0)::numeric AS net_payout
 FROM bookings WHERE company_id = $1;
+
+-- name: UpdateCompanyLogo :one
+UPDATE companies SET logo_url = $2, updated_at = NOW() WHERE id = $1 RETURNING *;

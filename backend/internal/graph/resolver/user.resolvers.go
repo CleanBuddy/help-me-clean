@@ -11,7 +11,10 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"helpmeclean-backend/internal/storage"
 	"strings"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 // UpdateProfile is the resolver for the updateProfile field.
@@ -61,6 +64,44 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 	}
 
 	return dbUserToGQL(updatedUser), nil
+}
+
+// UploadAvatar is the resolver for the uploadAvatar field.
+func (r *mutationResolver) UploadAvatar(ctx context.Context, file graphql.Upload) (*model.User, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Validate file type (images only)
+	if !isImageFile(file.Filename) {
+		return nil, fmt.Errorf("doar imagini sunt permise (jpg, png, webp)")
+	}
+
+	// Validate file size (max 10MB)
+	if file.Size > 10*1024*1024 {
+		return nil, fmt.Errorf("fisierul depaseste limita de 10MB")
+	}
+
+	// Build GCS path: uploads/clients/{userId}/avatars/{uuid}_{filename}
+	path := fmt.Sprintf("uploads/clients/%s/avatars", claims.UserID)
+
+	// Upload to GCS with public access
+	avatarURL, err := r.Storage.Upload(ctx, path, file.Filename, file.File, storage.StorageTypePublic)
+	if err != nil {
+		return nil, fmt.Errorf("eroare la incarcarea fisierului: %w", err)
+	}
+
+	// Update user record in DB
+	user, err := r.Queries.UpdateUserAvatar(ctx, db.UpdateUserAvatarParams{
+		ID:        stringToUUID(claims.UserID),
+		AvatarUrl: stringToText(&avatarURL),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update user avatar: %w", err)
+	}
+
+	return dbUserToGQL(user), nil
 }
 
 // UpdateUserRole is the resolver for the updateUserRole field.

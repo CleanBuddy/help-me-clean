@@ -47,8 +47,17 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
+
+	// CORS: read from ALLOWED_ORIGINS env var (comma-separated)
+	// Local: http://localhost:3000
+	// Dev: https://dev-help-me-clean.vercel.app,http://localhost:3000
+	// Prod: https://help-me-clean.vercel.app
+	allowedOrigins := []string{"http://localhost:3000"}
+	if originsEnv := os.Getenv("ALLOWED_ORIGINS"); originsEnv != "" {
+		allowedOrigins = strings.Split(originsEnv, ",")
+	}
 	r.Use(chimiddleware.Handler(chimiddleware.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Sec-WebSocket-Protocol"},
 		ExposedHeaders:   []string{"Link"},
@@ -79,15 +88,41 @@ func main() {
 	invoiceSvc := invoice.NewService(queries)
 
 	// File storage
-	uploadsBaseURL := fmt.Sprintf("http://localhost:%s/uploads", port)
-	store := storage.NewLocalStorage("./uploads", uploadsBaseURL)
+	var store storage.Storage
+	useLocalStorage := os.Getenv("USE_LOCAL_STORAGE") == "true"
+
+	if useLocalStorage {
+		// Local filesystem storage (development mode)
+		uploadsBaseURL := fmt.Sprintf("http://localhost:%s/uploads", port)
+		store = storage.NewLocalStorage("./uploads", uploadsBaseURL)
+		log.Println("Using local filesystem storage")
+
+		// Serve uploaded files
+		r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+	} else {
+		// Google Cloud Storage (production mode)
+		gcsBucket := os.Getenv("GCS_BUCKET")
+		gcsProjectID := os.Getenv("GCS_PROJECT_ID")
+		gcsCredentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+		if gcsBucket == "" {
+			log.Fatal("GCS_BUCKET environment variable is required when USE_LOCAL_STORAGE is not set")
+		}
+		if gcsProjectID == "" {
+			log.Fatal("GCS_PROJECT_ID environment variable is required when USE_LOCAL_STORAGE is not set")
+		}
+
+		gcsStore, err := storage.NewGCSStorage(ctx, gcsBucket, gcsProjectID, gcsCredentials)
+		if err != nil {
+			log.Fatalf("Failed to initialize GCS storage: %v", err)
+		}
+		store = gcsStore
+		log.Printf("Using Google Cloud Storage: bucket=%s, project=%s", gcsBucket, gcsProjectID)
+	}
 
 	// Stripe webhook (must be BEFORE auth middleware)
 	stripeWebhook := webhook.NewStripeHandler(paymentSvc)
 	r.Post("/webhook/stripe", stripeWebhook.ServeHTTP)
-
-	// Serve uploaded files
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
 	// GraphQL resolver
 	res := &resolver.Resolver{

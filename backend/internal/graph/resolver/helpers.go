@@ -3,6 +3,7 @@ package resolver
 import (
 	"fmt"
 	"math"
+	"path/filepath"
 	"strings"
 
 	db "helpmeclean-backend/internal/db/generated"
@@ -60,4 +61,10 @@ func estimateDuration(serviceDef db.ServiceDefinition, numRooms, numBathrooms in
 	hours = math.Round(hours*2) / 2
 
 	return hours
+}
+
+// isImageFile checks if the filename has an image extension
+func isImageFile(filename string) bool {
+	ext := filepath.Ext(strings.ToLower(filename))
+	return ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp"
 }

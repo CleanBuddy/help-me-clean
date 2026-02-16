@@ -17,7 +17,8 @@ import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { UPDATE_PROFILE, MY_ADDRESSES } from '@/graphql/operations';
+import AvatarUpload from '@/components/ui/AvatarUpload';
+import { UPDATE_PROFILE, MY_ADDRESSES, UPLOAD_AVATAR } from '@/graphql/operations';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,12 @@ export default function ProfilePage() {
   const [updateProfile, { loading: updating, data: updateData }] =
     useMutation(UPDATE_PROFILE);
 
+  const [uploadAvatar, { loading: uploadingAvatar }] = useMutation(UPLOAD_AVATAR, {
+    onCompleted: () => {
+      refetchUser();
+    },
+  });
+
   const { data: addressesData, loading: addressesLoading } = useQuery<{
     myAddresses: SavedAddress[];
   }>(MY_ADDRESSES, {
@@ -116,6 +123,12 @@ export default function ProfilePage() {
     refetchUser();
   };
 
+  const handleAvatarUpload = async (file: File) => {
+    await uploadAvatar({
+      variables: { file },
+    });
+  };
+
   const addresses = addressesData?.myAddresses ?? [];
 
   return (
@@ -130,6 +143,29 @@ export default function ProfilePage() {
         </div>
 
         <div className="space-y-6">
+          {/* Avatar Upload */}
+          <Card>
+            <div className="flex items-center gap-8">
+              <AvatarUpload
+                currentUrl={user?.avatarUrl}
+                onUpload={handleAvatarUpload}
+                loading={uploadingAvatar}
+                size="xl"
+              />
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Poza de profil
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Incarca o imagine pentru profilul tau. Recomandat: 400x400 pixeli.
+                </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Formate acceptate: JPG, PNG, WEBP. Marime maxima: 10MB
+                </p>
+              </div>
+            </div>
+          </Card>
+
           {/* Profile Form */}
           <Card>
             <div className="flex items-center gap-3 mb-6">

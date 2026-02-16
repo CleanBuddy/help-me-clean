@@ -7,38 +7,172 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/google/uuid"
+	"google.golang.org/api/option"
 )
 
-// Storage handles file uploads to the local filesystem.
-type Storage struct {
+// StorageType defines access control for uploaded files
+type StorageType string
+
+const (
+	StorageTypePublic  StorageType = "public"  // Publicly readable (avatars, logos)
+	StorageTypePrivate StorageType = "private" // Private with signed URLs (documents)
+)
+
+// Storage handles file uploads and retrieval from cloud storage or local filesystem
+type Storage interface {
+	// Upload saves a file and returns its public URL
+	Upload(ctx context.Context, path string, filename string, reader io.Reader, storageType StorageType) (string, error)
+
+	// Delete removes a file
+	Delete(ctx context.Context, path string) error
+
+	// GetSignedURL generates a temporary signed URL for private files (1-hour expiration)
+	GetSignedURL(ctx context.Context, path string) (string, error)
+
+	// GetPublicURL returns the public URL for a file (for public files only)
+	GetPublicURL(path string) string
+}
+
+// GCSStorage implements Storage interface using Google Cloud Storage
+type GCSStorage struct {
+	client     *storage.Client
+	bucketName string
+	projectID  string
+}
+
+// NewGCSStorage creates a GCS-backed storage client
+func NewGCSStorage(ctx context.Context, bucketName, projectID string, credentialsFile string) (*GCSStorage, error) {
+	var client *storage.Client
+	var err error
+
+	if credentialsFile != "" {
+		// Use service account key file (local development)
+		client, err = storage.NewClient(ctx, option.WithCredentialsFile(credentialsFile))
+	} else {
+		// Use default credentials (Workload Identity in Cloud Run)
+		client, err = storage.NewClient(ctx)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCS client: %w", err)
+	}
+
+	return &GCSStorage{
+		client:     client,
+		bucketName: bucketName,
+		projectID:  projectID,
+	}, nil
+}
+
+// Upload saves a file to GCS with UUID prefix
+func (s *GCSStorage) Upload(ctx context.Context, path string, filename string, reader io.Reader, storageType StorageType) (string, error) {
+	// Generate UUID-prefixed filename to avoid collisions
+	uuidFilename := uuid.New().String() + "_" + filename
+	objectPath := path + "/" + uuidFilename
+
+	bucket := s.client.Bucket(s.bucketName)
+	obj := bucket.Object(objectPath)
+	writer := obj.NewWriter(ctx)
+
+	// Set metadata
+	writer.Metadata = map[string]string{
+		"original-filename": filename,
+	}
+
+	// Set cache headers for public files
+	if storageType == StorageTypePublic {
+		writer.CacheControl = "public, max-age=31536000" // 1 year
+	}
+
+	// Copy file data to GCS
+	if _, err := io.Copy(writer, reader); err != nil {
+		writer.Close()
+		return "", fmt.Errorf("failed to write file to GCS: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return "", fmt.Errorf("failed to close GCS writer: %w", err)
+	}
+
+	// Set ACL for public files
+	if storageType == StorageTypePublic {
+		acl := obj.ACL()
+		if err := acl.Set(ctx, storage.AllUsers, storage.RoleReader); err != nil {
+			log.Printf("Warning: failed to set public ACL for %s: %v", objectPath, err)
+			// Don't fail upload if ACL fails, just log warning
+		}
+	}
+
+	// Return public URL for public files, GCS path for private files
+	if storageType == StorageTypePublic {
+		return s.GetPublicURL(objectPath), nil
+	}
+
+	return objectPath, nil
+}
+
+// Delete removes a file from GCS
+func (s *GCSStorage) Delete(ctx context.Context, path string) error {
+	bucket := s.client.Bucket(s.bucketName)
+	obj := bucket.Object(path)
+
+	if err := obj.Delete(ctx); err != nil {
+		return fmt.Errorf("failed to delete file from GCS: %w", err)
+	}
+
+	return nil
+}
+
+// GetSignedURL generates a temporary signed URL for private files (1-hour expiration)
+func (s *GCSStorage) GetSignedURL(ctx context.Context, path string) (string, error) {
+	opts := &storage.SignedURLOptions{
+		Scheme:  storage.SigningSchemeV4,
+		Method:  "GET",
+		Expires: time.Now().Add(1 * time.Hour),
+	}
+
+	url, err := storage.SignedURL(s.bucketName, path, opts)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate signed URL: %w", err)
+	}
+
+	return url, nil
+}
+
+// GetPublicURL returns the public URL for a file in GCS
+func (s *GCSStorage) GetPublicURL(path string) string {
+	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.bucketName, path)
+}
+
+// LocalStorage implements Storage interface using local filesystem (for development)
+type LocalStorage struct {
 	basePath string
 	baseURL  string
 }
 
-// NewLocalStorage creates a local filesystem storage rooted at basePath.
-// baseURL is the public URL prefix used when returning file URLs
-// (e.g. "http://localhost:8080/uploads").
-func NewLocalStorage(basePath, baseURL string) *Storage {
+// NewLocalStorage creates a local filesystem storage rooted at basePath
+func NewLocalStorage(basePath, baseURL string) *LocalStorage {
 	if err := os.MkdirAll(basePath, 0755); err != nil {
 		log.Fatalf("Failed to create storage directory: %v", err)
 	}
-	return &Storage{basePath: basePath, baseURL: baseURL}
+	return &LocalStorage{basePath: basePath, baseURL: baseURL}
 }
 
-// Upload saves a file to local storage under basePath/subdir with a UUID-prefixed
-// filename to avoid collisions. It returns the full public URL of the stored file.
-func (s *Storage) Upload(ctx context.Context, subdir, filename string, reader io.Reader) (string, error) {
-	dir := filepath.Join(s.basePath, subdir)
+// Upload saves a file to local storage with UUID prefix
+func (s *LocalStorage) Upload(ctx context.Context, path string, filename string, reader io.Reader, storageType StorageType) (string, error) {
+	dir := filepath.Join(s.basePath, path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create subdirectory: %w", err)
 	}
 
 	uuidFilename := uuid.New().String() + "_" + filename
-	path := filepath.Join(dir, uuidFilename)
+	filePath := filepath.Join(dir, uuidFilename)
 
-	file, err := os.Create(path)
+	file, err := os.Create(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file: %w", err)
 	}
@@ -48,17 +182,27 @@ func (s *Storage) Upload(ctx context.Context, subdir, filename string, reader io
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
-	url := s.baseURL + "/" + subdir + "/" + uuidFilename
+	url := s.baseURL + "/" + path + "/" + uuidFilename
 	return url, nil
 }
 
-// Delete removes a file from local storage. relativePath is the portion after
-// the baseURL (e.g. "companies/uuid123/abc_photo.jpg").
-func (s *Storage) Delete(ctx context.Context, relativePath string) error {
-	path := filepath.Join(s.basePath, relativePath)
+// Delete removes a file from local storage
+func (s *LocalStorage) Delete(ctx context.Context, path string) error {
+	fullPath := filepath.Join(s.basePath, path)
 
-	if err := os.Remove(path); err != nil {
+	if err := os.Remove(fullPath); err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
+
 	return nil
+}
+
+// GetSignedURL returns the same URL (no signing for local storage)
+func (s *LocalStorage) GetSignedURL(ctx context.Context, path string) (string, error) {
+	return s.baseURL + "/" + path, nil
+}
+
+// GetPublicURL returns the public URL for a local file
+func (s *LocalStorage) GetPublicURL(path string) string {
+	return s.baseURL + "/" + path
 }

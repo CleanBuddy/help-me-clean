@@ -52,3 +52,6 @@ UPDATE users SET role = $2, updated_at = NOW() WHERE id = $1 RETURNING *;
 
 -- name: AdminUpdateUserProfile :one
 UPDATE users SET full_name = $2, phone = $3, updated_at = NOW() WHERE id = $1 RETURNING *;
+
+-- name: UpdateUserAvatar :one
+UPDATE users SET avatar_url = $2, updated_at = NOW() WHERE id = $1 RETURNING *;

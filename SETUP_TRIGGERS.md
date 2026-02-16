@@ -1,243 +1,309 @@
-# Set Up Cloud Build Triggers - Step by Step
+# Cloud Build Triggers Setup - Path-Based Filtering
 
-## ✅ Prerequisites Done
-- ✅ Development branch created and pushed
-- ✅ Main branch updated with deployment configs
-- ✅ All secrets uploaded to GCP
-
-## 📋 Steps to Enable Auto-Deploy
-
-### Option 1: Web Console (Recommended - 5 minutes)
-
-#### Step 1: Connect GitHub Repository
-
-1. Open: https://console.cloud.google.com/cloud-build/triggers?project=help-me-clean-486919
-2. Click **"Connect Repository"**
-3. Select **"GitHub (Cloud Build GitHub App)"**
-4. Click **"Continue"**
-5. Authenticate with GitHub (if needed)
-6. Select repository: **CleanBuddy/help-me-clean**
-7. Check the box to agree to terms
-8. Click **"Connect"**
-
-#### Step 2: Create Development Trigger
-
-1. Click **"Create Trigger"**
-2. Fill in:
-   - **Name:** `deploy-backend-dev`
-   - **Description:** `Auto-deploy backend to dev on push to development branch`
-   - **Region:** `europe-west1`
-   - **Event:** Push to a branch
-   - **Source → Repository:** `CleanBuddy/help-me-clean (GitHub App)`
-   - **Source → Branch:** `^development$` (regex pattern)
-   - **Configuration:**
-     - Type: `Cloud Build configuration file (yaml or json)`
-     - Location: `backend/cloudbuild.yaml`
-3. Click **"Create"**
-
-#### Step 3: Create Production Trigger
-
-1. Click **"Create Trigger"** again
-2. Fill in:
-   - **Name:** `deploy-backend-prod`
-   - **Description:** `Auto-deploy backend to prod on push to main branch`
-   - **Region:** `europe-west1`
-   - **Event:** Push to a branch
-   - **Source → Repository:** `CleanBuddy/help-me-clean (GitHub App)`
-   - **Source → Branch:** `^main$` (regex pattern)
-   - **Configuration:**
-     - Type: `Cloud Build configuration file (yaml or json)`
-     - Location: `backend/cloudbuild-prod.yaml`
-3. Click **"Create"**
+This guide shows how to set up Cloud Build triggers that only run when backend files change.
 
 ---
 
-### Option 2: Command Line (After GitHub is Connected)
+## 🎯 Problem
 
-Once you've connected the repository via the web console, you can create triggers via CLI:
+Currently, ANY push triggers Cloud Build, even frontend-only changes. This wastes build time and resources.
+
+## ✅ Solution
+
+Configure triggers with `includedFiles` patterns to only watch the `backend/` directory.
+
+---
+
+## 🚀 Setup via gcloud CLI (Recommended)
+
+### Step 1: Connect GitHub Repository
 
 ```bash
-# Get the repository resource name first
-REPO_NAME=$(gcloud builds repositories list \
-  --connection=CleanBuddy-help-me-clean \
-  --region=europe-west1 \
+# Check if repository is already connected
+gcloud builds repositories list \
   --project=help-me-clean-486919 \
-  --format='value(name)' 2>/dev/null || echo "")
-
-# Create dev trigger
-gcloud builds triggers create github \
-  --name=deploy-backend-dev \
-  --description="Auto-deploy backend to dev on push to development branch" \
-  --region=europe-west1 \
-  --repo-name=CleanBuddy/help-me-clean \
-  --repo-owner=CleanBuddy \
-  --branch-pattern=^development$ \
-  --build-config=backend/cloudbuild.yaml \
-  --project=help-me-clean-486919
-
-# Create prod trigger
-gcloud builds triggers create github \
-  --name=deploy-backend-prod \
-  --description="Auto-deploy backend to prod on push to main branch" \
-  --region=europe-west1 \
-  --repo-name=CleanBuddy/help-me-clean \
-  --repo-owner=CleanBuddy \
-  --branch-pattern=^main$ \
-  --build-config=backend/cloudbuild-prod.yaml \
-  --project=help-me-clean-486919
+  --region=europe-central2
 ```
 
----
+If not connected, connect via Cloud Console:
+https://console.cloud.google.com/cloud-build/triggers/connect?project=help-me-clean-486919
 
-## 🧪 Test the Auto-Deploy
+1. Click "Connect Repository"
+2. Select GitHub
+3. Authenticate and select: **CleanBuddy/help-me-clean**
+4. Click "Connect"
 
-### Test Development Deploy
+### Step 2: Create Development Trigger
 
 ```bash
-# Make a small change
-git checkout development
-echo "# Test deployment" >> backend/README_GCP.md
-git add backend/README_GCP.md
-git commit -m "test: trigger dev deployment"
-git push origin development
+gcloud builds triggers create github \
+  --name="backend-dev-trigger" \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --repo-name="help-me-clean" \
+  --repo-owner="CleanBuddy" \
+  --branch-pattern="^development$" \
+  --build-config="backend/cloudbuild.yaml" \
+  --included-files="backend/**" \
+  --description="Deploy backend to dev environment (triggers only on backend/ changes)"
 ```
 
-**Watch the build:**
-https://console.cloud.google.com/cloud-build/builds?project=help-me-clean-486919
+**Key flags:**
+- `--branch-pattern="^development$"` - Only the development branch
+- `--build-config="backend/cloudbuild.yaml"` - Path to build config
+- `--included-files="backend/**"` - **ONLY trigger on backend/ changes**
 
-### Test Production Deploy
+### Step 3: Create Production Trigger
 
 ```bash
-# Merge to main
-git checkout main
-git merge development
-git push origin main
+gcloud builds triggers create github \
+  --name="backend-prod-trigger" \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --repo-name="help-me-clean" \
+  --repo-owner="CleanBuddy" \
+  --branch-pattern="^main$" \
+  --build-config="backend/cloudbuild-prod.yaml" \
+  --included-files="backend/**" \
+  --description="Deploy backend to prod environment (triggers only on backend/ changes)"
 ```
 
-**Watch the build:**
-https://console.cloud.google.com/cloud-build/builds?project=help-me-clean-486919
-
----
-
-## 🔍 Verify Triggers Are Set Up
+### Step 4: Verify Triggers
 
 ```bash
 # List all triggers
 gcloud builds triggers list \
-  --region=europe-west1 \
-  --project=help-me-clean-486919
-```
+  --project=help-me-clean-486919 \
+  --region=europe-central2
 
-Expected output:
-```
-NAME                  REGION         TRIGGER_TYPE  SOURCE_REPO              BRANCH_PATTERN
-deploy-backend-dev    europe-west1   GITHUB        CleanBuddy/help-me-clean ^development$
-deploy-backend-prod   europe-west1   GITHUB        CleanBuddy/help-me-clean ^main$
+# Describe specific trigger
+gcloud builds triggers describe backend-dev-trigger \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --format=yaml
 ```
 
 ---
 
-## 📊 Monitor Deployments
+## 🌐 Setup via Cloud Console (Alternative)
 
-### Cloud Build Dashboard
-https://console.cloud.google.com/cloud-build/builds?project=help-me-clean-486919
+### Step 1: Go to Cloud Build Triggers
 
-### Cloud Run Services
-- Dev: https://console.cloud.google.com/run/detail/europe-west1/helpmeclean-backend-dev?project=help-me-clean-486919
-- Prod: https://console.cloud.google.com/run/detail/europe-west1/helpmeclean-backend-prod?project=help-me-clean-486919
+Open: https://console.cloud.google.com/cloud-build/triggers?project=help-me-clean-486919
 
-### Logs
+### Step 2: Connect Repository
+
+1. Click **"Connect Repository"**
+2. Select **GitHub**
+3. Authenticate and select **CleanBuddy/help-me-clean**
+4. Click **"Connect"**
+
+### Step 3: Create Development Trigger
+
+1. Click **"Create Trigger"**
+2. Configure:
+   ```
+   Name:              backend-dev-trigger
+   Description:       Deploy backend to dev (triggers only on backend/ changes)
+
+   Event:             Push to a branch
+   Repository:        CleanBuddy/help-me-clean
+   Branch:            ^development$
+
+   Configuration:     Cloud Build configuration file (yaml or json)
+   Location:          backend/cloudbuild.yaml
+
+   Filters (IMPORTANT):
+   ✓ Included files:  backend/**
+   ```
+3. Click **"Create"**
+
+### Step 4: Create Production Trigger
+
+Same steps, but use:
+```
+Name:              backend-prod-trigger
+Branch:            ^main$
+Location:          backend/cloudbuild-prod.yaml
+Included files:    backend/**
+```
+
+---
+
+## 🧪 Testing
+
+### Test 1: Frontend Change (Should NOT Trigger)
+
 ```bash
-# View Cloud Build logs
-gcloud builds log <BUILD_ID> --project=help-me-clean-486919
+# Make a frontend-only change
+cd web/packages/client-web
+echo "// test" >> src/App.tsx
 
-# View Cloud Run logs (dev)
-gcloud run services logs read helpmeclean-backend-dev \
-  --region=europe-west1 \
-  --project=help-me-clean-486919
+git add .
+git commit -m "test: frontend only change"
+git push origin development
 
-# View Cloud Run logs (prod)
-gcloud run services logs read helpmeclean-backend-prod \
-  --region=europe-west1 \
-  --project=help-me-clean-486919
+# Check Cloud Build - should NOT trigger a build
+# URL: https://console.cloud.google.com/cloud-build/builds?project=help-me-clean-486919
 ```
 
----
+**Expected:** No backend build triggered
 
-## 🎯 Workflow After Setup
+### Test 2: Backend Change (Should Trigger)
 
-```
-┌─────────────────────────────────────────────────┐
-│  Development Workflow                           │
-└─────────────────────────────────────────────────┘
-
-1. Work on features in development branch
-   → git checkout development
-   → make changes
-   → git commit -m "feat: new feature"
-   → git push origin development
-
-2. Cloud Build automatically:
-   → Builds Docker image
-   → Pushes to Artifact Registry
-   → Deploys to helpmeclean-backend-dev
-
-3. Test on dev backend:
-   → https://helpmeclean-backend-dev-hkunbdxbkq-ew.a.run.app
-
-4. When ready for production:
-   → git checkout main
-   → git merge development
-   → git push origin main
-
-5. Cloud Build automatically:
-   → Builds Docker image
-   → Pushes to Artifact Registry
-   → Deploys to helpmeclean-backend-prod
-```
-
----
-
-## 🚨 Troubleshooting
-
-### Trigger not firing?
-
-1. Check webhook is installed:
-   - Go to GitHub repo → Settings → Webhooks
-   - Should see Cloud Build webhook
-
-2. Check trigger configuration:
-   - Branch pattern matches your branch name
-   - Config file path is correct
-
-3. Check build history:
-   - https://console.cloud.google.com/cloud-build/builds?project=help-me-clean-486919
-   - Look for failed or skipped builds
-
-### Build failing?
-
-Check the logs:
 ```bash
-# Get latest build ID
-BUILD_ID=$(gcloud builds list --limit=1 --format='value(id)' --project=help-me-clean-486919)
+# Make a backend change
+cd backend
+echo "// test" >> cmd/server/main.go
 
-# View logs
-gcloud builds log $BUILD_ID --project=help-me-clean-486919
+git add .
+git commit -m "test: backend change"
+git push origin development
+
+# Check Cloud Build - SHOULD trigger a build
 ```
 
-Common issues:
-- Secrets not accessible → Check IAM permissions
-- Docker build fails → Check Dockerfile syntax
-- Deploy fails → Check Cloud Run quotas
+**Expected:** Backend build triggered, deploys to helpmeclean-backend-dev
+
+### Test 3: Both Changes (Should Trigger)
+
+```bash
+# Make changes to both
+echo "// test" >> backend/cmd/server/main.go
+echo "// test" >> web/packages/client-web/src/App.tsx
+
+git add .
+git commit -m "test: both frontend and backend changes"
+git push origin development
+
+# Check Cloud Build - SHOULD trigger (because backend/ changed)
+```
+
+**Expected:** Backend build triggered (includedFiles matches backend/**)
 
 ---
 
-## ✅ Next Steps After Triggers Are Set Up
+## 📊 Monitor Builds
 
-1. ✅ Test dev deployment by pushing to development
-2. ✅ Test prod deployment by pushing to main
-3. ✅ Update frontend `.env` files with backend URLs
-4. ✅ Set up Stripe webhooks with your Cloud Run URLs
-5. ✅ Monitor logs and metrics
+### View Trigger History
 
-Your backend will now auto-deploy on every push! 🎉
+```bash
+# List recent builds for a trigger
+gcloud builds list \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --filter="trigger_id=backend-dev-trigger" \
+  --limit=10
+```
+
+### View Build Logs
+
+Cloud Console: https://console.cloud.google.com/cloud-build/builds?project=help-me-clean-486919
+
+---
+
+## 🔧 Update Existing Triggers
+
+If you already have triggers set up without path filtering:
+
+```bash
+# Update development trigger
+gcloud builds triggers update backend-dev-trigger \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --included-files="backend/**"
+
+# Update production trigger
+gcloud builds triggers update backend-prod-trigger \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --included-files="backend/**"
+```
+
+---
+
+## 🗑️ Delete Triggers (If Needed)
+
+```bash
+# Delete development trigger
+gcloud builds triggers delete backend-dev-trigger \
+  --project=help-me-clean-486919 \
+  --region=europe-central2
+
+# Delete production trigger
+gcloud builds triggers delete backend-prod-trigger \
+  --project=help-me-clean-486919 \
+  --region=europe-central2
+```
+
+---
+
+## 📋 Pattern Syntax
+
+The `includedFiles` pattern uses glob syntax:
+
+| Pattern | Matches |
+|---------|---------|
+| `backend/**` | All files in backend/ (any depth) |
+| `backend/*.go` | Only .go files in backend/ root |
+| `backend/**/*.go` | All .go files in backend/ (any depth) |
+| `*.md` | All .md files in repo root |
+
+You can also use `ignoredFiles` to exclude files:
+
+```bash
+--ignored-files="**/*.md,**/*.txt"
+```
+
+---
+
+## ⚠️ Important Notes
+
+1. **GitHub Connection Required**: You must connect your GitHub repository first
+2. **Path Relative to Root**: Patterns are relative to repository root
+3. **Multiple Patterns**: Use comma-separated list: `"backend/**,Dockerfile"`
+4. **Regex Branch Names**: Use `^main$` not just `main` to avoid matching `main-test`
+5. **Regional Triggers**: Must match Cloud Run region (europe-central2)
+
+---
+
+## ✅ Benefits
+
+After setup:
+- ✅ Frontend changes don't trigger backend builds
+- ✅ Saves build minutes and time
+- ✅ Faster development workflow
+- ✅ Clearer build history (only relevant builds)
+- ✅ Backend changes still auto-deploy
+
+---
+
+## 🔄 Rollback Plan
+
+If path filtering causes issues:
+
+```bash
+# Remove filtering (triggers on all changes again)
+gcloud builds triggers update backend-dev-trigger \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --clear-included-files
+
+gcloud builds triggers update backend-prod-trigger \
+  --project=help-me-clean-486919 \
+  --region=europe-central2 \
+  --clear-included-files
+```
+
+---
+
+## 🎉 Result
+
+Now you can work on frontend code without triggering unnecessary backend builds!
+
+```
+Push to development → frontend change only → ✅ No backend build
+Push to development → backend change → ✅ Backend build triggered
+Push to main → frontend change only → ✅ No backend build
+Push to main → backend change → ✅ Backend build triggered
+```

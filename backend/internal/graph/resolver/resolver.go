@@ -23,7 +23,7 @@ type Resolver struct {
 	PubSub         *pubsub.PubSub
 	PaymentService *payment.Service
 	InvoiceService *invoice.Service
-	Storage        *storage.Storage
+	Storage        storage.Storage
 }
 
 // cleanerWithCompany loads a cleaner's company and documents, returns the full CleanerProfile.

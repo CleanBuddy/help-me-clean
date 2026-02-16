@@ -102,6 +102,7 @@ extend type Mutation {
   updateAvailability(slots: [AvailabilitySlotInput!]!): [AvailabilitySlot!]!
   updateCleanerAvailability(cleanerId: ID!, slots: [AvailabilitySlotInput!]!): [AvailabilitySlot!]!
   updateCleanerProfile(input: UpdateCleanerProfileInput!): CleanerProfile!
+  uploadCleanerAvatar(cleanerId: ID!, file: Upload!): CleanerProfile!
   setCleanerDateOverride(date: String!, isAvailable: Boolean!, startTime: String!, endTime: String!): CleanerDateOverride!
   setCleanerDateOverrideByAdmin(cleanerId: ID!, date: String!, isAvailable: Boolean!, startTime: String!, endTime: String!): CleanerDateOverride!
   uploadCleanerDocument(cleanerId: ID!, documentType: String!, file: Upload!): CleanerDocument!

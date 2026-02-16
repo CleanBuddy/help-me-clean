@@ -3030,3 +3030,38 @@ export const SUBMIT_PERSONALITY_ASSESSMENT = gql`
     }
   }
 `;
+
+// ========================================
+// Avatar/Logo Upload Mutations
+// ========================================
+
+export const UPLOAD_AVATAR = gql`
+  mutation UploadAvatar($file: Upload!) {
+    uploadAvatar(file: $file) {
+      id
+      avatarUrl
+      fullName
+      email
+    }
+  }
+`;
+
+export const UPLOAD_COMPANY_LOGO = gql`
+  mutation UploadCompanyLogo($file: Upload!) {
+    uploadCompanyLogo(file: $file) {
+      id
+      logoUrl
+      companyName
+    }
+  }
+`;
+
+export const UPLOAD_CLEANER_AVATAR = gql`
+  mutation UploadCleanerAvatar($cleanerId: ID!, $file: Upload!) {
+    uploadCleanerAvatar(cleanerId: $cleanerId, file: $file) {
+      id
+      avatarUrl
+      fullName
+    }
+  }
+`;

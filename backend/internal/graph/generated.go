@@ -534,8 +534,11 @@ type ComplexityRoot struct {
 		UpdateServiceDefinition       func(childComplexity int, input model.UpdateServiceDefinitionInput) int
 		UpdateServiceExtra            func(childComplexity int, input model.UpdateServiceExtraInput) int
 		UpdateUserRole                func(childComplexity int, userID string, role model.UserRole) int
+		UploadAvatar                  func(childComplexity int, file graphql.Upload) int
+		UploadCleanerAvatar           func(childComplexity int, cleanerID string, file graphql.Upload) int
 		UploadCleanerDocument         func(childComplexity int, cleanerID string, documentType string, file graphql.Upload) int
 		UploadCompanyDocument         func(childComplexity int, companyID string, documentType string, file graphql.Upload) int
+		UploadCompanyLogo             func(childComplexity int, file graphql.Upload) int
 		UploadFile                    func(childComplexity int, file graphql.Upload, purpose string) int
 		UpsertBillingProfile          func(childComplexity int, input model.BillingProfileInput) int
 	}
@@ -960,6 +963,7 @@ type MutationResolver interface {
 	UpdateAvailability(ctx context.Context, slots []*model.AvailabilitySlotInput) ([]*model.AvailabilitySlot, error)
 	UpdateCleanerAvailability(ctx context.Context, cleanerID string, slots []*model.AvailabilitySlotInput) ([]*model.AvailabilitySlot, error)
 	UpdateCleanerProfile(ctx context.Context, input model.UpdateCleanerProfileInput) (*model.CleanerProfile, error)
+	UploadCleanerAvatar(ctx context.Context, cleanerID string, file graphql.Upload) (*model.CleanerProfile, error)
 	SetCleanerDateOverride(ctx context.Context, date string, isAvailable bool, startTime string, endTime string) (*model.CleanerDateOverride, error)
 	SetCleanerDateOverrideByAdmin(ctx context.Context, cleanerID string, date string, isAvailable bool, startTime string, endTime string) (*model.CleanerDateOverride, error)
 	UploadCleanerDocument(ctx context.Context, cleanerID string, documentType string, file graphql.Upload) (*model.CleanerDocument, error)
@@ -975,6 +979,7 @@ type MutationResolver interface {
 	ApplyAsCompany(ctx context.Context, input model.CompanyApplicationInput) (*model.CompanyApplicationResult, error)
 	ClaimCompany(ctx context.Context, claimToken string) (*model.Company, error)
 	UpdateCompanyProfile(ctx context.Context, input model.UpdateCompanyInput) (*model.Company, error)
+	UploadCompanyLogo(ctx context.Context, file graphql.Upload) (*model.Company, error)
 	UploadCompanyDocument(ctx context.Context, companyID string, documentType string, file graphql.Upload) (*model.CompanyDocument, error)
 	DeleteCompanyDocument(ctx context.Context, id string) (bool, error)
 	ApproveCompany(ctx context.Context, id string) (*model.Company, error)
@@ -1016,6 +1021,7 @@ type MutationResolver interface {
 	CreateServiceExtra(ctx context.Context, input model.CreateServiceExtraInput) (*model.ServiceExtra, error)
 	UpdatePlatformSetting(ctx context.Context, key string, value string) (*model.PlatformSetting, error)
 	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*model.User, error)
+	UploadAvatar(ctx context.Context, file graphql.Upload) (*model.User, error)
 	UpdateUserRole(ctx context.Context, userID string, role model.UserRole) (*model.User, error)
 	AdminUpdateUserProfile(ctx context.Context, userID string, fullName string, phone *string) (*model.User, error)
 }
@@ -3728,6 +3734,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateUserRole(childComplexity, args["userId"].(string), args["role"].(model.UserRole)), true
+	case "Mutation.uploadAvatar":
+		if e.complexity.Mutation.UploadAvatar == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_uploadAvatar_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UploadAvatar(childComplexity, args["file"].(graphql.Upload)), true
+	case "Mutation.uploadCleanerAvatar":
+		if e.complexity.Mutation.UploadCleanerAvatar == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_uploadCleanerAvatar_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UploadCleanerAvatar(childComplexity, args["cleanerId"].(string), args["file"].(graphql.Upload)), true
 	case "Mutation.uploadCleanerDocument":
 		if e.complexity.Mutation.UploadCleanerDocument == nil {
 			break
@@ -3750,6 +3778,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UploadCompanyDocument(childComplexity, args["companyId"].(string), args["documentType"].(string), args["file"].(graphql.Upload)), true
+	case "Mutation.uploadCompanyLogo":
+		if e.complexity.Mutation.UploadCompanyLogo == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_uploadCompanyLogo_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UploadCompanyLogo(childComplexity, args["file"].(graphql.Upload)), true
 	case "Mutation.uploadFile":
 		if e.complexity.Mutation.UploadFile == nil {
 			break
@@ -7070,6 +7109,33 @@ func (ec *executionContext) field_Mutation_updateUserRole_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_uploadAvatar_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file", ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload)
+	if err != nil {
+		return nil, err
+	}
+	args["file"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_uploadCleanerAvatar_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "file", ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload)
+	if err != nil {
+		return nil, err
+	}
+	args["file"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_uploadCleanerDocument_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7109,6 +7175,17 @@ func (ec *executionContext) field_Mutation_uploadCompanyDocument_args(ctx contex
 		return nil, err
 	}
 	args["file"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_uploadCompanyLogo_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file", ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload)
+	if err != nil {
+		return nil, err
+	}
+	args["file"] = arg0
 	return args, nil
 }
 
@@ -19516,6 +19593,85 @@ func (ec *executionContext) fieldContext_Mutation_updateCleanerProfile(ctx conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_uploadCleanerAvatar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_uploadCleanerAvatar,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UploadCleanerAvatar(ctx, fc.Args["cleanerId"].(string), fc.Args["file"].(graphql.Upload))
+		},
+		nil,
+		ec.marshalNCleanerProfile2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerProfile,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_uploadCleanerAvatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerProfile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_CleanerProfile_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_CleanerProfile_user(ctx, field)
+			case "company":
+				return ec.fieldContext_CleanerProfile_company(ctx, field)
+			case "fullName":
+				return ec.fieldContext_CleanerProfile_fullName(ctx, field)
+			case "phone":
+				return ec.fieldContext_CleanerProfile_phone(ctx, field)
+			case "email":
+				return ec.fieldContext_CleanerProfile_email(ctx, field)
+			case "bio":
+				return ec.fieldContext_CleanerProfile_bio(ctx, field)
+			case "avatarUrl":
+				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerProfile_status(ctx, field)
+			case "isCompanyAdmin":
+				return ec.fieldContext_CleanerProfile_isCompanyAdmin(ctx, field)
+			case "inviteToken":
+				return ec.fieldContext_CleanerProfile_inviteToken(ctx, field)
+			case "ratingAvg":
+				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
+			case "totalJobsCompleted":
+				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
+			case "availability":
+				return ec.fieldContext_CleanerProfile_availability(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_CleanerProfile_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerProfile", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_uploadCleanerAvatar_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_setCleanerDateOverride(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -20411,6 +20567,91 @@ func (ec *executionContext) fieldContext_Mutation_updateCompanyProfile(ctx conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateCompanyProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_uploadCompanyLogo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_uploadCompanyLogo,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UploadCompanyLogo(ctx, fc.Args["file"].(graphql.Upload))
+		},
+		nil,
+		ec.marshalNCompany2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCompany,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_uploadCompanyLogo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Company_id(ctx, field)
+			case "companyName":
+				return ec.fieldContext_Company_companyName(ctx, field)
+			case "cui":
+				return ec.fieldContext_Company_cui(ctx, field)
+			case "companyType":
+				return ec.fieldContext_Company_companyType(ctx, field)
+			case "legalRepresentative":
+				return ec.fieldContext_Company_legalRepresentative(ctx, field)
+			case "contactEmail":
+				return ec.fieldContext_Company_contactEmail(ctx, field)
+			case "contactPhone":
+				return ec.fieldContext_Company_contactPhone(ctx, field)
+			case "address":
+				return ec.fieldContext_Company_address(ctx, field)
+			case "city":
+				return ec.fieldContext_Company_city(ctx, field)
+			case "county":
+				return ec.fieldContext_Company_county(ctx, field)
+			case "description":
+				return ec.fieldContext_Company_description(ctx, field)
+			case "logoUrl":
+				return ec.fieldContext_Company_logoUrl(ctx, field)
+			case "status":
+				return ec.fieldContext_Company_status(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_Company_rejectionReason(ctx, field)
+			case "maxServiceRadiusKm":
+				return ec.fieldContext_Company_maxServiceRadiusKm(ctx, field)
+			case "ratingAvg":
+				return ec.fieldContext_Company_ratingAvg(ctx, field)
+			case "totalJobsCompleted":
+				return ec.fieldContext_Company_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_Company_documents(ctx, field)
+			case "cleaners":
+				return ec.fieldContext_Company_cleaners(ctx, field)
+			case "admin":
+				return ec.fieldContext_Company_admin(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Company_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Company", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_uploadCompanyLogo_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -23056,6 +23297,67 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_uploadAvatar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_uploadAvatar,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UploadAvatar(ctx, fc.Args["file"].(graphql.Upload))
+		},
+		nil,
+		ec.marshalNUser2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_uploadAvatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "fullName":
+				return ec.fieldContext_User_fullName(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarUrl":
+				return ec.fieldContext_User_avatarUrl(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "status":
+				return ec.fieldContext_User_status(ctx, field)
+			case "preferredLanguage":
+				return ec.fieldContext_User_preferredLanguage(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_uploadAvatar_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -40751,6 +41053,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "uploadCleanerAvatar":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_uploadCleanerAvatar(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "setCleanerDateOverride":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_setCleanerDateOverride(ctx, field)
@@ -40852,6 +41161,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateCompanyProfile":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateCompanyProfile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "uploadCompanyLogo":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_uploadCompanyLogo(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -41139,6 +41455,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateProfile":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateProfile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "uploadAvatar":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_uploadAvatar(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

@@ -13,6 +13,7 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"helpmeclean-backend/internal/storage"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -141,6 +142,50 @@ func (r *mutationResolver) UpdateCompanyProfile(ctx context.Context, input model
 	return dbCompanyToGQL(updated), nil
 }
 
+// UploadCompanyLogo is the resolver for the uploadCompanyLogo field.
+func (r *mutationResolver) UploadCompanyLogo(ctx context.Context, file graphql.Upload) (*model.Company, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Get company for this admin user
+	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+	if err != nil {
+		return nil, fmt.Errorf("company not found: %w", err)
+	}
+
+	// Validate file type (images only)
+	if !isImageFile(file.Filename) {
+		return nil, fmt.Errorf("doar imagini sunt permise (jpg, png, webp)")
+	}
+
+	// Validate file size (max 10MB)
+	if file.Size > 10*1024*1024 {
+		return nil, fmt.Errorf("fisierul depaseste limita de 10MB")
+	}
+
+	// Build GCS path: uploads/companies/{companyId}/logos
+	path := fmt.Sprintf("uploads/companies/%s/logos", uuidToString(company.ID))
+
+	// Upload to GCS with public access
+	logoURL, err := r.Storage.Upload(ctx, path, file.Filename, file.File, storage.StorageTypePublic)
+	if err != nil {
+		return nil, fmt.Errorf("eroare la incarcarea logo-ului: %w", err)
+	}
+
+	// Update company logo in DB
+	updated, err := r.Queries.UpdateCompanyLogo(ctx, db.UpdateCompanyLogoParams{
+		ID:      company.ID,
+		LogoUrl: stringToText(&logoURL),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update logo: %w", err)
+	}
+
+	return dbCompanyToGQL(updated), nil
+}
+
 // UploadCompanyDocument is the resolver for the uploadCompanyDocument field.
 func (r *mutationResolver) UploadCompanyDocument(ctx context.Context, companyID string, documentType string, file graphql.Upload) (*model.CompanyDocument, error) {
 	claims := auth.GetUserFromContext(ctx)
@@ -148,8 +193,8 @@ func (r *mutationResolver) UploadCompanyDocument(ctx context.Context, companyID 
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	subdir := fmt.Sprintf("companies/%s", companyID)
-	fileURL, err := r.Storage.Upload(ctx, subdir, file.Filename, file.File)
+	path := fmt.Sprintf("uploads/companies/%s/documents", companyID)
+	fileURL, err := r.Storage.Upload(ctx, path, file.Filename, file.File, storage.StorageTypePrivate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload file: %w", err)
 	}
