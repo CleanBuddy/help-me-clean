@@ -29,23 +29,29 @@ Output Directory: dist
 Install Command:  npm install
 ```
 
-### Step 4: Add Environment Variables
+### Step 4: Add Environment Variables (IMPORTANT!)
 
-Click **"Environment Variables"** and add:
+Click **"Environment Variables"** and add these for **EACH** environment:
 
-#### Development Environment
+#### For Preview (development branch)
+Add these variables and select **"Preview"** environment:
+
 ```
 VITE_GRAPHQL_ENDPOINT=https://helpmeclean-backend-dev-hkunbdxbkq-lm.a.run.app/graphql
 VITE_GOOGLE_CLIENT_ID=794597417467-hks5884pvd1ihthpoid6ad0nasanm459.apps.googleusercontent.com
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_51SzzgVAjjzKXeJfowxwRwJ6Pdt7VDf4E2XUqT69Fwo2li16by4RbGYMMp4KsiR46VmI7B2etnGS7rYesgtLHoj1M007Tomkwhv
 ```
 
-#### Production Environment
+#### For Production (main branch)
+Add these variables and select **"Production"** environment:
+
 ```
 VITE_GRAPHQL_ENDPOINT=https://helpmeclean-backend-prod-XXXXXXXXXX-lm.a.run.app/graphql
 VITE_GOOGLE_CLIENT_ID=794597417467-hks5884pvd1ihthpoid6ad0nasanm459.apps.googleusercontent.com
 VITE_STRIPE_PUBLISHABLE_KEY=pk_live_xxx
 ```
+
+**⚠️ IMPORTANT:** Make sure to select the correct environment for each variable!
 
 ### Step 5: Deploy!
 
@@ -72,21 +78,38 @@ https://helpmeclean.ro
 
 ---
 
-## 🔄 Automated Deployments
+## 🔄 Automated Branch-Based Deployments
 
-After initial setup:
+**IMPORTANT:** Vercel automatically deploys based on branches!
 
+### Development Branch → Preview Environment
 ```bash
-# Deploy to preview
+git checkout development
+git add .
+git commit -m "feat: new feature"
 git push origin development
-# → Auto-deploys to preview URL
+# → Deploys to: https://helpmeclean-git-development-cleanbuddy.vercel.app
+# → Uses: Dev backend (europe-central2)
+# → Environment: Preview
+```
 
-# Deploy to production
+### Main Branch → Production Environment
+```bash
 git checkout main
 git merge development
 git push origin main
-# → Auto-deploys to production URL
+# → Deploys to: https://helpmeclean.vercel.app
+# → Uses: Prod backend (europe-central2)
+# → Environment: Production
 ```
+
+### Branch → Environment Mapping
+
+| Git Branch | Vercel Environment | Backend | URL |
+|------------|-------------------|---------|-----|
+| `development` | Preview | Dev (test Stripe) | `*-git-development-*.vercel.app` |
+| `main` | Production | Prod (live Stripe) | `helpmeclean.vercel.app` |
+| Other branches | Preview | Dev | `*-git-branch-*.vercel.app` |
 
 ---
 
