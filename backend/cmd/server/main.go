@@ -93,7 +93,7 @@ func main() {
 
 	if useLocalStorage {
 		// Local filesystem storage (development mode)
-		uploadsBaseURL := fmt.Sprintf("http://localhost:%s/uploads", port)
+		uploadsBaseURL := fmt.Sprintf("http://localhost:%s/uploads ", port)
 		store = storage.NewLocalStorage("./uploads", uploadsBaseURL)
 		log.Println("Using local filesystem storage")
 
