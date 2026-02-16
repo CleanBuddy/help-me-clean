@@ -13,7 +13,7 @@ import { APPLY_AS_COMPANY, CLAIM_COMPANY } from '@/graphql/operations';
 
 export default function RegisterCompanyPage() {
   const navigate = useNavigate();
-  const { loginWithGoogle, loginDev, isAuthenticated } = useAuth();
+  const { loginWithGoogle, isAuthenticated, refreshToken, refetchUser } = useAuth();
   const [applyAsCompany, { loading }] = useMutation(APPLY_AS_COMPANY);
   const [claimCompany] = useMutation(CLAIM_COMPANY);
 
@@ -24,8 +24,6 @@ export default function RegisterCompanyPage() {
   const [claimLoading, setClaimLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
-  const [devMode, setDevMode] = useState(false);
-  const [devEmail, setDevEmail] = useState('');
 
   const [form, setForm] = useState({
     companyName: '',
@@ -48,7 +46,7 @@ export default function RegisterCompanyPage() {
     e.preventDefault();
     setError('');
 
-    if (!form.companyName.trim() || !form.cui.trim() || !form.contactEmail.trim()) {
+    if (!form.companyName.trim() || !form.cui.trim() || !form.companyType || !form.contactEmail.trim()) {
       setError('Te rugam sa completezi campurile obligatorii.');
       return;
     }
@@ -66,20 +64,26 @@ export default function RegisterCompanyPage() {
     }
   };
 
-  const handleClaimAfterAuth = async (token: string) => {
+  const handleClaimAfterAuth = async () => {
     if (!claimToken) return;
     setClaimLoading(true);
     setClaimError('');
     try {
+      // Cookie is sent automatically with the request (Phase 2 security)
       await claimCompany({
         variables: { claimToken },
-        context: {
-          headers: { Authorization: `Bearer ${token}` },
-        },
       });
+
+      // Refresh token to get updated JWT with COMPANY_ADMIN role
+      await refreshToken();
+
+      // Refetch user data to update UI
+      await refetchUser();
+
       setClaimed(true);
-      setTimeout(() => navigate('/'), 1500);
-    } catch {
+      setTimeout(() => navigate('/firma'), 1500);
+    } catch (err) {
+      console.error('Claim error:', err);
       setClaimError('Nu am putut asocia firma cu contul tau. Poti incerca din dashboard.');
     } finally {
       setClaimLoading(false);
@@ -95,28 +99,10 @@ export default function RegisterCompanyPage() {
     setClaimLoading(true);
     try {
       await loginWithGoogle(response.credential);
-      const token = localStorage.getItem('token');
-      if (token) {
-        await handleClaimAfterAuth(token);
-      }
-    } catch {
-      setClaimError('Autentificarea a esuat. Te rugam sa incerci din nou.');
-      setClaimLoading(false);
-    }
-  };
-
-  const handleDevClaim = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!devEmail.trim()) return;
-    setClaimError('');
-    setClaimLoading(true);
-    try {
-      await loginDev(devEmail.trim());
-      const token = localStorage.getItem('token');
-      if (token) {
-        await handleClaimAfterAuth(token);
-      }
-    } catch {
+      // After login, claim the company (cookie is sent automatically)
+      await handleClaimAfterAuth();
+    } catch (err) {
+      console.error('Google auth error:', err);
       setClaimError('Autentificarea a esuat. Te rugam sa incerci din nou.');
       setClaimLoading(false);
     }
@@ -191,7 +177,7 @@ export default function RegisterCompanyPage() {
             <div className="flex items-center justify-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
-          ) : !devMode ? (
+          ) : (
             <div className="flex flex-col items-center gap-4">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -203,30 +189,6 @@ export default function RegisterCompanyPage() {
                 width="320"
               />
             </div>
-          ) : (
-            <form onSubmit={handleDevClaim} className="space-y-4">
-              <Input
-                label="Email (Dev Mode)"
-                type="email"
-                placeholder="admin@firma.ro"
-                value={devEmail}
-                onChange={(e) => setDevEmail(e.target.value)}
-                autoFocus
-              />
-              <Button type="submit" loading={claimLoading} className="w-full">
-                Conecteaza-te (Dev)
-              </Button>
-            </form>
-          )}
-
-          {import.meta.env.DEV && (
-            <button
-              type="button"
-              onClick={() => { setDevMode(!devMode); setClaimError(''); }}
-              className="mt-3 w-full text-center text-xs text-gray-400 hover:text-gray-600 underline"
-            >
-              {devMode ? 'Foloseste Google Auth' : 'Foloseste Dev Mode'}
-            </button>
           )}
 
           {claimError && (
@@ -303,12 +265,22 @@ export default function RegisterCompanyPage() {
                 value={form.cui}
                 onChange={(e) => updateField('cui', e.target.value)}
               />
-              <Input
-                label="Tip firma"
-                placeholder="SRL / PFA / II"
-                value={form.companyType}
-                onChange={(e) => updateField('companyType', e.target.value)}
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Tip firma <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={form.companyType}
+                  onChange={(e) => updateField('companyType', e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  required
+                >
+                  <option value="">Selecteaza tipul firmei</option>
+                  <option value="SRL">SRL</option>
+                  <option value="PFA">PFA</option>
+                  <option value="II">II (Intreprindere Individuala)</option>
+                </select>
+              </div>
               <Input
                 label="Reprezentant legal"
                 placeholder="Ion Popescu"

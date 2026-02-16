@@ -3,30 +3,21 @@ package auth
 import (
 	"net/http"
 	"os"
-	"strconv"
 )
 
 const (
 	// AuthCookieName is the name of the httpOnly cookie storing the JWT token
 	AuthCookieName = "helpmeclean_token"
+
+	// jwtExpirySeconds is the cookie expiry time (24 hours = 86400 seconds)
+	// This must match the JWT token expiry in jwt.go (24 * time.Hour)
+	jwtExpirySeconds = 86400
 )
 
 // SetAuthCookie sets a secure httpOnly cookie with the JWT token.
 // This protects against XSS attacks as the token cannot be accessed via JavaScript.
 func SetAuthCookie(w http.ResponseWriter, token string) {
 	isProduction := os.Getenv("ENVIRONMENT") == "production"
-
-	// Get token expiry from environment (default 24 hours = 86400 seconds)
-	maxAge := 86400
-	if expiryEnv := os.Getenv("JWT_EXPIRY"); expiryEnv != "" {
-		// JWT_EXPIRY is in format like "24h", convert to seconds
-		// For simplicity, if it ends with 'h', parse the number and multiply by 3600
-		if len(expiryEnv) > 1 && expiryEnv[len(expiryEnv)-1] == 'h' {
-			if hours, err := strconv.Atoi(expiryEnv[:len(expiryEnv)-1]); err == nil {
-				maxAge = hours * 3600
-			}
-		}
-	}
 
 	cookie := &http.Cookie{
 		Name:     AuthCookieName,
@@ -35,7 +26,7 @@ func SetAuthCookie(w http.ResponseWriter, token string) {
 		HttpOnly: true,                 // ✅ Prevents XSS attacks - JavaScript cannot access this cookie
 		Secure:   isProduction,         // ✅ HTTPS only in production
 		SameSite: http.SameSiteLaxMode, // ✅ CSRF protection - cookie not sent in cross-site POST requests
-		MaxAge:   maxAge,
+		MaxAge:   jwtExpirySeconds,
 	}
 
 	// Set domain for cross-subdomain access in production (e.g., .helpmeclean.ro)

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 )
 
 // GoogleUserInfo holds user data extracted from a Google ID token.
@@ -17,23 +16,6 @@ type GoogleUserInfo struct {
 
 // VerifyGoogleIDToken validates a Google ID token and returns user info.
 func VerifyGoogleIDToken(idToken string) (*GoogleUserInfo, error) {
-	// Only allow mock tokens in development/test environments
-	env := os.Getenv("ENVIRONMENT")
-	if (env == "development" || env == "test") && len(idToken) > 4 && idToken[:4] == "dev_" {
-		email := idToken[4:]
-		return &GoogleUserInfo{
-			GoogleID:  "dev_" + email,
-			Email:     email,
-			FullName:  "Dev User",
-			AvatarURL: "",
-		}, nil
-	}
-
-	// In production, explicitly reject dev_ tokens
-	if len(idToken) > 4 && idToken[:4] == "dev_" {
-		return nil, fmt.Errorf("mock authentication not allowed in production")
-	}
-
 	resp, err := http.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify token: %w", err)

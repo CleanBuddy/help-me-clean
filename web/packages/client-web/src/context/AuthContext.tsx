@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useApolloClient, useMutation, useLazyQuery } from '@apollo/client';
-import { ME, SIGN_IN_WITH_GOOGLE, LOGOUT } from '@/graphql/operations';
+import { ME, SIGN_IN_WITH_GOOGLE, LOGOUT, REFRESH_TOKEN } from '@/graphql/operations';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -27,10 +27,10 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   loginWithGoogle: (idToken: string) => Promise<User>;
-  loginDev: (email: string, role?: string) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => void;
+  refreshToken: () => Promise<void>;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -63,6 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const [signIn] = useMutation(SIGN_IN_WITH_GOOGLE);
   const [logoutMutation] = useMutation(LOGOUT);
+  const [refreshTokenMutation] = useMutation(REFRESH_TOKEN);
 
   // On mount, always try to fetch user (cookie is sent automatically)
   // This works for both new cookie-based auth and legacy localStorage tokens
@@ -74,20 +75,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     async (idToken: string): Promise<User> => {
       const { data } = await signIn({
         variables: { idToken, role: 'CLIENT' },
-      });
-      const { user: authUser } = data.signInWithGoogle;
-      // Token is now set as httpOnly cookie by backend (Phase 2 security)
-      // No need to store in localStorage
-      setUser(authUser);
-      return authUser;
-    },
-    [signIn],
-  );
-
-  const loginDev = useCallback(
-    async (email: string, role: string = 'CLIENT'): Promise<User> => {
-      const { data } = await signIn({
-        variables: { idToken: `dev_${email}`, role },
       });
       const { user: authUser } = data.signInWithGoogle;
       // Token is now set as httpOnly cookie by backend (Phase 2 security)
@@ -119,16 +106,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     fetchMe();
   }, [fetchMe]);
 
+  const refreshToken = useCallback(async () => {
+    try {
+      const { data } = await refreshTokenMutation();
+      if (data?.refreshToken?.user) {
+        setUser(data.refreshToken.user);
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+    }
+  }, [refreshTokenMutation]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         loginWithGoogle,
-        loginDev,
         logout,
         isAuthenticated: !!user,
         refetchUser,
+        refreshToken,
       }}
     >
       {children}

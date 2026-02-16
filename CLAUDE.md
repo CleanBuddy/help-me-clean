@@ -6,16 +6,14 @@
 
 - **Purpose:** Functional prototype for investor demonstration
 - **Core Value:** Formalize Romania's informal cleaning sector through compliance
-- **Architecture:** Go monolith backend + multiple frontend clients
+- **Architecture:** Go monolith backend + React web platform (client, company, admin) + iOS native app
 
 ## Technology Stack
 
 | Component | Technology | Port/Notes |
 |-----------|-----------|------------|
-| Backend | Go 1.22+, gqlgen, sqlc, PostgreSQL (Neon) | :8080 |
-| Client Web | React + TypeScript + Shadcn/ui | :3000 |
-| Company Dashboard | React + TypeScript + Shadcn/ui | :3001 |
-| Admin Dashboard | React + TypeScript + Shadcn/ui | :3002 |
+| Backend | Go 1.24+, gqlgen, sqlc, PostgreSQL (Neon) | :8080 |
+| Web Platform | React + TypeScript + Shadcn/ui | :3000 |
 | Client iOS | SwiftUI native + Apollo iOS | - |
 
 ---
@@ -29,10 +27,10 @@ Use specialized agents for different parts of the codebase:
 - **Use for:** All `backend/` directory work
 - **Responsibilities:** GraphQL resolvers, business logic, database queries, auth, WebSocket
 
-### Web Frontends
+### Web Platform
 - **Agent:** `voltagent-lang:typescript-pro`
 - **Use for:** All `web/` directory work
-- **Responsibilities:** React components, Apollo Client, Shadcn/ui integration, TailwindCSS
+- **Responsibilities:** React components, Apollo Client, Shadcn/ui integration, TailwindCSS, routing (/, /firma, /admin)
 
 ### iOS Native App
 - **Agent:** `voltagent-lang:swift-expert`
@@ -158,11 +156,8 @@ make test          # Run tests
 ```bash
 cd web
 npm install
-npm run dev              # All apps in parallel
-npm run dev:client       # Client web only (:3000)
-npm run dev:company      # Company dashboard (:3001)
-npm run dev:admin        # Admin dashboard (:3002)
-npm run build            # Build all apps
+npm run dev              # Web platform (:3000)
+npm run build            # Build production
 npm run lint             # ESLint
 npm run type-check       # TypeScript check
 ```

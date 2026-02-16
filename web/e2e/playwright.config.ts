@@ -9,22 +9,39 @@ export default defineConfig({
   reporter: 'html',
   timeout: 30000,
   use: {
-    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'client',
+      testDir: './tests/client',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000',
+      },
     },
-  ],
-  webServer: [
     {
-      command: 'cd ../packages/client-web && npm run dev',
-      url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
-      timeout: 30000,
+      name: 'company',
+      testDir: './tests/company',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000/firma',
+      },
+    },
+    {
+      name: 'admin',
+      testDir: './tests/admin',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000/admin',
+      },
     },
   ],
+  webServer: {
+    command: 'cd .. && npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 30000,
+  },
 })

@@ -33,7 +33,6 @@ describe('Cleaner ProfilePage', () => {
     },
     loading: false,
     loginWithGoogle: vi.fn(),
-    loginDev: vi.fn(),
     logout: vi.fn(),
     isAuthenticated: true,
     refetchUser: vi.fn(),

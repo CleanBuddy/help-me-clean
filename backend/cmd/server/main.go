@@ -90,29 +90,34 @@ func main() {
 	paymentSvc := payment.NewService(queries)
 	invoiceSvc := invoice.NewService(queries)
 
-	// File storage
+	// File storage - GCS for production, local for development
+	env := os.Getenv("ENVIRONMENT")
+	gcsCredentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
 	var store storage.Storage
-	useLocalStorage := os.Getenv("USE_LOCAL_STORAGE") == "true"
 
-	if useLocalStorage {
-		// Local filesystem storage (development mode)
-		uploadsBaseURL := fmt.Sprintf("http://localhost:%s/uploads", port)
-		store = storage.NewLocalStorage("./uploads", uploadsBaseURL)
-		log.Println("Using local filesystem storage")
+	// Use local storage for development if GCS credentials not configured
+	if env != "production" && gcsCredentials == "" {
+		uploadsDir := "./uploads"
+		baseURL := "http://localhost:" + port + "/uploads"
+		store = storage.NewLocalStorage(uploadsDir, baseURL)
+		log.Printf("📁 Using local file storage: %s", uploadsDir)
+		log.Printf("💡 Set GOOGLE_APPLICATION_CREDENTIALS to use GCS instead")
 
-		// Serve uploaded files
-		r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+		// Serve uploaded files locally
+		r.Get("/uploads/*", func(w http.ResponseWriter, r *http.Request) {
+			http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))).ServeHTTP(w, r)
+		})
 	} else {
-		// Google Cloud Storage (production mode)
+		// Use Google Cloud Storage
 		gcsBucket := os.Getenv("GCS_BUCKET")
 		gcsProjectID := os.Getenv("GCS_PROJECT_ID")
-		gcsCredentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 		if gcsBucket == "" {
-			log.Fatal("GCS_BUCKET environment variable is required when USE_LOCAL_STORAGE is not set")
+			log.Fatal("GCS_BUCKET environment variable is required for GCS storage")
 		}
 		if gcsProjectID == "" {
-			log.Fatal("GCS_PROJECT_ID environment variable is required when USE_LOCAL_STORAGE is not set")
+			log.Fatal("GCS_PROJECT_ID environment variable is required for GCS storage")
 		}
 
 		gcsStore, err := storage.NewGCSStorage(ctx, gcsBucket, gcsProjectID, gcsCredentials)
@@ -120,7 +125,7 @@ func main() {
 			log.Fatalf("Failed to initialize GCS storage: %v", err)
 		}
 		store = gcsStore
-		log.Printf("Using Google Cloud Storage: bucket=%s, project=%s", gcsBucket, gcsProjectID)
+		log.Printf("☁️  Using Google Cloud Storage: bucket=%s, project=%s", gcsBucket, gcsProjectID)
 	}
 
 	// Stripe webhook (must be BEFORE auth middleware)

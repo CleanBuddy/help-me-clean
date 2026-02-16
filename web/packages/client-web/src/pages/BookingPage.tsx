@@ -312,7 +312,7 @@ function minutesToTime(mins: number): string {
 export default function BookingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, user, loginWithGoogle, loginDev } = useAuth();
+  const { isAuthenticated, user, loginWithGoogle } = useAuth();
 
   const preselectedService = searchParams.get('service') || '';
 
@@ -325,8 +325,6 @@ export default function BookingPage() {
 
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [devAuthMode, setDevAuthMode] = useState(false);
-  const [devAuthEmail, setDevAuthEmail] = useState('');
 
   // Payment step state
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
@@ -702,23 +700,6 @@ export default function BookingPage() {
     [loginWithGoogle],
   );
 
-  const handleBookingDevLogin = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!devAuthEmail.trim()) return;
-      setAuthError('');
-      setAuthLoading(true);
-      try {
-        await loginDev(devAuthEmail.trim());
-      } catch {
-        setAuthError('Autentificarea a esuat. Te rugam sa incerci din nou.');
-      } finally {
-        setAuthLoading(false);
-      }
-    },
-    [devAuthEmail, loginDev],
-  );
-
   // ---- Success screen -------------------------------------------------------
 
   if (bookingResult) {
@@ -890,7 +871,7 @@ export default function BookingPage() {
                       <div className="flex items-center justify-center py-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                       </div>
-                    ) : !devAuthMode ? (
+                    ) : (
                       <div className="flex flex-col items-center gap-4">
                         <GoogleLogin
                           onSuccess={handleBookingGoogleSuccess}
@@ -904,33 +885,6 @@ export default function BookingPage() {
                           width="320"
                         />
                       </div>
-                    ) : (
-                      <form onSubmit={handleBookingDevLogin} className="space-y-4">
-                        <Input
-                          label="Adresa de email (Dev Mode)"
-                          type="email"
-                          placeholder="exemplu@email.com"
-                          value={devAuthEmail}
-                          onChange={(e) => setDevAuthEmail(e.target.value)}
-                          autoFocus
-                        />
-                        <Button type="submit" loading={authLoading} className="w-full" size="lg">
-                          Conecteaza-te (Dev)
-                        </Button>
-                      </form>
-                    )}
-
-                    {import.meta.env.DEV && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDevAuthMode(!devAuthMode);
-                          setAuthError('');
-                        }}
-                        className="mt-4 w-full text-center text-xs text-gray-400 hover:text-gray-600 underline cursor-pointer"
-                      >
-                        {devAuthMode ? 'Foloseste Google Auth' : 'Foloseste Dev Mode'}
-                      </button>
                     )}
 
                     {authError && (

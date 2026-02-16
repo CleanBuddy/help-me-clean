@@ -6,20 +6,17 @@ import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '@/context/AuthContext';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
 import { CLAIM_COMPANY } from '@/graphql/operations';
 
 export default function ClaimCompanyPage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { loginWithGoogle, loginDev, isAuthenticated } = useAuth();
+  const { loginWithGoogle, isAuthenticated, refreshToken, refetchUser } = useAuth();
   const [claimCompany] = useMutation(CLAIM_COMPANY);
 
   const [claimed, setClaimed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [devMode, setDevMode] = useState(false);
-  const [devEmail, setDevEmail] = useState('');
 
   // If the user is already authenticated, attempt to claim immediately.
   useEffect(() => {
@@ -35,8 +32,15 @@ export default function ClaimCompanyPage() {
     setError('');
     try {
       await claimCompany({ variables: { claimToken: token } });
+
+      // Refresh token to get updated JWT with COMPANY_ADMIN role
+      await refreshToken();
+
+      // Refetch user data to update UI
+      await refetchUser();
+
       setClaimed(true);
-      setTimeout(() => navigate('/'), 1500);
+      setTimeout(() => navigate('/firma'), 1500);
     } catch {
       setError('Link-ul este invalid sau firma a fost deja revendicata.');
     } finally {
@@ -61,31 +65,15 @@ export default function ClaimCompanyPage() {
           variables: { claimToken: token },
           context: { headers: { Authorization: `Bearer ${jwtToken}` } },
         });
-        setClaimed(true);
-        setTimeout(() => navigate('/'), 1500);
-      }
-    } catch {
-      setError('Autentificarea a esuat. Te rugam sa incerci din nou.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleDevSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!devEmail.trim()) return;
-    setError('');
-    setLoading(true);
-    try {
-      await loginDev(devEmail.trim());
-      const jwtToken = localStorage.getItem('token');
-      if (jwtToken && token) {
-        await claimCompany({
-          variables: { claimToken: token },
-          context: { headers: { Authorization: `Bearer ${jwtToken}` } },
-        });
+        // Refresh token to get updated JWT with COMPANY_ADMIN role
+        await refreshToken();
+
+        // Refetch user data to update UI
+        await refetchUser();
+
         setClaimed(true);
-        setTimeout(() => navigate('/'), 1500);
+        setTimeout(() => navigate('/firma'), 1500);
       }
     } catch {
       setError('Autentificarea a esuat. Te rugam sa incerci din nou.');
@@ -156,7 +144,7 @@ export default function ClaimCompanyPage() {
             <div className="flex items-center justify-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
-          ) : !devMode ? (
+          ) : (
             <div className="flex flex-col items-center gap-4">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -168,30 +156,6 @@ export default function ClaimCompanyPage() {
                 width="320"
               />
             </div>
-          ) : (
-            <form onSubmit={handleDevSubmit} className="space-y-5">
-              <Input
-                label="Adresa de email (Dev Mode)"
-                type="email"
-                placeholder="admin@firma.ro"
-                value={devEmail}
-                onChange={(e) => setDevEmail(e.target.value)}
-                autoFocus
-              />
-              <Button type="submit" loading={loading} className="w-full" size="lg">
-                Conecteaza-te (Dev)
-              </Button>
-            </form>
-          )}
-
-          {import.meta.env.DEV && (
-            <button
-              type="button"
-              onClick={() => { setDevMode(!devMode); setError(''); }}
-              className="mt-4 w-full text-center text-xs text-gray-400 hover:text-gray-600 underline"
-            >
-              {devMode ? 'Foloseste Google Auth' : 'Foloseste Dev Mode'}
-            </button>
           )}
 
           {error && (

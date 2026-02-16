@@ -169,7 +169,7 @@ Each service has a `.env.example` — copy to `.env` and fill in values:
 
 | File | Contents |
 |------|----------|
-| `backend/.env.example` | Server, database, auth (Google OAuth), Stripe, storage, Firebase, CORS |
+| `backend/.env.example` | Server, database, auth (Google OAuth), Stripe, storage, CORS |
 | `web/packages/client-web/.env.example` | GraphQL endpoint, Google client ID |
 
 ## Testing

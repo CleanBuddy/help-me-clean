@@ -1,4 +1,4 @@
-.PHONY: help install generate migrate-up migrate-down migrate-new run test clean seed
+.PHONY: help install generate migrate-up migrate-down migrate-new run test clean
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -31,9 +31,6 @@ run: ## Start the server
 
 test: ## Run tests
 	go test -v ./...
-
-seed: ## Seed development test users (idempotent)
-	psql "$${DATABASE_URL}" -f internal/db/seeds/dev_users.sql
 
 clean: ## Clean generated files
 	rm -rf internal/graph/generated.go
