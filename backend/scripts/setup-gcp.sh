@@ -56,16 +56,6 @@ echo -n "794597417467-hks5884pvd1ihthpoid6ad0nasanm459.apps.googleusercontent.co
   echo -n "794597417467-hks5884pvd1ihthpoid6ad0nasanm459.apps.googleusercontent.com" | \
   gcloud secrets versions add dev_GOOGLE_CLIENT_ID --data-file=-
 
-echo -n "794597417467-fhv7oset50pld7mlnd0ttumpr1spm8gi.apps.googleusercontent.com" | \
-  gcloud secrets create dev_GOOGLE_CLIENT_ID_IOS --data-file=- 2>/dev/null || \
-  echo -n "794597417467-fhv7oset50pld7mlnd0ttumpr1spm8gi.apps.googleusercontent.com" | \
-  gcloud secrets versions add dev_GOOGLE_CLIENT_ID_IOS --data-file=-
-
-echo -n "your-android-client-id" | \
-  gcloud secrets create dev_GOOGLE_CLIENT_ID_ANDROID --data-file=- 2>/dev/null || \
-  echo -n "your-android-client-id" | \
-  gcloud secrets versions add dev_GOOGLE_CLIENT_ID_ANDROID --data-file=-
-
 # Stripe - Development (TEST keys)
 echo -n "sk_test_51SzzgVAjjzKXeJfogvsxWDCoA07fzBTmFRrCIIMEdOhro0bsTCFnAtcMW1cXRkORhXTwdewaEhl7BkfDkhy2u7ad004FPejrOj" | \
   gcloud secrets create dev_STRIPE_SECRET_KEY --data-file=- 2>/dev/null || \
@@ -94,12 +84,6 @@ echo -n "helpmeclean-dev-uploads" | \
   echo -n "helpmeclean-dev-uploads" | \
   gcloud secrets versions add dev_GCS_BUCKET --data-file=-
 
-# Firebase - Development (dummy JSON)
-echo '{"type":"service_account","project_id":"help-me-clean-486919","private_key_id":"dummy","private_key":"dummy","client_email":"dummy@help-me-clean-486919.iam.gserviceaccount.com"}' | \
-  gcloud secrets create dev_FIREBASE_SERVICE_ACCOUNT_KEY --data-file=- 2>/dev/null || \
-  echo '{"type":"service_account","project_id":"help-me-clean-486919","private_key_id":"dummy","private_key":"dummy","client_email":"dummy@help-me-clean-486919.iam.gserviceaccount.com"}' | \
-  gcloud secrets versions add dev_FIREBASE_SERVICE_ACCOUNT_KEY --data-file=-
-
 echo ""
 echo "✅ Step 4: Uploading Production Secrets (dummy data)..."
 
@@ -120,16 +104,6 @@ echo -n "prod-google-client-id-placeholder.apps.googleusercontent.com" | \
   gcloud secrets create prod_GOOGLE_CLIENT_ID --data-file=- 2>/dev/null || \
   echo -n "prod-google-client-id-placeholder.apps.googleusercontent.com" | \
   gcloud secrets versions add prod_GOOGLE_CLIENT_ID --data-file=-
-
-echo -n "prod-google-client-id-ios-placeholder.apps.googleusercontent.com" | \
-  gcloud secrets create prod_GOOGLE_CLIENT_ID_IOS --data-file=- 2>/dev/null || \
-  echo -n "prod-google-client-id-ios-placeholder.apps.googleusercontent.com" | \
-  gcloud secrets versions add prod_GOOGLE_CLIENT_ID_IOS --data-file=-
-
-echo -n "prod-google-client-id-android-placeholder.apps.googleusercontent.com" | \
-  gcloud secrets create prod_GOOGLE_CLIENT_ID_ANDROID --data-file=- 2>/dev/null || \
-  echo -n "prod-google-client-id-android-placeholder.apps.googleusercontent.com" | \
-  gcloud secrets versions add prod_GOOGLE_CLIENT_ID_ANDROID --data-file=-
 
 # Stripe - Production (dummy LIVE keys)
 echo -n "sk_live_placeholder_replace_with_real_key" | \
@@ -158,12 +132,6 @@ echo -n "helpmeclean-prod-uploads" | \
   gcloud secrets create prod_GCS_BUCKET --data-file=- 2>/dev/null || \
   echo -n "helpmeclean-prod-uploads" | \
   gcloud secrets versions add prod_GCS_BUCKET --data-file=-
-
-# Firebase - Production (dummy JSON)
-echo '{"type":"service_account","project_id":"help-me-clean-486919","private_key_id":"dummy","private_key":"dummy","client_email":"dummy@help-me-clean-486919.iam.gserviceaccount.com"}' | \
-  gcloud secrets create prod_FIREBASE_SERVICE_ACCOUNT_KEY --data-file=- 2>/dev/null || \
-  echo '{"type":"service_account","project_id":"help-me-clean-486919","private_key_id":"dummy","private_key":"dummy","client_email":"dummy@help-me-clean-486919.iam.gserviceaccount.com"}' | \
-  gcloud secrets versions add prod_FIREBASE_SERVICE_ACCOUNT_KEY --data-file=-
 
 echo ""
 echo "✅ Step 5: Granting Cloud Build permissions..."

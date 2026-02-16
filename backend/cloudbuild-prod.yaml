@@ -44,8 +44,8 @@ steps:
       - '--concurrency=80'
       - '--port=8080'
       - '--set-env-vars=ENVIRONMENT=production,GCS_PROJECT_ID=${PROJECT_ID}'
-      - '--set-secrets=DATABASE_URL=prod_DATABASE_URL:latest,JWT_SECRET=prod_JWT_SECRET:latest,GOOGLE_CLIENT_ID=prod_GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_ID_IOS=prod_GOOGLE_CLIENT_ID_IOS:latest,GOOGLE_CLIENT_ID_ANDROID=prod_GOOGLE_CLIENT_ID_ANDROID:latest,STRIPE_SECRET_KEY=prod_STRIPE_SECRET_KEY:latest,STRIPE_PUBLISHABLE_KEY=prod_STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=prod_STRIPE_WEBHOOK_SECRET:latest,FACTUREAZA_API_KEY=prod_FACTUREAZA_API_KEY:latest,GCS_BUCKET=prod_GCS_BUCKET:latest,FIREBASE_SERVICE_ACCOUNT_KEY=prod_FIREBASE_SERVICE_ACCOUNT_KEY:latest,ALLOWED_ORIGINS=prod_ALLOWED_ORIGINS:latest'
-      - '--set-env-vars=^@^JWT_EXPIRY=24h@FACTUREAZA_API_URL=https://api.factureaza.ro/api/v1/@PLATFORM_COMPANY_NAME=HelpMeClean SRL@PLATFORM_CUI=RO12345678@PLATFORM_REG_NUMBER=J40/1234/2024@PLATFORM_ADDRESS=Str. Exemplu nr. 1@PLATFORM_CITY=Bucuresti@PLATFORM_COUNTY=Bucuresti@PLATFORM_IS_VAT_PAYER=true@PLATFORM_BANK_NAME=ING Bank@PLATFORM_IBAN=RO49AAAA1B31007593840000@STRIPE_CONNECT_RETURN_URL=https://helpmeclean.ro/firma/setari?stripe=complete@STRIPE_CONNECT_REFRESH_URL=https://helpmeclean.ro/firma/setari?stripe=refresh'
+      - '--set-secrets=DATABASE_URL=prod_DATABASE_URL:latest,JWT_SECRET=prod_JWT_SECRET:latest,GOOGLE_CLIENT_ID=prod_GOOGLE_CLIENT_ID:latest,STRIPE_SECRET_KEY=prod_STRIPE_SECRET_KEY:latest,STRIPE_PUBLISHABLE_KEY=prod_STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=prod_STRIPE_WEBHOOK_SECRET:latest,FACTUREAZA_API_KEY=prod_FACTUREAZA_API_KEY:latest,GCS_BUCKET=prod_GCS_BUCKET:latest,ALLOWED_ORIGINS=prod_ALLOWED_ORIGINS:latest'
+      - '--set-env-vars=^@^FACTUREAZA_API_URL=https://api.factureaza.ro/api/v1/@STRIPE_CONNECT_RETURN_URL=https://helpmeclean.ro/firma/setari?stripe=complete@STRIPE_CONNECT_REFRESH_URL=https://helpmeclean.ro/firma/setari?stripe=refresh'
     waitFor: ['push-image']
 
 substitutions:

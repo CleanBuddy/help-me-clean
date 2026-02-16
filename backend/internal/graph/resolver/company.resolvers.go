@@ -80,6 +80,15 @@ func (r *mutationResolver) ClaimCompany(ctx context.Context, claimToken string) 
 		return nil, fmt.Errorf("invalid or already claimed token: %w", err)
 	}
 
+	// Upgrade user role to COMPANY_ADMIN
+	_, err = r.Queries.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   stringToUUID(claims.UserID),
+		Role: db.UserRoleCompanyAdmin,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to upgrade user role: %w", err)
+	}
+
 	return dbCompanyToGQL(company), nil
 }
 
@@ -356,6 +365,15 @@ func (r *queryResolver) MyCompany(ctx context.Context) (*model.Company, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to claim company: %w", err)
+	}
+
+	// Upgrade user role to COMPANY_ADMIN
+	_, err = r.Queries.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   stringToUUID(claims.UserID),
+		Role: db.UserRoleCompanyAdmin,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to upgrade user role: %w", err)
 	}
 
 	result := dbCompanyToGQL(company)

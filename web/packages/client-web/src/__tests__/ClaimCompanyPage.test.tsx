@@ -49,7 +49,6 @@ describe('ClaimCompanyPage', () => {
     user: null,
     loading: false,
     loginWithGoogle: vi.fn(),
-    loginDev: vi.fn(),
     logout: vi.fn(),
     isAuthenticated: false,
     refetchUser: vi.fn(),

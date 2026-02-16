@@ -491,6 +491,7 @@ type ComplexityRoot struct {
 		InitiateConnectOnboarding     func(childComplexity int) int
 		InviteCleaner                 func(childComplexity int, input model.InviteCleanerInput) int
 		InviteSelfAsCleaner           func(childComplexity int) int
+		Logout                        func(childComplexity int) int
 		MarkAllNotificationsRead      func(childComplexity int) int
 		MarkBookingPaid               func(childComplexity int, id string) int
 		MarkMessagesAsRead            func(childComplexity int, roomID string) int
@@ -945,6 +946,7 @@ type MutationResolver interface {
 	SignInWithGoogle(ctx context.Context, idToken string, role model.UserRole) (*model.AuthPayload, error)
 	RefreshToken(ctx context.Context) (*model.AuthPayload, error)
 	RegisterDeviceToken(ctx context.Context, token string) (bool, error)
+	Logout(ctx context.Context) (bool, error)
 	CreateBookingRequest(ctx context.Context, input model.CreateBookingInput) (*model.Booking, error)
 	CancelBooking(ctx context.Context, id string, reason *string) (*model.Booking, error)
 	AssignCleanerToBooking(ctx context.Context, bookingID string, cleanerID string) (*model.Booking, error)
@@ -3276,6 +3278,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.InviteSelfAsCleaner(childComplexity), true
+	case "Mutation.logout":
+		if e.complexity.Mutation.Logout == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Logout(childComplexity), true
 	case "Mutation.markAllNotificationsRead":
 		if e.complexity.Mutation.MarkAllNotificationsRead == nil {
 			break
@@ -18099,6 +18107,35 @@ func (ec *executionContext) fieldContext_Mutation_registerDeviceToken(ctx contex
 	if fc.Args, err = ec.field_Mutation_registerDeviceToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_logout,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().Logout(ctx)
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -40923,6 +40960,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "registerDeviceToken":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_registerDeviceToken(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "logout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_logout(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

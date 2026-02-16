@@ -55,28 +55,47 @@ func NewService(queries *db.Queries) *Service {
 	// Ensure the base URL does not have a trailing slash.
 	apiBaseURL = strings.TrimRight(apiBaseURL, "/")
 
-	isVATPayer := os.Getenv("PLATFORM_IS_VAT_PAYER") == "true"
-
 	svc := &Service{
-		queries:    queries,
-		apiBaseURL: apiBaseURL,
-		apiKey:     os.Getenv("FACTUREAZA_API_KEY"),
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-		platformConfig: PlatformConfig{
-			CompanyName: os.Getenv("PLATFORM_COMPANY_NAME"),
-			CUI:         os.Getenv("PLATFORM_CUI"),
-			RegNumber:   os.Getenv("PLATFORM_REG_NUMBER"),
-			Address:     os.Getenv("PLATFORM_ADDRESS"),
-			City:        os.Getenv("PLATFORM_CITY"),
-			County:      os.Getenv("PLATFORM_COUNTY"),
-			IsVATPayer:  isVATPayer,
-			BankName:    os.Getenv("PLATFORM_BANK_NAME"),
-			IBAN:        os.Getenv("PLATFORM_IBAN"),
-		},
+		queries:        queries,
+		apiBaseURL:     apiBaseURL,
+		apiKey:         os.Getenv("FACTUREAZA_API_KEY"),
+		httpClient:     &http.Client{Timeout: 30 * time.Second},
+		platformConfig: PlatformConfig{}, // Will be loaded from DB on first use
 	}
 
 	log.Println("Invoice service initialized")
 	return svc
+}
+
+// loadPlatformConfig loads the platform legal entity configuration from the database.
+// It caches the result in memory to avoid repeated database queries.
+func (s *Service) loadPlatformConfig(ctx context.Context) (PlatformConfig, error) {
+	// If already loaded, return cached config
+	if s.platformConfig.CompanyName != "" {
+		return s.platformConfig, nil
+	}
+
+	// Load from database
+	entity, err := s.queries.GetPlatformLegalEntity(ctx)
+	if err != nil {
+		return PlatformConfig{}, fmt.Errorf("invoice: load platform config: %w", err)
+	}
+
+	config := PlatformConfig{
+		CompanyName: entity.CompanyName,
+		CUI:         entity.Cui,
+		RegNumber:   entity.RegNumber,
+		Address:     entity.Address,
+		City:        entity.City,
+		County:      entity.County,
+		IsVATPayer:  entity.IsVatPayer,
+		BankName:    textVal(entity.BankName),
+		IBAN:        textVal(entity.Iban),
+	}
+
+	// Cache the config
+	s.platformConfig = config
+	return config, nil
 }
 
 // Ping is a health-check method for the invoice service.
@@ -267,7 +286,12 @@ func (s *Service) GenerateCommissionInvoice(
 	}
 
 	dueDate := pgtype.Date{Time: time.Now().AddDate(0, 0, 30), Valid: true}
-	pc := s.platformConfig
+
+	// Load platform config from database
+	pc, err := s.loadPlatformConfig(ctx)
+	if err != nil {
+		return db.Invoice{}, fmt.Errorf("invoice: load platform config: %w", err)
+	}
 
 	inv, err := s.queries.CreateInvoice(ctx, db.CreateInvoiceParams{
 		InvoiceType:          db.InvoiceTypePlatformCommission,
