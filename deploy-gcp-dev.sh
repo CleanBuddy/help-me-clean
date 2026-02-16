@@ -1,6 +1,6 @@
 #!/bin/bash
 # HelpMeClean.ro - GCP Development Environment Deployment
-# Deploy backend with security environment variables
+# Deploy backend with all configuration via Secret Manager
 
 set -e  # Exit on error
 
@@ -16,8 +16,8 @@ IMAGE="gcr.io/${PROJECT_ID}/backend:latest"
 echo "📦 Setting GCP project: ${PROJECT_ID}"
 gcloud config set project ${PROJECT_ID}
 
-# Deploy to Cloud Run with security environment variables
-echo "🔧 Deploying to Cloud Run with environment variables..."
+# Deploy to Cloud Run with ALL configuration via secrets
+echo "🔧 Deploying to Cloud Run with Secret Manager configuration..."
 gcloud run deploy ${SERVICE_NAME} \
   --image ${IMAGE} \
   --platform managed \
@@ -27,30 +27,34 @@ gcloud run deploy ${SERVICE_NAME} \
   --cpu 1 \
   --timeout 300 \
   --max-instances 10 \
-  --set-env-vars "\
-ENVIRONMENT=development,\
-PORT=8080,\
-RATE_LIMIT_PER_MINUTE=200,\
-RATE_LIMIT_STRICT_PER_MINUTE=50,\
-GRAPHQL_MAX_DEPTH=10,\
-GRAPHQL_MAX_COMPLEXITY=100,\
-MAX_FILE_SIZE=10485760,\
-ERROR_STRICT_MODE=false,\
-USE_LOCAL_STORAGE=false,\
-GCS_BUCKET=helpmeclean-dev-uploads,\
-GCS_PROJECT_ID=helpmeclean-dev,\
-FIREBASE_PROJECT_ID=helpmeclean-dev,\
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,https://dev-helpmeclean.vercel.app" \
   --set-secrets "\
-DATABASE_URL=database-url-dev:latest,\
-JWT_SECRET=jwt-secret-dev:latest,\
-GOOGLE_CLIENT_ID=google-client-id-dev:latest,\
-GOOGLE_CLIENT_ID_IOS=google-client-id-ios-dev:latest,\
-GOOGLE_CLIENT_ID_ANDROID=google-client-id-android-dev:latest,\
-STRIPE_SECRET_KEY=stripe-secret-key-dev:latest,\
-STRIPE_WEBHOOK_SECRET=stripe-webhook-secret-dev:latest,\
-STRIPE_PUBLISHABLE_KEY=stripe-publishable-key-dev:latest,\
-FACTUREAZA_API_KEY=factureaza-api-key-dev:latest"
+ENVIRONMENT=dev_environment:latest,\
+PORT=dev_port:latest,\
+DATABASE_URL=dev_database_url:latest,\
+JWT_SECRET=dev_jwt_secret:latest,\
+JWT_EXPIRY=dev_jwt_expiry:latest,\
+GOOGLE_CLIENT_ID=dev_google_client_id:latest,\
+GOOGLE_CLIENT_ID_IOS=dev_google_client_id_ios:latest,\
+GOOGLE_CLIENT_ID_ANDROID=dev_google_client_id_android:latest,\
+STRIPE_SECRET_KEY=dev_stripe_secret_key:latest,\
+STRIPE_WEBHOOK_SECRET=dev_stripe_webhook_secret:latest,\
+STRIPE_PUBLISHABLE_KEY=dev_stripe_publishable_key:latest,\
+STRIPE_CONNECT_RETURN_URL=dev_stripe_connect_return_url:latest,\
+STRIPE_CONNECT_REFRESH_URL=dev_stripe_connect_refresh_url:latest,\
+FACTUREAZA_API_URL=dev_factureaza_api_url:latest,\
+FACTUREAZA_API_KEY=dev_factureaza_api_key:latest,\
+USE_LOCAL_STORAGE=dev_use_local_storage:latest,\
+GCS_BUCKET=dev_gcs_bucket:latest,\
+GCS_PROJECT_ID=dev_gcs_project_id:latest,\
+FIREBASE_PROJECT_ID=dev_firebase_project_id:latest,\
+ALLOWED_ORIGINS=dev_allowed_origins:latest,\
+COOKIE_DOMAIN=dev_cookie_domain:latest,\
+RATE_LIMIT_PER_MINUTE=dev_rate_limit_per_minute:latest,\
+RATE_LIMIT_STRICT_PER_MINUTE=dev_rate_limit_strict_per_minute:latest,\
+GRAPHQL_MAX_DEPTH=dev_graphql_max_depth:latest,\
+GRAPHQL_MAX_COMPLEXITY=dev_graphql_max_complexity:latest,\
+MAX_FILE_SIZE=dev_max_file_size:latest,\
+ERROR_STRICT_MODE=dev_error_strict_mode:latest"
 
 echo "✅ Deployment to development complete!"
 echo ""

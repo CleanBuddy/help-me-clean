@@ -1,6 +1,6 @@
 #!/bin/bash
 # HelpMeClean.ro - GCP Production Environment Deployment
-# Deploy backend with security environment variables
+# Deploy backend with all configuration via Secret Manager
 
 set -e  # Exit on error
 
@@ -24,8 +24,8 @@ IMAGE="gcr.io/${PROJECT_ID}/backend:latest"
 echo "📦 Setting GCP project: ${PROJECT_ID}"
 gcloud config set project ${PROJECT_ID}
 
-# Deploy to Cloud Run with security environment variables
-echo "🔧 Deploying to Cloud Run with environment variables..."
+# Deploy to Cloud Run with ALL configuration via secrets
+echo "🔧 Deploying to Cloud Run with Secret Manager configuration..."
 gcloud run deploy ${SERVICE_NAME} \
   --image ${IMAGE} \
   --platform managed \
@@ -36,43 +36,43 @@ gcloud run deploy ${SERVICE_NAME} \
   --timeout 300 \
   --min-instances 1 \
   --max-instances 100 \
-  --set-env-vars "\
-ENVIRONMENT=production,\
-PORT=8080,\
-COOKIE_DOMAIN=.helpmeclean.ro,\
-RATE_LIMIT_PER_MINUTE=100,\
-RATE_LIMIT_STRICT_PER_MINUTE=10,\
-GRAPHQL_MAX_DEPTH=10,\
-GRAPHQL_MAX_COMPLEXITY=100,\
-MAX_FILE_SIZE=10485760,\
-ERROR_STRICT_MODE=false,\
-USE_LOCAL_STORAGE=false,\
-GCS_BUCKET=helpmeclean-prod-uploads,\
-GCS_PROJECT_ID=helpmeclean-prod,\
-FIREBASE_PROJECT_ID=helpmeclean-prod,\
-FACTUREAZA_API_URL=https://api.factureaza.ro/api/v1/,\
-PLATFORM_COMPANY_NAME=HelpMeClean SRL,\
-PLATFORM_CUI=RO12345678,\
-PLATFORM_REG_NUMBER=J40/1234/2024,\
-PLATFORM_ADDRESS=Str. Exemplu nr. 1,\
-PLATFORM_CITY=Bucuresti,\
-PLATFORM_COUNTY=Bucuresti,\
-PLATFORM_IS_VAT_PAYER=true,\
-PLATFORM_BANK_NAME=ING Bank,\
-PLATFORM_IBAN=RO49AAAA1B31007593840000,\
-ALLOWED_ORIGINS=https://app.helpmeclean.ro,https://firma.helpmeclean.ro,https://admin.helpmeclean.ro,\
-STRIPE_CONNECT_RETURN_URL=https://app.helpmeclean.ro/firma/setari?stripe=complete,\
-STRIPE_CONNECT_REFRESH_URL=https://app.helpmeclean.ro/firma/setari?stripe=refresh" \
   --set-secrets "\
-DATABASE_URL=database-url-prod:latest,\
-JWT_SECRET=jwt-secret-prod:latest,\
-GOOGLE_CLIENT_ID=google-client-id-prod:latest,\
-GOOGLE_CLIENT_ID_IOS=google-client-id-ios-prod:latest,\
-GOOGLE_CLIENT_ID_ANDROID=google-client-id-android-prod:latest,\
-STRIPE_SECRET_KEY=stripe-secret-key-prod:latest,\
-STRIPE_WEBHOOK_SECRET=stripe-webhook-secret-prod:latest,\
-STRIPE_PUBLISHABLE_KEY=stripe-publishable-key-prod:latest,\
-FACTUREAZA_API_KEY=factureaza-api-key-prod:latest"
+ENVIRONMENT=prod_environment:latest,\
+PORT=prod_port:latest,\
+DATABASE_URL=prod_database_url:latest,\
+JWT_SECRET=prod_jwt_secret:latest,\
+JWT_EXPIRY=prod_jwt_expiry:latest,\
+GOOGLE_CLIENT_ID=prod_google_client_id:latest,\
+GOOGLE_CLIENT_ID_IOS=prod_google_client_id_ios:latest,\
+GOOGLE_CLIENT_ID_ANDROID=prod_google_client_id_android:latest,\
+STRIPE_SECRET_KEY=prod_stripe_secret_key:latest,\
+STRIPE_WEBHOOK_SECRET=prod_stripe_webhook_secret:latest,\
+STRIPE_PUBLISHABLE_KEY=prod_stripe_publishable_key:latest,\
+STRIPE_CONNECT_RETURN_URL=prod_stripe_connect_return_url:latest,\
+STRIPE_CONNECT_REFRESH_URL=prod_stripe_connect_refresh_url:latest,\
+FACTUREAZA_API_URL=prod_factureaza_api_url:latest,\
+FACTUREAZA_API_KEY=prod_factureaza_api_key:latest,\
+PLATFORM_COMPANY_NAME=prod_platform_company_name:latest,\
+PLATFORM_CUI=prod_platform_cui:latest,\
+PLATFORM_REG_NUMBER=prod_platform_reg_number:latest,\
+PLATFORM_ADDRESS=prod_platform_address:latest,\
+PLATFORM_CITY=prod_platform_city:latest,\
+PLATFORM_COUNTY=prod_platform_county:latest,\
+PLATFORM_IS_VAT_PAYER=prod_platform_is_vat_payer:latest,\
+PLATFORM_BANK_NAME=prod_platform_bank_name:latest,\
+PLATFORM_IBAN=prod_platform_iban:latest,\
+USE_LOCAL_STORAGE=prod_use_local_storage:latest,\
+GCS_BUCKET=prod_gcs_bucket:latest,\
+GCS_PROJECT_ID=prod_gcs_project_id:latest,\
+FIREBASE_PROJECT_ID=prod_firebase_project_id:latest,\
+ALLOWED_ORIGINS=prod_allowed_origins:latest,\
+COOKIE_DOMAIN=prod_cookie_domain:latest,\
+RATE_LIMIT_PER_MINUTE=prod_rate_limit_per_minute:latest,\
+RATE_LIMIT_STRICT_PER_MINUTE=prod_rate_limit_strict_per_minute:latest,\
+GRAPHQL_MAX_DEPTH=prod_graphql_max_depth:latest,\
+GRAPHQL_MAX_COMPLEXITY=prod_graphql_max_complexity:latest,\
+MAX_FILE_SIZE=prod_max_file_size:latest,\
+ERROR_STRICT_MODE=prod_error_strict_mode:latest"
 
 echo "✅ Deployment to production complete!"
 echo ""
