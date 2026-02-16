@@ -26,7 +26,7 @@ import {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatRON(amount: number): string {
-  return (amount / 100).toFixed(2) + ' lei ';
+  return (amount / 100).toFixed(2) + ' lei';
 }
 
 function getMonthRange(): { from: string; to: string } {
