@@ -16,6 +16,8 @@ bin/
 .env.local
 .env.*.local
 *.local.json
+.env.gcp-secrets-dev
+.env.gcp-secrets-prod
 
 # IDE
 .vscode/
