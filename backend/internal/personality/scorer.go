@@ -36,10 +36,10 @@ type AssessmentResult struct {
 }
 
 const (
-	totalQuestions    = 28
-	itemsPerFacet    = 4
-	maxFacetScore    = itemsPerFacet * 5 // 20
-	flagThreshold    = 10                // midpoint: below this = concern
+	totalQuestions = 28
+	itemsPerFacet  = 4
+	maxFacetScore  = itemsPerFacet * 5 // 20
+	flagThreshold  = 10                // midpoint: below this = concern
 )
 
 // ScoreAssessment takes submitted answers and computes all facet scores,

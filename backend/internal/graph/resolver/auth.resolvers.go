@@ -11,6 +11,7 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"helpmeclean-backend/internal/middleware"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -35,8 +36,14 @@ func (r *mutationResolver) SignInWithGoogle(ctx context.Context, idToken string,
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate token: %w", err)
 		}
+
+		// Set httpOnly cookie (new secure method)
+		if w := middleware.GetResponseWriter(ctx); w != nil {
+			auth.SetAuthCookie(w, token)
+		}
+
 		return &model.AuthPayload{
-			Token:     token,
+			Token:     token, // Still return token for backward compatibility (will be removed after migration)
 			User:      dbUserToGQL(existingUser),
 			IsNewUser: false,
 		}, nil
@@ -54,8 +61,14 @@ func (r *mutationResolver) SignInWithGoogle(ctx context.Context, idToken string,
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate token: %w", err)
 		}
+
+		// Set httpOnly cookie (new secure method)
+		if w := middleware.GetResponseWriter(ctx); w != nil {
+			auth.SetAuthCookie(w, token)
+		}
+
 		return &model.AuthPayload{
-			Token:     token,
+			Token:     token, // Still return token for backward compatibility (will be removed after migration)
 			User:      dbUserToGQL(existingUser),
 			IsNewUser: false,
 		}, nil
@@ -88,8 +101,13 @@ func (r *mutationResolver) SignInWithGoogle(ctx context.Context, idToken string,
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
+	// Set httpOnly cookie (new secure method)
+	if w := middleware.GetResponseWriter(ctx); w != nil {
+		auth.SetAuthCookie(w, token)
+	}
+
 	return &model.AuthPayload{
-		Token:     token,
+		Token:     token, // Still return token for backward compatibility (will be removed after migration)
 		User:      dbUserToGQL(newUser),
 		IsNewUser: true,
 	}, nil
@@ -116,8 +134,13 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (*model.AuthPayload
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
+	// Set httpOnly cookie (new secure method)
+	if w := middleware.GetResponseWriter(ctx); w != nil {
+		auth.SetAuthCookie(w, token)
+	}
+
 	return &model.AuthPayload{
-		Token:     token,
+		Token:     token, // Still return token for backward compatibility (will be removed after migration)
 		User:      dbUserToGQL(dbUser),
 		IsNewUser: false,
 	}, nil
@@ -139,4 +162,14 @@ func (r *mutationResolver) RegisterDeviceToken(ctx context.Context, token string
 	}
 
 	return true, nil
+}
+
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
+	// Clear the httpOnly cookie
+	if w := middleware.GetResponseWriter(ctx); w != nil {
+		auth.ClearAuthCookie(w)
+		return true, nil
+	}
+	return false, fmt.Errorf("unable to clear authentication cookie")
 }

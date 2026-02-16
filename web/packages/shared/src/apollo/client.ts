@@ -8,8 +8,11 @@ import createUploadLink from 'apollo-upload-client/createUploadLink.mjs';
 export function createApolloClient(graphqlEndpoint: string, wsEndpoint?: string) {
   const uploadLink = createUploadLink({
     uri: graphqlEndpoint,
+    credentials: 'include', // ✅ Send httpOnly cookies with every request (Phase 2 security)
   }) as unknown as ApolloLink;
 
+  // Keep authLink for backward compatibility during migration (users with old localStorage tokens)
+  // Backend supports both cookie and Authorization header during transition period
   const authLink = setContext((_, { headers }) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     return {
@@ -21,6 +24,19 @@ export function createApolloClient(graphqlEndpoint: string, wsEndpoint?: string)
   });
 
   let link = authLink.concat(uploadLink);
+
+  // Phase 4: Auto-detect WebSocket protocol from HTTP endpoint
+  // If no wsEndpoint provided, derive it from graphqlEndpoint
+  // https:// → wss://, http:// → ws://
+  if (!wsEndpoint) {
+    try {
+      const url = new URL(graphqlEndpoint);
+      const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsEndpoint = `${wsProtocol}//${url.host}${url.pathname}`;
+    } catch (e) {
+      console.warn('Failed to auto-detect WebSocket endpoint:', e);
+    }
+  }
 
   if (wsEndpoint) {
     const wsLink = new GraphQLWsLink(

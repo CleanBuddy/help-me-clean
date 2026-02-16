@@ -38,6 +38,12 @@ export const REFRESH_TOKEN = gql`
   }
 `;
 
+export const LOGOUT = gql`
+  mutation Logout {
+    logout
+  }
+`;
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 export const ME = gql`

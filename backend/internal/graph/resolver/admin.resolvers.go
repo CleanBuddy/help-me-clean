@@ -11,6 +11,7 @@ import (
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"helpmeclean-backend/internal/storage"
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -77,12 +78,30 @@ func (r *mutationResolver) UploadFile(ctx context.Context, file graphql.Upload, 
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	// For MVP, return a mock URL.
-	mockURL := fmt.Sprintf("https://storage.helpmeclean.ro/uploads/%s/%s", purpose, file.Filename)
+	// Phase 4: Validate file upload (size, type, content)
+	if err := storage.ValidateUpload(file); err != nil {
+		return nil, fmt.Errorf("file validation failed: %w", err)
+	}
+
+	// Phase 4: Sanitize filename to prevent path traversal attacks
+	sanitizedFilename := storage.SanitizeFilename(file.Filename)
+
+	// Determine storage type based on purpose
+	storageType := storage.StorageTypePublic
+	if purpose == "document" || purpose == "cleaner_document" || purpose == "company_document" {
+		storageType = storage.StorageTypePrivate
+	}
+
+	// Upload to storage (path includes purpose and user ID for organization)
+	uploadPath := fmt.Sprintf("%s/%s", purpose, claims.UserID)
+	url, err := r.Storage.Upload(ctx, uploadPath, sanitizedFilename, file.File, storageType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload file: %w", err)
+	}
 
 	return &model.UploadResult{
-		URL:      mockURL,
-		FileName: file.Filename,
+		URL:      url,
+		FileName: sanitizedFilename,
 	}, nil
 }
 

@@ -1,11 +1,16 @@
 package auth
 
 import (
+	"os"
 	"testing"
 )
 
 func TestVerifyGoogleIDToken(t *testing.T) {
 	t.Run("dev mode: valid dev token returns correct user info", func(t *testing.T) {
+		// Set environment to test mode to allow dev tokens
+		os.Setenv("ENVIRONMENT", "test")
+		defer os.Unsetenv("ENVIRONMENT")
+
 		info, err := VerifyGoogleIDToken("dev_user@test.com")
 		if err != nil {
 			t.Fatalf("VerifyGoogleIDToken returned unexpected error: %v", err)
@@ -26,6 +31,10 @@ func TestVerifyGoogleIDToken(t *testing.T) {
 	})
 
 	t.Run("dev mode: extracts email after dev_ prefix", func(t *testing.T) {
+		// Set environment to test mode to allow dev tokens
+		os.Setenv("ENVIRONMENT", "test")
+		defer os.Unsetenv("ENVIRONMENT")
+
 		tests := []struct {
 			name          string
 			token         string
@@ -76,6 +85,10 @@ func TestVerifyGoogleIDToken(t *testing.T) {
 	})
 
 	t.Run("dev mode: dev_ prefix with empty remainder is still accepted", func(t *testing.T) {
+		// Set environment to test mode to allow dev tokens
+		os.Setenv("ENVIRONMENT", "test")
+		defer os.Unsetenv("ENVIRONMENT")
+
 		// The code checks len > 4 and prefix == "dev_", so "dev_x" (len=5) works.
 		info, err := VerifyGoogleIDToken("dev_x")
 		if err != nil {

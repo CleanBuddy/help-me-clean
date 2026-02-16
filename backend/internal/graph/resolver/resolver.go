@@ -10,6 +10,7 @@ import (
 
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
+	"helpmeclean-backend/internal/middleware"
 	"helpmeclean-backend/internal/pubsub"
 	"helpmeclean-backend/internal/service/invoice"
 	"helpmeclean-backend/internal/service/payment"
@@ -24,6 +25,7 @@ type Resolver struct {
 	PaymentService *payment.Service
 	InvoiceService *invoice.Service
 	Storage        storage.Storage
+	AuthzHelper    *middleware.AuthzHelper
 }
 
 // cleanerWithCompany loads a cleaner's company and documents, returns the full CleanerProfile.

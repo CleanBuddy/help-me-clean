@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useApolloClient, useMutation, useLazyQuery } from '@apollo/client';
-import { ME, SIGN_IN_WITH_GOOGLE } from '@/graphql/operations';
+import { ME, SIGN_IN_WITH_GOOGLE, LOGOUT } from '@/graphql/operations';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -62,15 +62,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   });
 
   const [signIn] = useMutation(SIGN_IN_WITH_GOOGLE);
+  const [logoutMutation] = useMutation(LOGOUT);
 
-  // On mount, check for existing token
+  // On mount, always try to fetch user (cookie is sent automatically)
+  // This works for both new cookie-based auth and legacy localStorage tokens
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetchMe();
-    } else {
-      setLoading(false);
-    }
+    fetchMe();
   }, [fetchMe]);
 
   const loginWithGoogle = useCallback(
@@ -78,8 +75,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { data } = await signIn({
         variables: { idToken, role: 'CLIENT' },
       });
-      const { token, user: authUser } = data.signInWithGoogle;
-      localStorage.setItem('token', token);
+      const { user: authUser } = data.signInWithGoogle;
+      // Token is now set as httpOnly cookie by backend (Phase 2 security)
+      // No need to store in localStorage
       setUser(authUser);
       return authUser;
     },
@@ -91,19 +89,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { data } = await signIn({
         variables: { idToken: `dev_${email}`, role },
       });
-      const { token, user: authUser } = data.signInWithGoogle;
-      localStorage.setItem('token', token);
+      const { user: authUser } = data.signInWithGoogle;
+      // Token is now set as httpOnly cookie by backend (Phase 2 security)
+      // No need to store in localStorage
       setUser(authUser);
       return authUser;
     },
     [signIn],
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      // Call logout mutation to clear httpOnly cookie on server
+      await logoutMutation();
+    } catch (error) {
+      console.error('Logout mutation failed:', error);
+      // Continue with client-side cleanup even if mutation fails
+    }
+
+    // Clean up legacy localStorage token (for users with old tokens)
     localStorage.removeItem('token');
+
+    // Clear local state
     setUser(null);
     client.clearStore();
-  }, [client]);
+  }, [client, logoutMutation]);
 
   const refetchUser = useCallback(() => {
     fetchMe();

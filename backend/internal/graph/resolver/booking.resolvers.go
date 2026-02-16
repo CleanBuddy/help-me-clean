@@ -295,6 +295,12 @@ func (r *mutationResolver) CancelBooking(ctx context.Context, id string, reason 
 		return nil, fmt.Errorf("not authenticated")
 	}
 
+	// ✅ SECURITY: Check authorization before canceling booking (Phase 3)
+	bookingID := stringToUUID(id)
+	if err := r.AuthzHelper.CanAccessBooking(ctx, bookingID); err != nil {
+		return nil, err
+	}
+
 	// Determine cancel status based on the user's role.
 	var cancelStatus db.BookingStatus
 	switch claims.Role {
@@ -373,7 +379,13 @@ func (r *mutationResolver) ConfirmBooking(ctx context.Context, id string) (*mode
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	current, err := r.Queries.GetBookingByID(ctx, stringToUUID(id))
+	// ✅ SECURITY: Check authorization before confirming booking (Phase 3)
+	bookingID := stringToUUID(id)
+	if err := r.AuthzHelper.CanAccessBooking(ctx, bookingID); err != nil {
+		return nil, err
+	}
+
+	current, err := r.Queries.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		return nil, fmt.Errorf("booking not found: %w", err)
 	}
@@ -412,8 +424,14 @@ func (r *mutationResolver) StartJob(ctx context.Context, id string) (*model.Book
 		return nil, fmt.Errorf("not authenticated")
 	}
 
+	// ✅ SECURITY: Check authorization before starting job (Phase 3)
+	bookingID := stringToUUID(id)
+	if err := r.AuthzHelper.CanAccessBooking(ctx, bookingID); err != nil {
+		return nil, err
+	}
+
 	// Validate status transition.
-	current, err := r.Queries.GetBookingByID(ctx, stringToUUID(id))
+	current, err := r.Queries.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		return nil, fmt.Errorf("booking not found: %w", err)
 	}
@@ -434,6 +452,12 @@ func (r *mutationResolver) CompleteJob(ctx context.Context, id string) (*model.B
 	claims := auth.GetUserFromContext(ctx)
 	if claims == nil {
 		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// ✅ SECURITY: Check authorization before completing job (Phase 3)
+	bookingID := stringToUUID(id)
+	if err := r.AuthzHelper.CanAccessBooking(ctx, bookingID); err != nil {
+		return nil, err
 	}
 
 	// Validate status transition.
@@ -579,7 +603,14 @@ func (r *queryResolver) Booking(ctx context.Context, id string) (*model.Booking,
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	booking, err := r.Queries.GetBookingByID(ctx, stringToUUID(id))
+	bookingID := stringToUUID(id)
+
+	// ✅ SECURITY: Check authorization before accessing booking (Phase 3)
+	if err := r.AuthzHelper.CanAccessBooking(ctx, bookingID); err != nil {
+		return nil, err
+	}
+
+	booking, err := r.Queries.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		return nil, fmt.Errorf("booking not found: %w", err)
 	}
