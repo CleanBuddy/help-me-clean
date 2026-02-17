@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@apollo/client';
-import { CheckCircle, Copy, Check, CheckCheck, Loader2 } from 'lucide-react';
+import { CheckCircle, Copy, Check, CheckCheck, Loader2, Search } from 'lucide-react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { cn } from '@helpmeclean/shared';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -52,20 +53,19 @@ export default function RegisterCompanyPage() {
     setCuiLoading(true);
     setCuiStatus('idle');
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const res = await fetch('https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/tva', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([{ cui: cuiNum, data: today }]),
-      });
+      const backendBase =
+        (import.meta.env.VITE_GRAPHQL_ENDPOINT as string)?.replace('/query', '') ||
+        'http://localhost:8080';
+      const res = await fetch(`${backendBase}/api/company-lookup?cui=${cuiNum}`);
       const json = await res.json();
-      const company = json?.found?.[0];
-      if (company?.denumire) {
+      if (json?.found && json.companyName) {
         setForm((prev) => ({
           ...prev,
-          companyName: company.denumire?.trim() || prev.companyName,
-          address: company.adresa?.trim() || prev.address,
-          contactPhone: company.telefon?.trim() || prev.contactPhone,
+          companyName: json.companyName || prev.companyName,
+          address: json.streetAddress || prev.address,
+          city: json.city || prev.city,
+          county: json.county || prev.county,
+          contactPhone: json.contactPhone || prev.contactPhone,
         }));
         setCuiStatus('found');
       } else {
@@ -89,16 +89,12 @@ export default function RegisterCompanyPage() {
 
     try {
       const { data } = await applyAsCompany({
-        variables: {
-          input: form,
-        },
+        variables: { input: form },
       });
       const token = data?.applyAsCompany?.claimToken ?? null;
       setClaimToken(token);
 
       if (isAuthenticated && !token) {
-        // Backend has already linked the company and upgraded the user role.
-        // Refresh JWT so it reflects COMPANY_ADMIN, then redirect to document upload.
         await refreshToken();
         await refetchUser();
         navigate('/firma/documente-obligatorii');
@@ -116,16 +112,9 @@ export default function RegisterCompanyPage() {
     setClaimLoading(true);
     setClaimError('');
     try {
-      await claimCompany({
-        variables: { claimToken },
-      });
-
-      // Refresh token to get updated JWT with COMPANY_ADMIN role
+      await claimCompany({ variables: { claimToken } });
       await refreshToken();
-
-      // Refetch user data to update UI
       await refetchUser();
-
       setClaimed(true);
       setTimeout(() => navigate('/firma/documente-obligatorii'), 1500);
     } catch (err) {
@@ -145,7 +134,6 @@ export default function RegisterCompanyPage() {
     setClaimLoading(true);
     try {
       await loginWithGoogle(response.credential);
-      // After login, claim the company (cookie is sent automatically)
       await handleClaimAfterAuth();
     } catch (err) {
       console.error('Google auth error:', err);
@@ -193,7 +181,6 @@ export default function RegisterCompanyPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC] px-4 py-12">
         <div className="w-full max-w-md">
-          {/* Logo */}
           <div className="text-center mb-8">
             <Link to="/" className="inline-block">
               <span className="text-2xl font-black tracking-tight text-gray-900">
@@ -270,23 +257,18 @@ export default function RegisterCompanyPage() {
   return (
     <div className="flex h-screen overflow-hidden">
 
-      {/* ── Left Panel (green brand, desktop only) ─────────────────────────── */}
+      {/* ── Left Panel ──────────────────────────────────────────────────────── */}
       <div className="hidden lg:flex lg:w-[42%] bg-secondary flex-col justify-between p-12 relative overflow-hidden">
-        {/* Decorative blobs */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/10 rounded-full pointer-events-none" />
         <div className="absolute -bottom-32 -right-12 w-80 h-80 bg-emerald-700/20 rounded-full pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full pointer-events-none" />
 
-        {/* Top: Logo */}
         <div className="relative z-10">
           <Link to="/" className="inline-block">
-            <span className="text-2xl font-black tracking-tight text-white">
-              HelpMeClean
-            </span>
+            <span className="text-2xl font-black tracking-tight text-white">HelpMeClean</span>
           </Link>
         </div>
 
-        {/* Middle: Pitch */}
         <div className="relative z-10">
           <h2 className="text-3xl font-bold text-white leading-snug mb-4">
             Crește-ți afacerea<br />cu HelpMeClean
@@ -308,7 +290,6 @@ export default function RegisterCompanyPage() {
           </ul>
         </div>
 
-        {/* Bottom: Stats */}
         <div className="relative z-10 flex items-center gap-8 pt-8 border-t border-white/20">
           <div>
             <p className="text-2xl font-bold text-white">50+</p>
@@ -322,22 +303,19 @@ export default function RegisterCompanyPage() {
         </div>
       </div>
 
-      {/* ── Right Panel (white form) ────────────────────────────────────────── */}
+      {/* ── Right Panel ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col bg-white overflow-y-auto">
 
         {/* Top bar */}
         <div className="flex items-center justify-end px-8 py-4 border-b border-gray-100 shrink-0">
           <span className="text-sm text-gray-500 mr-2">Ai deja cont?</span>
-          <Link
-            to="/autentificare"
-            className="text-sm font-medium text-primary hover:underline"
-          >
+          <Link to="/autentificare" className="text-sm font-medium text-primary hover:underline">
             Intră în cont →
           </Link>
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-8">
+        <div className="flex-1 px-8 lg:px-16 py-8">
           <div className="max-w-xl w-full mx-auto">
 
             {/* Logo (mobile only) */}
@@ -356,113 +334,169 @@ export default function RegisterCompanyPage() {
               Completează datele firmei pentru a deveni partener HelpMeClean.
             </p>
 
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Input
-                  label="Nume firmă *"
-                  placeholder="SC Firma SRL"
-                  value={form.companyName}
-                  onChange={(e) => updateField('companyName', e.target.value)}
-                />
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-gray-700">
-                    CUI <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="RO12345678"
-                      value={form.cui}
-                      onChange={(e) => { updateField('cui', e.target.value); setCuiStatus('idle'); }}
-                      className="flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCuiLookup}
-                      disabled={!form.cui.trim() || cuiLoading}
-                      className="shrink-0 px-4 py-3 rounded-xl border border-primary text-primary text-sm font-medium hover:bg-primary/5 disabled:opacity-40 transition cursor-pointer"
-                    >
-                      {cuiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verifică →'}
-                    </button>
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
+
+              {/* ── CUI Hero Section ────────────────────────────────────────── */}
+              <div className={cn(
+                'rounded-2xl border p-5 transition-colors',
+                cuiStatus === 'found'
+                  ? 'border-secondary/40 bg-secondary/5'
+                  : 'border-gray-200 bg-gray-50',
+              )}>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
+                    <Search className="h-4 w-4 text-secondary" />
                   </div>
-                  {cuiStatus === 'found' && (
-                    <p className="flex items-center gap-1 text-xs text-secondary">
-                      <Check className="h-3 w-3" /> Date preluate de la ANAF
-                    </p>
-                  )}
-                  {cuiStatus === 'not-found' && (
-                    <p className="text-xs text-red-500">CUI-ul nu a fost găsit în baza de date ANAF.</p>
-                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Cod unic de înregistrare (CUI)</p>
+                    <p className="text-xs text-gray-500">Preluăm automat datele firmei din registrul ANAF</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tip firmă <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={form.companyType}
-                    onChange={(e) => updateField('companyType', e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                    required
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Ex: 12345678 sau RO12345678"
+                    value={form.cui}
+                    onChange={(e) => { updateField('cui', e.target.value); setCuiStatus('idle'); }}
+                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCuiLookup}
+                    disabled={!form.cui.trim() || cuiLoading}
+                    className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl bg-secondary text-white text-sm font-semibold hover:bg-secondary/90 disabled:opacity-40 transition cursor-pointer"
                   >
-                    <option value="">Selectează tipul firmei</option>
-                    <option value="SRL">SRL</option>
-                    <option value="PFA">PFA</option>
-                    <option value="II">II (Întreprindere Individuală)</option>
-                  </select>
+                    {cuiLoading
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <><Search className="h-4 w-4" /> Verifică</>
+                    }
+                  </button>
                 </div>
-                <Input
-                  label="Reprezentant legal"
-                  placeholder="Ion Popescu"
-                  value={form.legalRepresentative}
-                  onChange={(e) => updateField('legalRepresentative', e.target.value)}
-                />
-                <Input
-                  label="Email contact *"
-                  type="email"
-                  placeholder="contact@firma.ro"
-                  value={form.contactEmail}
-                  onChange={(e) => updateField('contactEmail', e.target.value)}
-                />
-                <Input
-                  label="Telefon contact"
-                  placeholder="+40 7XX XXX XXX"
-                  value={form.contactPhone}
-                  onChange={(e) => updateField('contactPhone', e.target.value)}
-                />
+
+                {/* Found company card */}
+                {cuiStatus === 'found' && (
+                  <div className="mt-4 flex items-start gap-3 p-3.5 rounded-xl bg-white border border-secondary/20">
+                    <CheckCircle className="h-5 w-5 text-secondary shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{form.companyName}</p>
+                      {(form.address || form.city) && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                          {[form.address, form.city, form.county].filter(Boolean).join(', ')}
+                        </p>
+                      )}
+                      {form.contactPhone && (
+                        <p className="text-xs text-gray-400 mt-0.5">{form.contactPhone}</p>
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-secondary shrink-0">ANAF ✓</span>
+                  </div>
+                )}
+
+                {cuiStatus === 'not-found' && (
+                  <p className="mt-2 text-xs text-red-500">
+                    CUI-ul nu a fost găsit în baza de date ANAF. Continuă completând manual datele.
+                  </p>
+                )}
               </div>
 
-              <Input
-                label="Adresă"
-                placeholder="Str. Exemplu, Nr. 1"
-                value={form.address}
-                onChange={(e) => updateField('address', e.target.value)}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Input
-                  label="Oraș"
-                  placeholder="București"
-                  value={form.city}
-                  onChange={(e) => updateField('city', e.target.value)}
-                />
-                <Input
-                  label="Județ"
-                  placeholder="Ilfov"
-                  value={form.county}
-                  onChange={(e) => updateField('county', e.target.value)}
-                />
+              {/* ── Company Details ──────────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Detalii firmă</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Nume firmă *"
+                    placeholder="SC Firma SRL"
+                    value={form.companyName}
+                    onChange={(e) => updateField('companyName', e.target.value)}
+                  />
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Tip firmă <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.companyType}
+                      onChange={(e) => updateField('companyType', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                      required
+                    >
+                      <option value="">Selectează tipul firmei</option>
+                      <option value="SRL">SRL</option>
+                      <option value="PFA">PFA</option>
+                      <option value="II">II (Întreprindere Individuală)</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Input
+                      label="Reprezentant legal"
+                      placeholder="Ion Popescu"
+                      value={form.legalRepresentative}
+                      onChange={(e) => updateField('legalRepresentative', e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Descriere firmă
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => updateField('description', e.target.value)}
-                  rows={3}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  placeholder="Descrierea firmei și a serviciilor oferite..."
+              {/* ── Contact ──────────────────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Contact</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Email contact *"
+                    type="email"
+                    placeholder="contact@firma.ro"
+                    value={form.contactEmail}
+                    onChange={(e) => updateField('contactEmail', e.target.value)}
+                  />
+                  <Input
+                    label="Telefon contact"
+                    placeholder="+40 7XX XXX XXX"
+                    value={form.contactPhone}
+                    onChange={(e) => updateField('contactPhone', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* ── Address ──────────────────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Adresă sediu</p>
+                <Input
+                  label="Stradă, număr"
+                  placeholder="Str. Exemplu, Nr. 1, Et. 2, Ap. 5"
+                  value={form.address}
+                  onChange={(e) => updateField('address', e.target.value)}
                 />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Oraș"
+                    placeholder="București"
+                    value={form.city}
+                    onChange={(e) => updateField('city', e.target.value)}
+                  />
+                  <Input
+                    label="Județ / Sector"
+                    placeholder="Ilfov sau Sector 1"
+                    value={form.county}
+                    onChange={(e) => updateField('county', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* ── Description ──────────────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Prezentare</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Descriere firmă
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => updateField('description', e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    placeholder="Descrierea firmei și a serviciilor oferite..."
+                  />
+                </div>
               </div>
 
               {error && (
@@ -474,6 +508,7 @@ export default function RegisterCompanyPage() {
               <Button type="submit" loading={loading} className="w-full" size="lg">
                 Trimite cererea →
               </Button>
+
             </form>
           </div>
         </div>
