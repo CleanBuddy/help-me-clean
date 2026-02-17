@@ -6,7 +6,8 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { useApolloClient } from '@apollo/client';
+import { useApolloClient, type NormalizedCacheObject } from '@apollo/client';
+import type { ApolloClient } from '@apollo/client';
 import { authService, type AuthUser, type AuthState } from '@/services/AuthService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(() => authService.getState());
 
   useEffect(() => {
-    authService.initialize(client);
+    authService.initialize(client as ApolloClient<NormalizedCacheObject>);
     // Re-read state in case it changed during the StrictMode unmount/remount gap.
     setState(authService.getState());
     // Subscribe and return the unsubscribe function as cleanup.

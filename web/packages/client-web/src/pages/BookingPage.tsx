@@ -293,26 +293,6 @@ function toDateString(y: number, m: number, d: number): string {
   return `${y}-${padTwo(m + 1)}-${padTwo(d)}`;
 }
 
-function generateTimeSlots(startHour: number, startMin: number, endHour: number, endMin: number): string[] {
-  const slots: string[] = [];
-  let h = startHour;
-  let m = startMin;
-  while (h < endHour || (h === endHour && m <= endMin)) {
-    slots.push(`${padTwo(h)}:${padTwo(m)}`);
-    m += 30;
-    if (m >= 60) {
-      m = 0;
-      h += 1;
-    }
-  }
-  return slots;
-}
-
-function timeToMinutes(t: string): number {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
 function minutesToTime(mins: number): string {
   return `${padTwo(Math.floor(mins / 60))}:${padTwo(mins % 60)}`;
 }

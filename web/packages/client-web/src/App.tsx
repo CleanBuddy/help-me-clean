@@ -13,7 +13,6 @@ import AdminLayout from '@/components/layout/AdminLayout';
 
 // Public pages
 import HomePage from '@/pages/HomePage';
-import ServicesPage from '@/pages/ServicesPage';
 import BookingPage from '@/pages/BookingPage';
 import LoginPage from '@/pages/LoginPage';
 import NotFoundPage from '@/pages/NotFoundPage';

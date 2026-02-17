@@ -13,7 +13,6 @@ import {
   Plus,
   X,
   Star,
-  Pencil,
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';

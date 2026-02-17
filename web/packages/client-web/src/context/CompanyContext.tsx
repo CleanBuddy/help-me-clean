@@ -26,6 +26,16 @@ interface Company {
   ratingAvg: number;
   totalJobsCompleted: number;
   createdAt: string;
+  documents?: Array<{
+    id: string;
+    documentType: string;
+    fileName: string;
+    fileUrl: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    uploadedAt: string;
+    reviewedAt?: string;
+    rejectionReason?: string;
+  }>;
 }
 
 interface CompanyContextValue {
