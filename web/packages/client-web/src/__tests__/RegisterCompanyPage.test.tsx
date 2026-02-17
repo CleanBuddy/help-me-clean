@@ -87,7 +87,7 @@ describe('RegisterCompanyPage', () => {
     renderPage();
     expect(screen.getByText('Înregistrează-ți firma')).toBeInTheDocument();
     expect(screen.getByLabelText(/Nume firm/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('RO12345678')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/RO12345678/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email contact/i)).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe('RegisterCompanyPage', () => {
     renderPage();
 
     await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
-    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.type(screen.getByPlaceholderText(/RO12345678/i), 'RO12345678');
     await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
@@ -143,7 +143,7 @@ describe('RegisterCompanyPage', () => {
     renderPage();
 
     await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
-    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.type(screen.getByPlaceholderText(/RO12345678/i), 'RO12345678');
     await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
@@ -165,7 +165,7 @@ describe('RegisterCompanyPage', () => {
     renderPage();
 
     await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
-    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.type(screen.getByPlaceholderText(/RO12345678/i), 'RO12345678');
     await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
@@ -200,7 +200,7 @@ describe('RegisterCompanyPage', () => {
     renderPage();
 
     await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
-    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.type(screen.getByPlaceholderText(/RO12345678/i), 'RO12345678');
     await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
@@ -220,7 +220,7 @@ describe('RegisterCompanyPage', () => {
     renderPage();
 
     await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
-    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.type(screen.getByPlaceholderText(/RO12345678/i), 'RO12345678');
     await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));

@@ -418,6 +418,7 @@ type CreateServiceDefinitionInput struct {
 	HouseMultiplier    float64     `json:"houseMultiplier"`
 	PetDurationMinutes int         `json:"petDurationMinutes"`
 	IsActive           bool        `json:"isActive"`
+	IncludedItems      []string    `json:"includedItems,omitempty"`
 }
 
 type CreateServiceExtraInput struct {
@@ -781,6 +782,7 @@ type ServiceDefinition struct {
 	PetDurationMinutes int         `json:"petDurationMinutes"`
 	Icon               *string     `json:"icon,omitempty"`
 	IsActive           bool        `json:"isActive"`
+	IncludedItems      []string    `json:"includedItems"`
 }
 
 type ServiceExtra struct {
@@ -868,17 +870,18 @@ type UpdateProfileInput struct {
 }
 
 type UpdateServiceDefinitionInput struct {
-	ID                 string  `json:"id"`
-	NameRo             string  `json:"nameRo"`
-	NameEn             string  `json:"nameEn"`
-	BasePricePerHour   float64 `json:"basePricePerHour"`
-	MinHours           float64 `json:"minHours"`
-	HoursPerRoom       float64 `json:"hoursPerRoom"`
-	HoursPerBathroom   float64 `json:"hoursPerBathroom"`
-	HoursPer100Sqm     float64 `json:"hoursPer100Sqm"`
-	HouseMultiplier    float64 `json:"houseMultiplier"`
-	PetDurationMinutes int     `json:"petDurationMinutes"`
-	IsActive           bool    `json:"isActive"`
+	ID                 string   `json:"id"`
+	NameRo             string   `json:"nameRo"`
+	NameEn             string   `json:"nameEn"`
+	BasePricePerHour   float64  `json:"basePricePerHour"`
+	MinHours           float64  `json:"minHours"`
+	HoursPerRoom       float64  `json:"hoursPerRoom"`
+	HoursPerBathroom   float64  `json:"hoursPerBathroom"`
+	HoursPer100Sqm     float64  `json:"hoursPer100Sqm"`
+	HouseMultiplier    float64  `json:"houseMultiplier"`
+	PetDurationMinutes int      `json:"petDurationMinutes"`
+	IsActive           bool     `json:"isActive"`
+	IncludedItems      []string `json:"includedItems,omitempty"`
 }
 
 type UpdateServiceExtraInput struct {

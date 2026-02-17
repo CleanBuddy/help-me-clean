@@ -74,6 +74,7 @@ interface ServiceDefinition {
   minHours: number;
   icon: string;
   isActive?: boolean;
+  includedItems: string[];
 }
 
 interface ExtraDefinition {
@@ -203,10 +204,10 @@ const STEPS_BASE = [
   { key: 'service', label: 'Serviciu', icon: Sparkles },
   { key: 'details', label: 'Detalii', icon: Home },
   { key: 'schedule', label: 'Programare', icon: Calendar },
-  { key: 'address', label: 'Adresa', icon: MapPin },
-  { key: 'cleaner', label: 'Curatator', icon: Users },
+  { key: 'address', label: 'Adresă', icon: MapPin },
+  { key: 'cleaner', label: 'Curățător', icon: Users },
   { key: 'summary', label: 'Sumar', icon: ClipboardList },
-  { key: 'payment', label: 'Plata', icon: CreditCard },
+  { key: 'payment', label: 'Plată', icon: CreditCard },
 ] as const;
 
 const BRAND_LABELS: Record<string, string> = {
@@ -240,6 +241,15 @@ const EXTRA_ICON_MAP: Record<string, LucideIcon> = {
   closet: Archive,
 };
 
+
+const NEXT_STEP_LABELS: Record<string, string> = {
+  service: 'Detalii proprietate',
+  details: 'Alege data și ora',
+  schedule: 'Adresa de curățenie',
+  address: 'Alege curățătorul',
+  cleaner: 'Sumar și confirmare',
+  summary: 'Plată',
+};
 
 const DAY_LABELS = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sa', 'Du'];
 
@@ -684,7 +694,7 @@ export default function BookingPage() {
   const handleBookingGoogleSuccess = useCallback(
     async (response: CredentialResponse) => {
       if (!response.credential) {
-        setAuthError('Autentificarea Google a esuat.');
+        setAuthError('Autentificarea Google a eșuat.');
         return;
       }
       setAuthError('');
@@ -692,7 +702,7 @@ export default function BookingPage() {
       try {
         await loginWithGoogle(response.credential);
       } catch {
-        setAuthError('Autentificarea a esuat. Te rugam sa incerci din nou.');
+        setAuthError('Autentificarea a eșuat. Te rugăm să încerci din nou.');
       } finally {
         setAuthLoading(false);
       }
@@ -726,12 +736,12 @@ export default function BookingPage() {
             )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            {hasPaymentError ? 'Rezervare creata, plata in asteptare' : 'Rezervare confirmata!'}
+            {hasPaymentError ? 'Rezervare creată, plată în așteptare' : 'Rezervare confirmată!'}
           </h1>
           <p className="text-gray-500 mb-4">
             {hasPaymentError
               ? paymentError
-              : 'Rezervarea ta a fost confirmata. Curatorul a fost notificat!'}
+              : 'Rezervarea ta a fost confirmată. Curățătorul a fost notificat!'}
           </p>
           <div className={cn(
             'inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xl font-mono font-bold text-gray-900 mb-4 tracking-wider',
@@ -744,21 +754,21 @@ export default function BookingPage() {
           {bookingResult.recurringGroupId && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 mb-4 text-sm text-blue-800">
               <Repeat className="h-4 w-4 text-blue-600 shrink-0" />
-              <span>Serie recurenta creata — 8 programari au fost generate automat.</span>
+              <span>Serie recurentă creată — 8 programări au fost generate automat.</span>
             </div>
           )}
           <p className="text-sm text-gray-400 mb-8">
             {hasPaymentError
-              ? 'Poti plati din pagina comenzii tale.'
+              ? 'Poți plăti din pagina comenzii tale.'
               : bookingResult.recurringGroupId
-                ? 'Gestioneaza seria recurenta din pagina Comenzile mele.'
-                : 'Poti comunica cu curatorul prin chat din pagina comenzii.'}
+                ? 'Gestionează seria recurentă din pagina Comenzile mele.'
+                : 'Poți comunica cu curățătorul prin chat din pagina comenzii.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {isAuthenticated && (
               <>
                 <Button onClick={() => navigate(`/cont/comenzi/${bookingResult.id}`)}>
-                  {hasPaymentError ? 'Plateste acum' : 'Vezi comenzile mele'}
+                  {hasPaymentError ? 'Plătește acum' : 'Vezi comenzile mele'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
                 {bookingResult.recurringGroupId && (
@@ -773,7 +783,7 @@ export default function BookingPage() {
               </>
             )}
             <Button variant="outline" onClick={() => navigate('/')}>
-              Inapoi la pagina principala
+              Înapoi la pagina principală
             </Button>
           </div>
         </div>
@@ -786,14 +796,27 @@ export default function BookingPage() {
   return (
     <div className="py-8 sm:py-12 pb-28 lg:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Page title */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-            Rezerva o curatenie
-          </h1>
-          <p className="text-gray-500">
-            Completeaza detaliile si plaseaza comanda in cateva minute.
-          </p>
+        {/* Page header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="font-semibold text-gray-900">Rezervare</span>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-blue-600 font-medium">{STEPS[currentStep]?.label}</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <Check className="h-3 w-3 text-emerald-500" />
+              Curățători verificați
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="h-3 w-3 text-emerald-500" />
+              Plată securizată
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="h-3 w-3 text-emerald-500" />
+              Garanție satisfacție
+            </span>
+          </div>
         </div>
 
         {/* Step indicator */}
@@ -818,6 +841,8 @@ export default function BookingPage() {
                 extras={extras}
                 selectedExtras={form.extras}
                 onToggleExtra={handleToggleExtra}
+                selectedService={selectedService}
+                estimatedHours={estimate?.estimatedHours}
               />
             )}
 
@@ -836,6 +861,7 @@ export default function BookingPage() {
                 updateForm={updateForm}
                 savedAddresses={savedAddresses}
                 isAuthenticated={isAuthenticated}
+                onGoogleLogin={handleBookingGoogleSuccess}
               />
             )}
 
@@ -859,10 +885,10 @@ export default function BookingPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">
-                          Autentificare necesara
+                          Autentificare necesară
                         </h3>
                         <p className="text-sm text-gray-500">
-                          Pentru a finaliza rezervarea, te rugam sa te autentifici.
+                          Pentru a finaliza rezervarea, te rugăm să te autentifici.
                         </p>
                       </div>
                     </div>
@@ -876,7 +902,7 @@ export default function BookingPage() {
                         <GoogleLogin
                           onSuccess={handleBookingGoogleSuccess}
                           onError={() =>
-                            setAuthError('Autentificarea Google a esuat.')
+                            setAuthError('Autentificarea Google a eșuat.')
                           }
                           theme="outline"
                           size="large"
@@ -916,7 +942,7 @@ export default function BookingPage() {
                   <Card className="bg-gradient-to-r from-blue-50 to-emerald-50 border-blue-100">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-500">Total de plata</p>
+                        <p className="text-sm text-gray-500">Total de plată</p>
                         <p className="text-2xl font-bold text-gray-900">
                           {estimate.total} RON
                         </p>
@@ -930,7 +956,7 @@ export default function BookingPage() {
 
                 {/* Saved cards */}
                 <Card>
-                  <h3 className="font-semibold text-gray-900 mb-4">Selecteaza metoda de plata</h3>
+                  <h3 className="font-semibold text-gray-900 mb-4">Selectează metoda de plată</h3>
 
                   {paymentMethods.length > 0 ? (
                     <div className="space-y-3">
@@ -996,7 +1022,7 @@ export default function BookingPage() {
                     className="mt-4 w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-colors"
                   >
                     <Plus className="h-4 w-4" />
-                    Adauga un card nou
+                    Adaugă un card nou
                   </button>
                 </Card>
 
@@ -1010,7 +1036,7 @@ export default function BookingPage() {
 
                 {/* Security note */}
                 <p className="text-xs text-gray-400 text-center">
-                  Platile sunt procesate securizat prin Stripe. Datele cardului tau nu sunt stocate pe serverele noastre.
+                  Plățile sunt procesate securizat prin Stripe. Datele cardului tău nu sunt stocate pe serverele noastre.
                 </p>
 
                 {/* Add card modal */}
@@ -1030,17 +1056,24 @@ export default function BookingPage() {
               {currentStep > 0 ? (
                 <Button variant="ghost" onClick={handleBack} disabled={paymentProcessing}>
                   <ChevronLeft className="h-4 w-4" />
-                  Inapoi
+                  Înapoi
                 </Button>
               ) : (
                 <div />
               )}
 
               {currentStep < STEPS.length - 1 ? (
-                <Button onClick={handleNext} disabled={!canProceed}>
-                  Continua
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                  <Button onClick={handleNext} disabled={!canProceed}>
+                    Continuă
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  {NEXT_STEP_LABELS[STEPS[currentStep]?.key] && (
+                    <p className="text-xs text-gray-400">
+                      Pasul următor: {NEXT_STEP_LABELS[STEPS[currentStep].key]}
+                    </p>
+                  )}
+                </div>
               ) : STEPS[currentStep]?.key === 'payment' ? (
                 <Button
                   onClick={handlePayAndBook}
@@ -1051,11 +1084,11 @@ export default function BookingPage() {
                   {paymentProcessing ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      Se proceseaza...
+                      Se procesează...
                     </>
                   ) : (
                     <>
-                      Confirma si plateste
+                      Confirmă și plătește
                       <CreditCard className="h-5 w-5" />
                     </>
                   )}
@@ -1067,7 +1100,7 @@ export default function BookingPage() {
                   disabled={!canProceed}
                   size="lg"
                 >
-                  Confirma rezervarea
+                  Confirmă rezervarea
                   <Check className="h-5 w-5" />
                 </Button>
               )}
@@ -1164,59 +1197,81 @@ function StepService({
   onSelect: (type: string) => void;
 }) {
   if (loading) {
-    return <LoadingSpinner text="Se incarca serviciile..." />;
+    return <LoadingSpinner text="Se încarcă serviciile..." />;
   }
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
-        Alege tipul de serviciu
+        Alege tipul de curățenie
       </h2>
       <p className="text-sm text-gray-500 mb-6">
-        Selecteaza serviciul de curatenie de care ai nevoie.
+        Selectează serviciul potrivit nevoilor tale.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {services.map((service) => (
-          <Card
-            key={service.id}
-            className={cn(
-              'cursor-pointer transition-all',
-              selected === service.serviceType
-                ? 'ring-2 ring-blue-600 border-blue-600 shadow-md shadow-blue-600/10'
-                : 'hover:shadow-md hover:border-gray-300',
-            )}
-            onClick={() => onSelect(service.serviceType)}
-          >
-            <div className="flex items-start gap-3">
-              <div className="text-3xl">
-                {SERVICE_ICONS[service.serviceType] || service.icon || '\uD83E\uDDF9'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900">
-                  {service.nameRo}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                  {service.descriptionRo}
-                </p>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-lg font-bold text-blue-600">
-                    {service.basePricePerHour} lei
-                  </span>
-                  <span className="text-xs text-gray-400">/ora</span>
-                  <span className="text-xs text-gray-400 ml-2">
-                    (min. {service.minHours} ore)
-                  </span>
-                </div>
-              </div>
-              {selected === service.serviceType && (
-                <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
-                  <Check className="h-4 w-4 text-white" />
+        {services.map((service) => {
+          const isSelected = selected === service.serviceType;
+          const isRecommended = service.serviceType === 'STANDARD_CLEANING';
+          const includedItems = service.includedItems ?? [];
+          return (
+            <Card
+              key={service.id}
+              className={cn(
+                'cursor-pointer transition-all relative',
+                isSelected
+                  ? 'ring-2 ring-blue-600 border-blue-600 shadow-md shadow-blue-600/10'
+                  : 'hover:shadow-md hover:border-gray-300',
+              )}
+              onClick={() => onSelect(service.serviceType)}
+            >
+              {isRecommended && (
+                <div className="absolute -top-2.5 left-4 bg-emerald-500 text-white text-xs font-bold px-3 py-0.5 rounded-full">
+                  Recomandat
                 </div>
               )}
-            </div>
-          </Card>
-        ))}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl">
+                    {SERVICE_ICONS[service.serviceType] || service.icon || '\uD83E\uDDF9'}
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 leading-tight">
+                      {service.nameRo}
+                    </h3>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-base font-bold text-blue-600">
+                        {service.basePricePerHour} lei
+                      </span>
+                      <span className="text-xs text-gray-400">/oră</span>
+                      <span className="text-xs text-gray-400 ml-1">
+                        · min. {service.minHours} ore
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {isSelected && (
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shrink-0 ml-2">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
+                )}
+              </div>
+              {includedItems.length > 0 && (
+                <ul className="space-y-1">
+                  {includedItems.map((item) => (
+                    <li key={item} className="flex items-center gap-2 text-xs text-gray-600">
+                      <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          );
+        })}
       </div>
+      <p className="text-xs text-gray-400 mt-4 text-center">
+        Prețul final depinde de suprafața și durata efectivă a lucrării.
+      </p>
     </div>
   );
 }
@@ -1229,21 +1284,40 @@ function StepDetails({
   extras,
   selectedExtras,
   onToggleExtra,
+  selectedService,
+  estimatedHours,
 }: {
   form: BookingFormState;
   updateForm: (updates: Partial<BookingFormState>) => void;
   extras: ExtraDefinition[];
   selectedExtras: SelectedExtra[];
   onToggleExtra: (extraId: string, delta: number) => void;
+  selectedService?: ServiceDefinition;
+  estimatedHours?: number;
 }) {
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
         Detalii proprietate
       </h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Spune-ne mai multe despre spatiul care trebuie curatat.
+      <p className="text-sm text-gray-500 mb-4">
+        Spune-ne mai multe despre spațiul care trebuie curățat.
       </p>
+      {selectedService && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 mb-6">
+          <Sparkles className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+          <p className="text-sm text-blue-800">
+            <strong>{selectedService.nameRo}</strong> pentru {form.propertyType.toLowerCase()} cu{' '}
+            <strong>{form.numRooms} {form.numRooms === 1 ? 'cameră' : 'camere'}</strong>
+            {estimatedHours ? (
+              <> — estimăm <strong>~{estimatedHours} ore</strong>
+              {form.areaSqm ? ` pentru ${form.areaSqm} m²` : ''}</>
+            ) : (
+              <> — completează detaliile pentru a vedea durata estimată</>
+            )}.
+          </p>
+        </div>
+      )}
 
       <Card className="space-y-6">
         {/* Property Type */}
@@ -1377,7 +1451,7 @@ function StepDetails({
             Servicii extra
           </h3>
           <p className="text-sm text-gray-500 mb-4">
-            Adauga servicii suplimentare la rezervarea ta.
+            Adaugă servicii suplimentare la rezervarea ta.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {extras.map((extra) => {
@@ -1524,8 +1598,10 @@ function StepSchedule({
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [pickStartTime, setPickStartTime] = useState<string | null>(null);
-  const [pickEndTime, setPickEndTime] = useState<string | null>(null);
+  // Slider values: 0 = 08:00, 24 = 20:00, step = 30 min
+  const minDurationSlots = Math.ceil(duration * 2);
+  const [startSlot, setStartSlot] = useState(0);
+  const [endSlot, setEndSlot] = useState(() => Math.max(18, minDurationSlots)); // default 17:00
 
   // Dates that already have slots
   const slotDates = useMemo(
@@ -1574,9 +1650,9 @@ function StepSchedule({
   const handleDateClick = useCallback((day: number) => {
     const ds = toDateString(viewYear, viewMonth, day);
     setSelectedDate(ds);
-    setPickStartTime(null);
-    setPickEndTime(null);
-  }, [viewYear, viewMonth]);
+    setStartSlot(0);
+    setEndSlot(Math.max(18, minDurationSlots));
+  }, [viewYear, viewMonth, minDurationSlots]);
 
   const isDayPast = useCallback(
     (day: number) => {
@@ -1586,38 +1662,23 @@ function StepSchedule({
     [viewYear, viewMonth, today],
   );
 
-  // Start time options: 08:00 to 18:00
-  const startTimeOptions = useMemo(
-    () => generateTimeSlots(8, 0, 18, 0),
-    [],
-  );
-
-  // End time options: startTime + duration to 20:00
-  const endTimeOptions = useMemo(() => {
-    if (!pickStartTime) return [];
-    const minEnd = timeToMinutes(pickStartTime) + Math.ceil(duration) * 60;
-    const maxEnd = 20 * 60; // 20:00
-    const options: string[] = [];
-    for (let mins = minEnd; mins <= maxEnd; mins += 30) {
-      options.push(minutesToTime(mins));
-    }
-    return options;
-  }, [pickStartTime, duration]);
+  // Convert slot index (0–24, step=1) to "HH:MM" string; 0 = 08:00, 24 = 20:00
+  const slotToTime = (slot: number) => minutesToTime(8 * 60 + slot * 30);
 
   const handleAddSlot = useCallback(() => {
-    if (!selectedDate || !pickStartTime || !pickEndTime) return;
+    if (!selectedDate) return;
     if (form.timeSlots.length >= 5) return;
 
     const newSlot: TimeSlot = {
       date: selectedDate,
-      startTime: pickStartTime,
-      endTime: pickEndTime,
+      startTime: slotToTime(startSlot),
+      endTime: slotToTime(endSlot),
     };
     updateForm({ timeSlots: [...form.timeSlots, newSlot] });
     setSelectedDate(null);
-    setPickStartTime(null);
-    setPickEndTime(null);
-  }, [selectedDate, pickStartTime, pickEndTime, form.timeSlots, updateForm]);
+    setStartSlot(0);
+    setEndSlot(Math.max(18, minDurationSlots));
+  }, [selectedDate, startSlot, endSlot, minDurationSlots, form.timeSlots, updateForm]);
 
   const handleRemoveSlot = useCallback(
     (index: number) => {
@@ -1628,30 +1689,38 @@ function StepSchedule({
     [form.timeSlots, updateForm],
   );
 
-  const canAddSlot = !!selectedDate && !!pickStartTime && !!pickEndTime && form.timeSlots.length < 5;
+  const canAddSlot = !!selectedDate && form.timeSlots.length < 5;
 
   const canPrevMonth = !(viewYear === today.getFullYear() && viewMonth === today.getMonth());
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
-        Alege data si ora
+        Alege data și ora
       </h2>
       <p className="text-sm text-gray-500 mb-6">
-        Selecteaza unul sau mai multe intervale orare disponibile.
+        Selectează unul sau mai multe intervale orare disponibile.
       </p>
 
-      {/* Duration banner */}
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 mb-6">
-        <Clock className="h-5 w-5 text-blue-600 shrink-0" />
-        <div>
-          <span className="text-sm font-semibold text-blue-900">
-            Durata estimata: ~{duration} ore
-          </span>
-          <span className="text-sm text-blue-600 ml-2">
-            Selecteaza intervale de minim {duration} ore
-          </span>
+      {/* Duration + recurring hint */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 flex-1">
+          <Clock className="h-5 w-5 text-blue-600 shrink-0" />
+          <div>
+            <span className="text-sm font-semibold text-blue-900">
+              Durată estimată: ~{duration} ore
+            </span>
+            <span className="text-sm text-blue-600 ml-2">
+              Selectează intervale de minim {duration} ore
+            </span>
+          </div>
         </div>
+        {!form.isRecurring && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-800 cursor-default">
+            <Repeat className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>Economisești <strong>10%</strong> la curățenie recurentă</span>
+          </div>
+        )}
       </div>
 
       {/* Calendar */}
@@ -1734,64 +1803,99 @@ function StepSchedule({
             Interval pentru {formatDateRo(selectedDate)}
           </h4>
 
-          {/* Start time */}
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              Ora de inceput
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {startTimeOptions.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setPickStartTime(t);
-                    setPickEndTime(null);
-                  }}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer border',
-                    pickStartTime === t
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50',
-                  )}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* End time */}
-          {pickStartTime && (
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-                Ora de sfarsit
-              </label>
-              {endTimeOptions.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {endTimeOptions.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setPickEndTime(t)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer border',
-                        pickEndTime === t
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50',
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
+          {/* Dual-pin time range slider */}
+          {(() => {
+            const selDurSlots = endSlot - startSlot;
+            const selDurH = Math.floor(selDurSlots / 2);
+            const selDurM = (selDurSlots % 2) * 30;
+            const durLabel = selDurH > 0
+              ? `${selDurH}h${selDurM > 0 ? ` ${selDurM}min` : ''}`
+              : `${selDurM}min`;
+            return (
+              <>
+                {/* Time display */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Ora inceput</p>
+                    <p className="text-2xl font-bold text-blue-600">{slotToTime(startSlot)}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {durLabel}
+                  </span>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Ora sfârșit</p>
+                    <p className="text-2xl font-bold text-blue-600">{slotToTime(endSlot)}</p>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-400">
-                  Ora de inceput selectata este prea tarziu. Alege o ora mai devreme.
-                </p>
-              )}
-            </div>
-          )}
+
+                {/* Slider track */}
+                <div className="relative h-8 mb-1">
+                  {/* Background track */}
+                  <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-gray-200" />
+                  {/* Filled range — offset by thumbRadius (10px) so fill edges sit on thumb centers */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-blue-500 pointer-events-none"
+                    style={{
+                      left: `calc(${(startSlot / 24) * 100}% + ${10 - (startSlot / 24) * 20}px)`,
+                      right: `calc(${((24 - endSlot) / 24) * 100}% + ${(endSlot / 24) * 20 - 10}px)`,
+                    }}
+                  />
+                  {/* Start pin — min/max = 0/24 so thumb % matches fill % */}
+                  <input
+                    type="range"
+                    min={0}
+                    max={24}
+                    step={1}
+                    value={startSlot}
+                    onChange={(e) => {
+                      const v = Math.min(Number(e.target.value), 20); // cap at 18:00
+                      setStartSlot(v);
+                      if (endSlot < v + minDurationSlots) setEndSlot(Math.min(v + minDurationSlots, 24));
+                    }}
+                    className="absolute inset-0 w-full h-full appearance-none bg-transparent pointer-events-none
+                      [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none
+                      [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full
+                      [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-600
+                      [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab
+                      [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5
+                      [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2
+                      [&::-moz-range-thumb]:border-blue-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-grab"
+                  />
+                  {/* End pin */}
+                  <input
+                    type="range"
+                    min={0}
+                    max={24}
+                    step={1}
+                    value={endSlot}
+                    onChange={(e) => {
+                      const v = Math.max(Number(e.target.value), minDurationSlots); // floor at min duration
+                      setEndSlot(v);
+                      if (startSlot > v - minDurationSlots) setStartSlot(Math.max(0, v - minDurationSlots));
+                    }}
+                    className="absolute inset-0 w-full h-full appearance-none bg-transparent pointer-events-none
+                      [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none
+                      [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full
+                      [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-600
+                      [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab
+                      [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5
+                      [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2
+                      [&::-moz-range-thumb]:border-blue-600 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-grab"
+                  />
+                </div>
+
+                {/* Hour markers */}
+                <div className="flex justify-between text-xs text-gray-400 mb-5 px-0.5">
+                  <span>08:00</span>
+                  <span>11:00</span>
+                  <span>14:00</span>
+                  <span>17:00</span>
+                  <span>20:00</span>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Add slot button */}
           <Button
@@ -1800,7 +1904,7 @@ function StepSchedule({
             size="sm"
           >
             <Plus className="h-4 w-4" />
-            Adauga interval
+            Adaugă interval
           </Button>
         </Card>
       )}
@@ -1839,12 +1943,10 @@ function StepSchedule({
               type="button"
               onClick={() => {
                 setSelectedDate(null);
-                setPickStartTime(null);
-                setPickEndTime(null);
               }}
               className="text-sm text-blue-600 font-medium hover:underline cursor-pointer mt-1"
             >
-              + Adauga alt interval
+              + Adaugă alt interval
             </button>
           )}
         </div>
@@ -1854,10 +1956,10 @@ function StepSchedule({
       <div className="mt-8 pt-6 border-t border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
           <Repeat className="h-5 w-5 text-blue-600" />
-          Programare recurenta
+          Programare recurentă
         </h3>
         <p className="text-sm text-gray-500 mb-4">
-          Programeaza curatenia sa se repete automat.
+          Programează curățenia să se repete automat.
         </p>
 
         {/* Toggle */}
@@ -1878,7 +1980,7 @@ function StepSchedule({
             <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
           </div>
           <span className="text-sm font-medium text-gray-700">
-            Vreau curatenie recurenta
+            Vreau curățenie recurentă
           </span>
         </label>
 
@@ -1891,8 +1993,8 @@ function StepSchedule({
               </label>
               <div className="flex gap-2">
                 {([
-                  { value: 'WEEKLY', label: 'Saptamanal' },
-                  { value: 'BIWEEKLY', label: 'Bisaptamanal' },
+                  { value: 'WEEKLY', label: 'Săptămânal' },
+                  { value: 'BIWEEKLY', label: 'Bisăptămânal' },
                   { value: 'MONTHLY', label: 'Lunar' },
                 ] as const).map((opt) => (
                   <button
@@ -1918,7 +2020,7 @@ function StepSchedule({
                 Zi preferata
               </label>
               <div className="flex gap-1.5">
-                {['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri', 'Sambata', 'Duminica'].map(
+                {['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'].map(
                   (day, idx) => (
                     <button
                       key={day}
@@ -1942,10 +2044,10 @@ function StepSchedule({
             <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100">
               <Repeat className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
               <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">8 programari vor fi create automat</p>
+                <p className="font-medium mb-1">8 programări vor fi create automat</p>
                 <p className="text-blue-600">
-                  Acelasi curatator va fi alocat pentru fiecare sesiune. Poti anula oricand seria.
-                  Platesti per sesiune.
+                  Același curățător va fi alocat pentru fiecare sesiune — consistență garantată.
+                  Poți anula oricând seria. Plătești per sesiune.
                 </p>
               </div>
             </div>
@@ -1963,11 +2065,13 @@ function StepAddress({
   updateForm,
   savedAddresses,
   isAuthenticated,
+  onGoogleLogin,
 }: {
   form: BookingFormState;
   updateForm: (updates: Partial<BookingFormState>) => void;
   savedAddresses: SavedAddress[];
   isAuthenticated: boolean;
+  onGoogleLogin: (response: CredentialResponse) => void;
 }) {
   const { data: citiesData } = useQuery<{ activeCities: ActiveCity[] }>(ACTIVE_CITIES);
   const activeCities: ActiveCity[] = useMemo(
@@ -1975,6 +2079,7 @@ function StepAddress({
     [citiesData],
   );
 
+  const navigate = useNavigate();
   const [showCityNotFound, setShowCityNotFound] = useState(false);
   const [unsupportedCityName, setUnsupportedCityName] = useState('');
 
@@ -2086,10 +2191,10 @@ function StepAddress({
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
-        Adresa de curatenie
+        Adresa de curățenie
       </h2>
       <p className="text-sm text-gray-500 mb-6">
-        Cauta adresa ta si vom completa automat orasul si zona.
+        Caută adresa ta și vom completa automat orașul și zona.
       </p>
 
       {/* Saved addresses */}
@@ -2153,7 +2258,7 @@ function StepAddress({
               </div>
               <div className="relative flex justify-center">
                 <span className="bg-[#FAFBFC] px-4 text-sm text-gray-400">
-                  sau introdu o adresa noua
+                  sau introdu o adresă nouă
                 </span>
               </div>
             </div>
@@ -2175,7 +2280,7 @@ function StepAddress({
                 onClick={() => updateForm({ useSavedAddress: '' })}
                 className="text-sm text-blue-600 font-medium hover:underline cursor-pointer"
               >
-                Foloseste o adresa noua
+                Folosește o adresă nouă
               </button>
             </div>
           )}
@@ -2217,34 +2322,66 @@ function StepAddress({
           <div>
             <Select
               label="Oras"
-              placeholder="Selecteaza orasul"
+              placeholder="Selectează orașul"
               options={cityOptions}
               value={form.selectedCityId}
               onChange={(e) => handleCityChange(e.target.value)}
             />
             {/* City not found */}
             {showCityNotFound && (
-              <div className="mt-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
-                <div className="flex items-start gap-2 mb-3">
-                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                  <p className="text-sm text-amber-800 font-medium">
-                    Nu suntem inca activi in {unsupportedCityName || 'zona ta'}. Te vom notifica cand devenim disponibili!
-                  </p>
+              <div className="mt-3 p-5 rounded-xl bg-blue-50 border border-blue-200">
+                <div className="flex items-start gap-3 mb-3">
+                  <MapPin className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900">
+                      Nu suntem încă activi în {unsupportedCityName || 'zona ta'}
+                    </p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Lucrăm la extindere! Creează un cont gratuit și te vom contacta imediat ce devenim disponibili în orașul tău.
+                    </p>
+                  </div>
                 </div>
-                {!isAuthenticated && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    Creeaza un cont pentru a fi notificat cand devenim activi in zona ta.
-                  </p>
+
+                {!isAuthenticated ? (
+                  <div className="mt-3">
+                    <p className="text-xs text-blue-600 mb-2 font-medium">
+                      Înregistrează-te cu Google pentru a fi notificat:
+                    </p>
+                    <GoogleLogin
+                      onSuccess={onGoogleLogin}
+                      onError={() => {}}
+                      text="signup_with"
+                      shape="rectangular"
+                      width="280"
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-3 p-3 rounded-lg bg-blue-100 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-blue-800">
+                        Cont înregistrat! Te vom contacta când devenim activi în {unsupportedCityName || 'zona ta'}. Între timp, explorează platforma.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/cont/adrese')}
+                      className="w-full py-2 px-4 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                    >
+                      Adaugă adresa mea
+                    </button>
+                  </div>
                 )}
+
                 <button
                   type="button"
                   onClick={() => {
                     setShowCityNotFound(false);
                     setUnsupportedCityName('');
                   }}
-                  className="mt-2 text-xs text-gray-500 hover:underline cursor-pointer"
+                  className="mt-3 text-xs text-blue-400 hover:text-blue-600 hover:underline cursor-pointer"
                 >
-                  Inchide
+                  Închide
                 </button>
               </div>
             )}
@@ -2254,7 +2391,7 @@ function StepAddress({
                 onClick={() => setShowCityNotFound(true)}
                 className="mt-2 text-xs text-blue-600 hover:underline cursor-pointer"
               >
-                Orasul tau nu este in lista?
+                Orașul tău nu este în listă?
               </button>
             )}
           </div>
@@ -2268,7 +2405,7 @@ function StepAddress({
               onClick={() => updateForm({ selectedCityId: '', selectedAreaId: '', city: '', county: '' })}
               className="text-xs text-blue-600 hover:underline cursor-pointer"
             >
-              Schimba orasul
+              Schimbă orașul
             </button>
           </div>
         )}
@@ -2276,7 +2413,7 @@ function StepAddress({
         {/* Area dropdown (shown if city has areas and not yet auto-matched) */}
         {selectedCity && areaOptions.length > 0 && !form.selectedAreaId && (
           <Select
-            label="Selecteaza zona / sectorul"
+            label="Selectează zona / sectorul"
             placeholder="Alege zona"
             options={areaOptions}
             value={form.selectedAreaId}
@@ -2387,11 +2524,23 @@ function StepCleaner({
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
-        Alege un curatator
+        Alege un curățător
       </h2>
       <p className="text-sm text-gray-500 mb-4">
-        Selecteaza curatorul care va efectua serviciul. Pretul este acelasi indiferent de alegere.
+        Selectează curățătorul care va efectua serviciul. Prețul este același indiferent de alegere.
       </p>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {([
+          { icon: CheckCircle2, text: 'Verificare cazier' },
+          { icon: Star, text: 'Rating mediu 4.8/5' },
+          { icon: Sparkles, text: 'Experiență medie 3+ ani' },
+        ] as { icon: typeof CheckCircle2; text: string }[]).map(({ icon: Icon, text }) => (
+          <div key={text} className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5">
+            <Icon className="h-3 w-3 text-emerald-500" />
+            {text}
+          </div>
+        ))}
+      </div>
 
       {/* Job schedule header */}
       {firstSlot && (
@@ -2406,7 +2555,7 @@ function StepCleaner({
       )}
 
       {suggestionsLoading ? (
-        <LoadingSpinner text="Se cauta curatatori disponibili..." />
+        <LoadingSpinner text="Se caută curățători disponibili..." />
       ) : topSuggestions.length > 0 ? (
         <div className="space-y-3">
           {topSuggestions.map((suggestion) => {
@@ -2494,9 +2643,17 @@ function StepCleaner({
                       <span className="text-gray-500">
                         {cleaner.totalJobsCompleted} lucrari
                       </span>
-                      <span className="text-blue-600 font-medium">
-                        Potrivire: {Math.round(matchScore)}%
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-600 font-medium">
+                          Potrivire: {Math.round(matchScore)}%
+                        </span>
+                        <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-blue-500"
+                            style={{ width: `${Math.min(100, Math.round(matchScore))}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -2528,8 +2685,8 @@ function StepCleaner({
           <div className="text-center py-6">
             <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500">
-              Nu am gasit curatatori disponibili in aceasta zona si data. Te rugam
-              sa incerci o alta data sau sa verifici zona.
+              Nu am găsit curățători disponibili în această zonă și dată. Te rugăm
+              să încerci o altă dată sau să verifici zona.
             </p>
           </div>
         </Card>
@@ -2614,10 +2771,10 @@ function StepSummary({
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
-        Sumar si confirmare
+        Sumar și confirmare
       </h2>
       <p className="text-sm text-gray-500 mb-6">
-        Verifica detaliile inainte de a confirma rezervarea.
+        Verifică detaliile înainte de a confirma rezervarea.
       </p>
 
       {isAuthenticated && userName && (
@@ -2723,21 +2880,21 @@ function StepSummary({
         {form.isRecurring && form.recurrenceType && (
           <Card>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Programare recurenta
+              Programare recurentă
             </h3>
             <div className="flex items-center gap-3 text-sm">
               <Repeat className="h-4 w-4 text-blue-600 shrink-0" />
               <div>
                 <span className="font-medium text-gray-900">
-                  {form.recurrenceType === 'WEEKLY' ? 'Saptamanal' : form.recurrenceType === 'BIWEEKLY' ? 'Bisaptamanal' : 'Lunar'}
+                  {form.recurrenceType === 'WEEKLY' ? 'Săptămânal' : form.recurrenceType === 'BIWEEKLY' ? 'Bisăptămânal' : 'Lunar'}
                 </span>
                 <span className="text-gray-500 ml-2">
-                  — {['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri', 'Sambata', 'Duminica'][form.recurrenceDayOfWeek - 1]}
+                  — {['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'][form.recurrenceDayOfWeek - 1]}
                 </span>
               </div>
             </div>
             <p className="text-xs text-blue-600 mt-2">
-              8 programari vor fi create automat. Platesti per sesiune.
+              8 programări vor fi create automat. Plătești per sesiune.
             </p>
           </Card>
         )}
@@ -2776,7 +2933,7 @@ function StepSummary({
         {/* Cleaner summary */}
         <Card>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Curatator preferat
+            Curățător preferat
           </h3>
           {selectedCleaner ? (
             <div className="flex items-center gap-3">
@@ -2804,7 +2961,7 @@ function StepSummary({
             </div>
           ) : (
             <div className="text-sm text-gray-400 italic">
-              Niciun curatator selectat
+              Niciun curățător selectat
             </div>
           )}
         </Card>
@@ -2812,7 +2969,7 @@ function StepSummary({
         {/* Price breakdown */}
         <Card>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Estimare pret
+            Estimare preț
           </h3>
           {estimateLoading ? (
             <LoadingSpinner size="sm" text="Se calculeaza pretul..." />
@@ -2856,7 +3013,7 @@ function StepSummary({
             </div>
           ) : (
             <p className="text-sm text-gray-500">
-              Pretul va fi calculat automat.
+              Prețul va fi calculat automat.
             </p>
           )}
         </Card>
@@ -2864,12 +3021,12 @@ function StepSummary({
         {/* Special instructions */}
         <Card>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Instructiuni speciale (optional)
+            Instrucțiuni speciale (opțional)
           </label>
           <textarea
             className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 resize-none"
             rows={3}
-            placeholder="Indicatii suplimentare pentru echipa de curatenie..."
+            placeholder="Indicații suplimentare pentru echipa de curățenie..."
             value={form.specialInstructions}
             onChange={(e) =>
               updateForm({ specialInstructions: e.target.value })
@@ -2882,6 +3039,12 @@ function StepSummary({
 }
 
 // ---- Price Sidebar (desktop) ------------------------------------------------
+
+const SIDEBAR_FAQ = [
+  { q: 'Cât durează o curățenie?', a: 'Depinde de suprafață. Un apartament cu 2 camere durează ~2–3 ore.' },
+  { q: 'Pot anula rezervarea?', a: 'Da, gratuit cu 24 ore înainte. Fără comisioane.' },
+  { q: 'Ce aduce curățătorul?', a: 'Echipamentele de curățenie. Produsele le asiguri tu (sau le aducem contra cost).' },
+];
 
 function PriceSidebar({
   form,
@@ -2896,11 +3059,12 @@ function PriceSidebar({
   estimate?: PriceEstimate;
   estimateLoading: boolean;
 }) {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   return (
-    <div className="sticky top-8">
+    <div className="sticky top-8 space-y-4">
       <Card>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Rezumat comanda
+          Rezumat comandă
         </h3>
 
         {selectedService ? (
@@ -3022,9 +3186,43 @@ function PriceSidebar({
           </div>
         ) : (
           <p className="text-sm text-gray-400 text-center py-4">
-            Selecteaza un serviciu pentru a vedea pretul estimat.
+            Selectează un serviciu pentru a vedea prețul estimat.
           </p>
         )}
+      </Card>
+
+      {/* Trust badge */}
+      <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gray-50 border border-gray-100 text-xs text-gray-500">
+        <span className="text-base">🔒</span>
+        Plată securizată prin Stripe
+      </div>
+
+      {/* FAQ accordion */}
+      <Card>
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">Întrebări frecvente</h4>
+        <div className="space-y-2">
+          {SIDEBAR_FAQ.map((item, idx) => (
+            <div key={idx} className="border border-gray-100 rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
+                className="w-full flex items-center justify-between p-3 text-left text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                {item.q}
+                {openFaqIndex === idx ? (
+                  <ChevronUp className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
+                )}
+              </button>
+              {openFaqIndex === idx && (
+                <div className="px-3 pb-3 text-sm text-gray-600 border-t border-gray-100 pt-2">
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </Card>
     </div>
   );

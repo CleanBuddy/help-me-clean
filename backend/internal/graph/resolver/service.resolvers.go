@@ -23,6 +23,10 @@ func (r *mutationResolver) UpdateServiceDefinition(ctx context.Context, input mo
 		return nil, fmt.Errorf("not authorized")
 	}
 
+	includedItemsUpdate := input.IncludedItems
+	if includedItemsUpdate == nil {
+		includedItemsUpdate = []string{}
+	}
 	updated, err := r.Queries.UpdateServiceDefinition(ctx, db.UpdateServiceDefinitionParams{
 		ID:                 stringToUUID(input.ID),
 		NameRo:             input.NameRo,
@@ -35,6 +39,7 @@ func (r *mutationResolver) UpdateServiceDefinition(ctx context.Context, input mo
 		HouseMultiplier:    float64ToNumeric(input.HouseMultiplier),
 		PetDurationMinutes: int32(input.PetDurationMinutes),
 		IsActive:           pgtype.Bool{Bool: input.IsActive, Valid: true},
+		IncludedItems:      includedItemsUpdate,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update service definition: %w", err)
@@ -50,6 +55,10 @@ func (r *mutationResolver) CreateServiceDefinition(ctx context.Context, input mo
 		return nil, fmt.Errorf("not authorized")
 	}
 
+	includedItemsCreate := input.IncludedItems
+	if includedItemsCreate == nil {
+		includedItemsCreate = []string{}
+	}
 	created, err := r.Queries.CreateServiceDefinition(ctx, db.CreateServiceDefinitionParams{
 		ServiceType:        gqlServiceTypeToDb(input.ServiceType),
 		NameRo:             input.NameRo,
@@ -62,6 +71,7 @@ func (r *mutationResolver) CreateServiceDefinition(ctx context.Context, input mo
 		HouseMultiplier:    float64ToNumeric(input.HouseMultiplier),
 		PetDurationMinutes: int32(input.PetDurationMinutes),
 		IsActive:           pgtype.Bool{Bool: input.IsActive, Valid: true},
+		IncludedItems:      includedItemsCreate,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service definition: %w", err)

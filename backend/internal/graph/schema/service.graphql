@@ -14,6 +14,7 @@ type ServiceDefinition {
   petDurationMinutes: Int!
   icon: String
   isActive: Boolean!
+  includedItems: [String!]!
 }
 
 type ServiceExtra {
@@ -82,6 +83,7 @@ input UpdateServiceDefinitionInput {
   houseMultiplier: Float!
   petDurationMinutes: Int!
   isActive: Boolean!
+  includedItems: [String!]
 }
 
 input CreateServiceDefinitionInput {
@@ -96,6 +98,7 @@ input CreateServiceDefinitionInput {
   houseMultiplier: Float!
   petDurationMinutes: Int!
   isActive: Boolean!
+  includedItems: [String!]
 }
 
 input UpdateServiceExtraInput {

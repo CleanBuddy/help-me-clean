@@ -92,6 +92,7 @@ export const AVAILABLE_SERVICES = gql`
       basePricePerHour
       minHours
       icon
+      includedItems
     }
   }
 `;
@@ -1283,6 +1284,7 @@ export const ALL_SERVICES = gql`
       petDurationMinutes
       icon
       isActive
+      includedItems
     }
   }
 `;
@@ -1315,6 +1317,7 @@ export const UPDATE_SERVICE_DEFINITION = gql`
       houseMultiplier
       petDurationMinutes
       isActive
+      includedItems
     }
   }
 `;
@@ -1334,6 +1337,7 @@ export const CREATE_SERVICE_DEFINITION = gql`
       houseMultiplier
       petDurationMinutes
       isActive
+      includedItems
     }
   }
 `;

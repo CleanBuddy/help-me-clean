@@ -49,8 +49,8 @@ const mockSettings = [
 ];
 
 const mockServices = [
-  { id: 's1', serviceType: 'STANDARD', nameRo: 'Curatenie standard', nameEn: 'Standard cleaning', basePricePerHour: 50, minHours: 2, isActive: true },
-  { id: 's2', serviceType: 'DEEP', nameRo: 'Curatenie generala', nameEn: 'Deep cleaning', basePricePerHour: 70, minHours: 3, isActive: true },
+  { id: 's1', serviceType: 'STANDARD', nameRo: 'Curatenie standard', nameEn: 'Standard cleaning', basePricePerHour: 50, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 20, isActive: true, includedItems: ['Aspirat', 'Spalat podele'] },
+  { id: 's2', serviceType: 'DEEP', nameRo: 'Curatenie generala', nameEn: 'Deep cleaning', basePricePerHour: 70, minHours: 3, hoursPerRoom: 0.75, hoursPerBathroom: 0.75, hoursPer100Sqm: 1.5, houseMultiplier: 1.4, petDurationMinutes: 25, isActive: true, includedItems: [] },
 ];
 
 const mockExtras = [

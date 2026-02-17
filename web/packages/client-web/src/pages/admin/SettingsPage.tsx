@@ -50,6 +50,7 @@ interface ServiceDef {
   petDurationMinutes: number;
   icon?: string;
   isActive: boolean;
+  includedItems: string[];
 }
 
 interface ExtraDef {
@@ -303,16 +304,19 @@ function ServicesTab() {
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 0, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15 });
+  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 0, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, includedItems: [] as string[] });
+  const [newIncludedItem, setNewIncludedItem] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [newService, setNewService] = useState({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true });
+  const [newService, setNewService] = useState({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true, includedItems: [] as string[] });
+  const [newModalItem, setNewModalItem] = useState('');
   const [creating, setCreating] = useState(false);
 
   const services = data?.allServices ?? [];
 
   const startEdit = (s: ServiceDef) => {
     setEditingId(s.id);
-    setEditFields({ nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes });
+    setEditFields({ nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes, includedItems: s.includedItems ?? [] });
+    setNewIncludedItem('');
   };
 
   const saveEdit = async (s: ServiceDef) => {
@@ -321,7 +325,7 @@ function ServicesTab() {
   };
 
   const toggleActive = async (s: ServiceDef) => {
-    await updateService({ variables: { input: { id: s.id, nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes, isActive: !s.isActive } } });
+    await updateService({ variables: { input: { id: s.id, nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes, isActive: !s.isActive, includedItems: s.includedItems ?? [] } } });
   };
 
   const handleCreate = async () => {
@@ -329,7 +333,8 @@ function ServicesTab() {
     try {
       await createService({ variables: { input: newService } });
       setShowModal(false);
-      setNewService({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true });
+      setNewService({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true, includedItems: [] });
+      setNewModalItem('');
     } finally {
       setCreating(false);
     }
@@ -372,6 +377,7 @@ function ServicesTab() {
                 {services.map((s) => {
                   const isEditing = editingId === s.id;
                   return (
+                    <>
                     <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3">
                         {isEditing ? (
@@ -479,6 +485,41 @@ function ServicesTab() {
                         )}
                       </td>
                     </tr>
+                    {isEditing && (
+                      <tr className="bg-blue-50/50 border-b border-blue-100">
+                        <td colSpan={11} className="px-4 py-3">
+                          <p className="text-xs font-medium text-gray-500 mb-2">Ce include serviciul</p>
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {editFields.includedItems.map((item, idx) => (
+                              <span key={idx} className="flex items-center gap-1 text-xs bg-white border border-blue-200 text-blue-700 rounded-full px-2.5 py-0.5">
+                                {item}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditFields((f) => ({ ...f, includedItems: f.includedItems.filter((_, i) => i !== idx) }))}
+                                  className="ml-0.5 text-blue-400 hover:text-blue-700 cursor-pointer"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          <input
+                            value={newIncludedItem}
+                            onChange={(e) => setNewIncludedItem(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && newIncludedItem.trim()) {
+                                setEditFields((f) => ({ ...f, includedItems: [...f.includedItems, newIncludedItem.trim()] }));
+                                setNewIncludedItem('');
+                                e.preventDefault();
+                              }
+                            }}
+                            placeholder="Adauga element și apasa Enter"
+                            className="max-w-xs rounded-lg border border-gray-300 px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    </>
                   );
                 })}
               </tbody>
@@ -556,6 +597,36 @@ function ServicesTab() {
               type="number"
               value={newService.petDurationMinutes}
               onChange={(e) => setNewService((s) => ({ ...s, petDurationMinutes: Number(e.target.value) }))}
+            />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2">Ce include serviciul</p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {newService.includedItems.map((item, idx) => (
+                <span key={idx} className="flex items-center gap-1 text-xs bg-blue-50 border border-blue-200 text-blue-700 rounded-full px-2.5 py-0.5">
+                  {item}
+                  <button
+                    type="button"
+                    onClick={() => setNewService((s) => ({ ...s, includedItems: s.includedItems.filter((_, i) => i !== idx) }))}
+                    className="ml-0.5 text-blue-400 hover:text-blue-700 cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              value={newModalItem}
+              onChange={(e) => setNewModalItem(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newModalItem.trim()) {
+                  setNewService((s) => ({ ...s, includedItems: [...s.includedItems, newModalItem.trim()] }));
+                  setNewModalItem('');
+                  e.preventDefault();
+                }
+              }}
+              placeholder="Adauga element și apasa Enter"
+              className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">

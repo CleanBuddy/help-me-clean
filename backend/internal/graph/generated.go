@@ -863,6 +863,7 @@ type ComplexityRoot struct {
 		HouseMultiplier    func(childComplexity int) int
 		ID                 func(childComplexity int) int
 		Icon               func(childComplexity int) int
+		IncludedItems      func(childComplexity int) int
 		IsActive           func(childComplexity int) int
 		MinHours           func(childComplexity int) int
 		NameEn             func(childComplexity int) int
@@ -5602,6 +5603,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ServiceDefinition.Icon(childComplexity), true
+	case "ServiceDefinition.includedItems":
+		if e.complexity.ServiceDefinition.IncludedItems == nil {
+			break
+		}
+
+		return e.complexity.ServiceDefinition.IncludedItems(childComplexity), true
 	case "ServiceDefinition.isActive":
 		if e.complexity.ServiceDefinition.IsActive == nil {
 			break
@@ -23021,6 +23028,8 @@ func (ec *executionContext) fieldContext_Mutation_updateServiceDefinition(ctx co
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceDefinition_isActive(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_ServiceDefinition_includedItems(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceDefinition", field.Name)
 		},
@@ -23094,6 +23103,8 @@ func (ec *executionContext) fieldContext_Mutation_createServiceDefinition(ctx co
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceDefinition_isActive(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_ServiceDefinition_includedItems(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceDefinition", field.Name)
 		},
@@ -31388,6 +31399,8 @@ func (ec *executionContext) fieldContext_Query_availableServices(_ context.Conte
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceDefinition_isActive(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_ServiceDefinition_includedItems(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceDefinition", field.Name)
 		},
@@ -31551,6 +31564,8 @@ func (ec *executionContext) fieldContext_Query_allServices(_ context.Context, fi
 				return ec.fieldContext_ServiceDefinition_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceDefinition_isActive(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_ServiceDefinition_includedItems(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceDefinition", field.Name)
 		},
@@ -34223,6 +34238,35 @@ func (ec *executionContext) fieldContext_ServiceDefinition_isActive(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceDefinition_includedItems(ctx context.Context, field graphql.CollectedField, obj *model.ServiceDefinition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceDefinition_includedItems,
+		func(ctx context.Context) (any, error) {
+			return obj.IncludedItems, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceDefinition_includedItems(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceDefinition",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -37411,7 +37455,7 @@ func (ec *executionContext) unmarshalInputCreateServiceDefinitionInput(ctx conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceType", "nameRo", "nameEn", "basePricePerHour", "minHours", "hoursPerRoom", "hoursPerBathroom", "hoursPer100Sqm", "houseMultiplier", "petDurationMinutes", "isActive"}
+	fieldsInOrder := [...]string{"serviceType", "nameRo", "nameEn", "basePricePerHour", "minHours", "hoursPerRoom", "hoursPerBathroom", "hoursPer100Sqm", "houseMultiplier", "petDurationMinutes", "isActive", "includedItems"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -37495,6 +37539,13 @@ func (ec *executionContext) unmarshalInputCreateServiceDefinitionInput(ctx conte
 				return it, err
 			}
 			it.IsActive = data
+		case "includedItems":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("includedItems"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IncludedItems = data
 		}
 	}
 
@@ -38091,7 +38142,7 @@ func (ec *executionContext) unmarshalInputUpdateServiceDefinitionInput(ctx conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "basePricePerHour", "minHours", "hoursPerRoom", "hoursPerBathroom", "hoursPer100Sqm", "houseMultiplier", "petDurationMinutes", "isActive"}
+	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "basePricePerHour", "minHours", "hoursPerRoom", "hoursPerBathroom", "hoursPer100Sqm", "houseMultiplier", "petDurationMinutes", "isActive", "includedItems"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -38175,6 +38226,13 @@ func (ec *executionContext) unmarshalInputUpdateServiceDefinitionInput(ctx conte
 				return it, err
 			}
 			it.IsActive = data
+		case "includedItems":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("includedItems"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IncludedItems = data
 		}
 	}
 
@@ -45044,6 +45102,11 @@ func (ec *executionContext) _ServiceDefinition(ctx context.Context, sel ast.Sele
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "includedItems":
+			out.Values[i] = ec._ServiceDefinition_includedItems(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -49750,6 +49813,42 @@ func (ec *executionContext) marshalOReview2ᚖhelpmecleanᚑbackendᚋinternal�
 		return graphql.Null
 	}
 	return ec._Review(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

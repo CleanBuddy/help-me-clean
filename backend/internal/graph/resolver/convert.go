@@ -292,6 +292,7 @@ func dbServiceDefToGQL(s db.ServiceDefinition) *model.ServiceDefinition {
 		PetDurationMinutes: int(s.PetDurationMinutes),
 		Icon:               textPtr(s.Icon),
 		IsActive:           boolVal(s.IsActive),
+		IncludedItems:      s.IncludedItems,
 	}
 }
 

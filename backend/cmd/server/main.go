@@ -53,7 +53,6 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(custommiddleware.SecurityHeaders)
-	r.Use(custommiddleware.RateLimitMiddleware()) // Phase 3: DoS protection
 
 	// CORS: read from ALLOWED_ORIGINS env var (comma-separated)
 	// Local: http://localhost:3000
@@ -280,10 +279,8 @@ func main() {
 	if os.Getenv("ENVIRONMENT") != "production" {
 		r.Handle("/graphql", playground.Handler("HelpMeClean GraphQL", "/query"))
 	}
-	// Apply auth middleware, strict rate limiting, and inject ResponseWriter for cookie management
-	// Strict rate limiting on GraphQL protects auth, payments, and other sensitive mutations
+	// Apply auth middleware and inject ResponseWriter for cookie management
 	r.With(
-		custommiddleware.StrictRateLimitMiddleware(),
 		auth.AuthMiddleware,
 		custommiddleware.InjectResponseWriter,
 	).Handle("/query", srv)
