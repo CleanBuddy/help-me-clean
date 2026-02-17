@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"helpmeclean-backend/internal/app"
+	"helpmeclean-backend/app"
 )
 
 var (
