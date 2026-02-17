@@ -16,6 +16,15 @@ vi.mock('@/context/AuthContext', () => ({
   })),
 }));
 
+vi.mock('@/context/PlatformContext', () => ({
+  usePlatform: vi.fn(() => ({
+    platformMode: 'live',
+    isPreRelease: false,
+    loading: false,
+  })),
+  PlatformProvider: ({ children }: { children: unknown }) => children,
+}));
+
 const mockUseAuth = vi.mocked(useAuth);
 
 // Mock react-router-dom's useNavigate
@@ -51,7 +60,8 @@ describe('Header', () => {
 
   it('shows logo text "HelpMeClean"', () => {
     renderHeader();
-    expect(screen.getByText('HelpMeClean')).toBeInTheDocument();
+    // Logo is split across nested spans for color styling — check the link role
+    expect(screen.getByRole('link', { name: /HelpMeClean/i })).toBeInTheDocument();
   });
 
   it('shows "Servicii" link', () => {
@@ -60,21 +70,21 @@ describe('Header', () => {
     expect(serviciiLinks.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows "Cum functioneaza" link', () => {
+  it('shows "Cum funcționează" link', () => {
     renderHeader();
-    const links = screen.getAllByText('Cum functioneaza');
+    const links = screen.getAllByText('Cum funcționează');
     expect(links.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows "Autentificare" link when not authenticated', () => {
+  it('shows "Intră în cont" link when not authenticated', () => {
     renderHeader();
-    const authLinks = screen.getAllByText('Autentificare');
+    const authLinks = screen.getAllByText('Intră în cont');
     expect(authLinks.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows "Rezerva acum" button', () => {
+  it('shows "Rezervă acum" button', () => {
     renderHeader();
-    const buttons = screen.getAllByText('Rezerva acum');
+    const buttons = screen.getAllByRole('button', { name: /Rezervă acum/ });
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -122,9 +132,9 @@ describe('Header', () => {
       expect(buttons.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('does not show "Autentificare" link', () => {
+    it('does not show "Intră în cont" link', () => {
       renderHeader();
-      expect(screen.queryByText('Autentificare')).not.toBeInTheDocument();
+      expect(screen.queryByText('Intră în cont')).not.toBeInTheDocument();
     });
 
     it('calls logout and navigates to home when Deconectare is clicked', async () => {

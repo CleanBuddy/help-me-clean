@@ -26,6 +26,16 @@ interface Company {
   ratingAvg: number;
   totalJobsCompleted: number;
   createdAt: string;
+  documents?: Array<{
+    id: string;
+    documentType: string;
+    fileName: string;
+    fileUrl: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    uploadedAt: string;
+    reviewedAt?: string;
+    rejectionReason?: string;
+  }>;
 }
 
 interface CompanyContextValue {
@@ -49,7 +59,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     <CompanyContext.Provider
       value={{
         company: data?.myCompany ?? null,
-        loading: isAuthenticated && loading,
+        loading: isAuthenticated && (loading || !data),
         error: !!error,
         refetch,
       }}

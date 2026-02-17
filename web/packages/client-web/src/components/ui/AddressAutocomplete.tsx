@@ -173,6 +173,7 @@ export default function AddressAutocomplete({
 
     return () => {
       google.maps.event.clearInstanceListeners(autocomplete);
+      autocompleteRef.current = null;
     };
   }, [isLoaded, biasTowardCities]);
 

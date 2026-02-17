@@ -418,6 +418,7 @@ type CreateServiceDefinitionInput struct {
 	HouseMultiplier    float64     `json:"houseMultiplier"`
 	PetDurationMinutes int         `json:"petDurationMinutes"`
 	IsActive           bool        `json:"isActive"`
+	IncludedItems      []string    `json:"includedItems,omitempty"`
 }
 
 type CreateServiceExtraInput struct {
@@ -521,6 +522,16 @@ type InvoiceTypeCount struct {
 	Type        InvoiceType `json:"type"`
 	Count       int         `json:"count"`
 	TotalAmount int         `json:"totalAmount"`
+}
+
+type JoinWaitlistInput struct {
+	LeadType    WaitlistLeadType `json:"leadType"`
+	Name        string           `json:"name"`
+	Email       string           `json:"email"`
+	Phone       *string          `json:"phone,omitempty"`
+	City        *string          `json:"city,omitempty"`
+	CompanyName *string          `json:"companyName,omitempty"`
+	Message     *string          `json:"message,omitempty"`
 }
 
 type Mutation struct {
@@ -781,6 +792,7 @@ type ServiceDefinition struct {
 	PetDurationMinutes int         `json:"petDurationMinutes"`
 	Icon               *string     `json:"icon,omitempty"`
 	IsActive           bool        `json:"isActive"`
+	IncludedItems      []string    `json:"includedItems"`
 }
 
 type ServiceExtra struct {
@@ -814,9 +826,6 @@ type SubmitReviewInput struct {
 	BookingID string  `json:"bookingId"`
 	Rating    int     `json:"rating"`
 	Comment   *string `json:"comment,omitempty"`
-}
-
-type Subscription struct {
 }
 
 type TimeSlotInput struct {
@@ -868,17 +877,18 @@ type UpdateProfileInput struct {
 }
 
 type UpdateServiceDefinitionInput struct {
-	ID                 string  `json:"id"`
-	NameRo             string  `json:"nameRo"`
-	NameEn             string  `json:"nameEn"`
-	BasePricePerHour   float64 `json:"basePricePerHour"`
-	MinHours           float64 `json:"minHours"`
-	HoursPerRoom       float64 `json:"hoursPerRoom"`
-	HoursPerBathroom   float64 `json:"hoursPerBathroom"`
-	HoursPer100Sqm     float64 `json:"hoursPer100Sqm"`
-	HouseMultiplier    float64 `json:"houseMultiplier"`
-	PetDurationMinutes int     `json:"petDurationMinutes"`
-	IsActive           bool    `json:"isActive"`
+	ID                 string   `json:"id"`
+	NameRo             string   `json:"nameRo"`
+	NameEn             string   `json:"nameEn"`
+	BasePricePerHour   float64  `json:"basePricePerHour"`
+	MinHours           float64  `json:"minHours"`
+	HoursPerRoom       float64  `json:"hoursPerRoom"`
+	HoursPerBathroom   float64  `json:"hoursPerBathroom"`
+	HoursPer100Sqm     float64  `json:"hoursPer100Sqm"`
+	HouseMultiplier    float64  `json:"houseMultiplier"`
+	PetDurationMinutes int      `json:"petDurationMinutes"`
+	IsActive           bool     `json:"isActive"`
+	IncludedItems      []string `json:"includedItems,omitempty"`
 }
 
 type UpdateServiceExtraInput struct {
@@ -910,6 +920,24 @@ type User struct {
 type UserConnection struct {
 	Users      []*User `json:"users"`
 	TotalCount int     `json:"totalCount"`
+}
+
+type WaitlistLead struct {
+	ID          string           `json:"id"`
+	LeadType    WaitlistLeadType `json:"leadType"`
+	Name        string           `json:"name"`
+	Email       string           `json:"email"`
+	Phone       *string          `json:"phone,omitempty"`
+	City        *string          `json:"city,omitempty"`
+	CompanyName *string          `json:"companyName,omitempty"`
+	Message     *string          `json:"message,omitempty"`
+	CreatedAt   time.Time        `json:"createdAt"`
+}
+
+type WaitlistStats struct {
+	ClientCount  int `json:"clientCount"`
+	CompanyCount int `json:"companyCount"`
+	TotalCount   int `json:"totalCount"`
 }
 
 type WorkScheduleDayInput struct {
@@ -1819,6 +1847,61 @@ func (e *UserStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e UserStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type WaitlistLeadType string
+
+const (
+	WaitlistLeadTypeClient  WaitlistLeadType = "CLIENT"
+	WaitlistLeadTypeCompany WaitlistLeadType = "COMPANY"
+)
+
+var AllWaitlistLeadType = []WaitlistLeadType{
+	WaitlistLeadTypeClient,
+	WaitlistLeadTypeCompany,
+}
+
+func (e WaitlistLeadType) IsValid() bool {
+	switch e {
+	case WaitlistLeadTypeClient, WaitlistLeadTypeCompany:
+		return true
+	}
+	return false
+}
+
+func (e WaitlistLeadType) String() string {
+	return string(e)
+}
+
+func (e *WaitlistLeadType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = WaitlistLeadType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid WaitlistLeadType", str)
+	}
+	return nil
+}
+
+func (e WaitlistLeadType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *WaitlistLeadType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e WaitlistLeadType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

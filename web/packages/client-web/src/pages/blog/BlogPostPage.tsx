@@ -1,0 +1,197 @@
+import { useParams, Link, Navigate } from 'react-router-dom';
+import { ArrowLeft, Clock, Calendar, Share2 } from 'lucide-react';
+import SEOHead from '@/components/seo/SEOHead';
+import {
+  getPostBySlug,
+  getRelatedPosts,
+  CATEGORY_LABELS,
+  CATEGORY_COLORS,
+} from '@/data/blog';
+
+export default function BlogPostPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const post = getPostBySlug(slug ?? '');
+
+  if (!post) return <Navigate to="/blog" replace />;
+
+  const related = getRelatedPosts(post.slug, 2);
+
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    author: { '@type': 'Organization', name: 'HelpMeClean' },
+    publisher: {
+      '@type': 'Organization',
+      name: 'HelpMeClean',
+      url: 'https://helpmeclean.ro',
+    },
+    datePublished: post.publishedAt,
+    url: `https://helpmeclean.ro/blog/${post.slug}`,
+    keywords: post.tags.join(', '),
+  };
+
+  const handleShareClick = () => {
+    void navigator.clipboard.writeText(window.location.href);
+  };
+
+  return (
+    <>
+      <SEOHead
+        title={post.metaTitle}
+        description={post.metaDescription}
+        canonicalUrl={`/blog/${post.slug}`}
+        ogType="article"
+        articleMeta={{
+          publishedTime: post.publishedAt,
+          author: post.author,
+          tags: post.tags,
+        }}
+        structuredData={structuredData}
+      />
+
+      <div className="bg-white">
+        {/* Breadcrumb */}
+        <div className="max-w-3xl mx-auto px-4 pt-8">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-2 text-sm text-gray-500 mb-6"
+          >
+            <Link to="/" className="hover:text-gray-900 transition-colors">
+              Acasă
+            </Link>
+            <span aria-hidden="true">/</span>
+            <Link to="/blog" className="hover:text-gray-900 transition-colors">
+              Blog
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span className="text-gray-700 truncate">{post.title}</span>
+          </nav>
+
+          {/* Category badge */}
+          <span
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${CATEGORY_COLORS[post.category]}`}
+          >
+            {CATEGORY_LABELS[post.category]}
+          </span>
+
+          {/* Title */}
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mt-4 mb-4">
+            {post.title}
+          </h1>
+
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 pb-6 border-b border-gray-200">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-4 w-4" aria-hidden="true" />
+              {new Date(post.publishedAt).toLocaleDateString('ro-RO', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4" aria-hidden="true" />
+              {post.readTimeMinutes} minute citire
+            </span>
+            <span>{post.author}</span>
+            <button
+              onClick={handleShareClick}
+              className="flex items-center gap-1.5 ml-auto hover:text-gray-700 transition-colors"
+              aria-label="Copiază link-ul articolului"
+            >
+              <Share2 className="h-4 w-4" aria-hidden="true" />
+              Copiază link
+            </button>
+          </div>
+        </div>
+
+        {/* Article body */}
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div
+            className="prose prose-lg prose-gray max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+
+          {/* Tags */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-sm text-gray-500 mb-2">Etichete:</p>
+            <div className="flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* CTA box */}
+        <div className="max-w-3xl mx-auto px-4 pb-12">
+          <div className="bg-blue-600 text-white rounded-2xl p-8 text-center">
+            <h2 className="text-2xl font-bold mb-2">
+              Gata să rezervi o curățenie?
+            </h2>
+            <p className="text-blue-100 mb-6">
+              HelpMeClean se lansează în curând. Înscrie-te acum și primești
+              15% reducere la prima rezervare.
+            </p>
+            <Link
+              to="/lista-asteptare"
+              className="inline-block bg-white text-blue-600 font-semibold px-6 py-3 rounded-xl hover:bg-blue-50 transition"
+            >
+              Înscrie-te pe lista de așteptare
+            </Link>
+          </div>
+        </div>
+
+        {/* Related posts */}
+        {related.length > 0 && (
+          <section className="bg-gray-50 py-12 px-4">
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
+                Articole similare
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {related.map((p) => (
+                  <Link
+                    key={p.slug}
+                    to={`/blog/${p.slug}`}
+                    className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                  >
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded ${CATEGORY_COLORS[p.category]}`}
+                    >
+                      {CATEGORY_LABELS[p.category]}
+                    </span>
+                    <h3 className="font-semibold text-gray-900 mt-2 mb-1 hover:text-blue-600 transition-colors">
+                      {p.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 line-clamp-2">
+                      {p.excerpt}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Back to blog */}
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <Link
+            to="/blog"
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Înapoi la blog
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+}

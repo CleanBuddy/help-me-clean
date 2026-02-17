@@ -1,8 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/client';
 import { createApolloClient } from '@helpmeclean/shared';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CompanyProvider } from '@/context/CompanyContext';
+import { PlatformProvider, usePlatform } from '@/context/PlatformContext';
 
 // Layouts
 import PublicLayout from '@/components/layout/PublicLayout';
@@ -13,12 +14,19 @@ import AdminLayout from '@/components/layout/AdminLayout';
 
 // Public pages
 import HomePage from '@/pages/HomePage';
-import ServicesPage from '@/pages/ServicesPage';
 import BookingPage from '@/pages/BookingPage';
 import LoginPage from '@/pages/LoginPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import RegisterCompanyPage from '@/pages/RegisterCompanyPage';
 import ClaimCompanyPage from '@/pages/ClaimCompanyPage';
+import WaitlistPage from '@/pages/WaitlistPage';
+import AboutPage from '@/pages/AboutPage';
+import ForCompaniesPage from '@/pages/ForCompaniesPage';
+import ContactPage from '@/pages/ContactPage';
+import TermsPage from '@/pages/TermsPage';
+import PrivacyPage from '@/pages/PrivacyPage';
+import BlogListPage from '@/pages/blog/BlogListPage';
+import BlogPostPage from '@/pages/blog/BlogPostPage';
 
 // Client pages
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
@@ -34,6 +42,7 @@ import RecurringGroupDetailPage from '@/pages/client/RecurringGroupDetailPage';
 
 // Company pages
 import CompanyDashboardPage from '@/pages/company/DashboardPage';
+import DocumentUploadPage from '@/pages/company/DocumentUploadPage';
 import CompanyOrdersPage from '@/pages/company/OrdersPage';
 import CompanyOrderDetailPage from '@/pages/company/OrderDetailPage';
 import TeamPage from '@/pages/company/TeamPage';
@@ -76,6 +85,15 @@ const wsEndpoint = httpEndpoint.replace(/^http/, 'ws');
 
 const client = createApolloClient(httpEndpoint, wsEndpoint);
 
+// ─── Platform Gate ───────────────────────────────────────────────────────────
+
+function BookingGateRoute() {
+  const { isPreRelease, loading } = usePlatform();
+  if (loading) return null;
+  if (isPreRelease) return <Navigate to="/lista-asteptare" replace />;
+  return <BookingPage />;
+}
+
 // ─── Route Guards ────────────────────────────────────────────────────────────
 
 const ROLE_HOME: Record<string, string> = {
@@ -87,6 +105,7 @@ const ROLE_HOME: Record<string, string> = {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -97,7 +116,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/autentificare" replace />;
+    // Pass the attempted path so LoginPage can redirect back after auth.
+    return <Navigate to="/autentificare" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;
@@ -127,14 +147,24 @@ function RoleRoute({ children, role }: { children: React.ReactNode; role: string
 function AppRoutes() {
   return (
     <Routes>
+      {/* Standalone — no Header/Footer (split-screen layout) */}
+      <Route path="/autentificare" element={<LoginPage />} />
+      <Route path="/inregistrare-firma" element={<RegisterCompanyPage />} />
+
       {/* Public routes - Header + Footer layout */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/servicii" element={<ServicesPage />} />
-        <Route path="/rezervare" element={<BookingPage />} />
-        <Route path="/autentificare" element={<LoginPage />} />
-        <Route path="/inregistrare-firma" element={<RegisterCompanyPage />} />
+        <Route path="/servicii" element={<Navigate to="/#servicii" replace />} />
+        <Route path="/rezervare" element={<BookingGateRoute />} />
         <Route path="/claim-firma/:token" element={<ClaimCompanyPage />} />
+        <Route path="/lista-asteptare" element={<WaitlistPage />} />
+        <Route path="/despre-noi" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/pentru-firme" element={<ForCompaniesPage />} />
+        <Route path="/termeni" element={<TermsPage />} />
+        <Route path="/confidentialitate" element={<PrivacyPage />} />
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
       </Route>
 
       {/* Client routes - Sidebar layout, auth + CLIENT role */}
@@ -175,6 +205,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<CompanyDashboardPage />} />
+        <Route path="documente-obligatorii" element={<DocumentUploadPage />} />
         <Route path="comenzi" element={<CompanyOrdersPage />} />
         <Route path="comenzi/:id" element={<CompanyOrderDetailPage />} />
         <Route path="program" element={<CompanyCalendarPage />} />
@@ -249,9 +280,11 @@ function AppRoutes() {
 function App() {
   return (
     <ApolloProvider client={client}>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <PlatformProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </PlatformProvider>
     </ApolloProvider>
   );
 }

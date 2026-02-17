@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { Settings, Package, Sparkles, MapPin, Pencil, Check, X, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Settings, Package, Sparkles, MapPin, Pencil, Check, X, Plus, ChevronDown, ChevronRight, ToggleLeft } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -22,11 +22,14 @@ import {
   TOGGLE_CITY_ACTIVE,
   CREATE_CITY_AREA,
   DELETE_CITY_AREA,
+  PLATFORM_MODE,
+  WAITLIST_STATS,
+  WAITLIST_LEADS,
 } from '@/graphql/operations';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type TabKey = 'general' | 'services' | 'extras' | 'cities';
+type TabKey = 'general' | 'services' | 'extras' | 'cities' | 'platform';
 
 interface PlatformSetting {
   key: string;
@@ -50,6 +53,7 @@ interface ServiceDef {
   petDurationMinutes: number;
   icon?: string;
   isActive: boolean;
+  includedItems: string[];
 }
 
 interface ExtraDef {
@@ -84,6 +88,7 @@ const tabs: { key: TabKey; label: string; icon: typeof Settings }[] = [
   { key: 'services', label: 'Servicii', icon: Package },
   { key: 'extras', label: 'Extra-uri', icon: Sparkles },
   { key: 'cities', label: 'Orase', icon: MapPin },
+  { key: 'platform', label: 'Platforma', icon: ToggleLeft },
 ];
 
 const SETTING_GROUPS: { title: string; keys: string[] }[] = [
@@ -303,16 +308,19 @@ function ServicesTab() {
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 0, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15 });
+  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 0, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, includedItems: [] as string[] });
+  const [newIncludedItem, setNewIncludedItem] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [newService, setNewService] = useState({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true });
+  const [newService, setNewService] = useState({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true, includedItems: [] as string[] });
+  const [newModalItem, setNewModalItem] = useState('');
   const [creating, setCreating] = useState(false);
 
   const services = data?.allServices ?? [];
 
   const startEdit = (s: ServiceDef) => {
     setEditingId(s.id);
-    setEditFields({ nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes });
+    setEditFields({ nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes, includedItems: s.includedItems ?? [] });
+    setNewIncludedItem('');
   };
 
   const saveEdit = async (s: ServiceDef) => {
@@ -321,7 +329,7 @@ function ServicesTab() {
   };
 
   const toggleActive = async (s: ServiceDef) => {
-    await updateService({ variables: { input: { id: s.id, nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes, isActive: !s.isActive } } });
+    await updateService({ variables: { input: { id: s.id, nameRo: s.nameRo, nameEn: s.nameEn, basePricePerHour: s.basePricePerHour, minHours: s.minHours, hoursPerRoom: s.hoursPerRoom, hoursPerBathroom: s.hoursPerBathroom, hoursPer100Sqm: s.hoursPer100Sqm, houseMultiplier: s.houseMultiplier, petDurationMinutes: s.petDurationMinutes, isActive: !s.isActive, includedItems: s.includedItems ?? [] } } });
   };
 
   const handleCreate = async () => {
@@ -329,7 +337,8 @@ function ServicesTab() {
     try {
       await createService({ variables: { input: newService } });
       setShowModal(false);
-      setNewService({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true });
+      setNewService({ serviceType: 'STANDARD', nameRo: '', nameEn: '', basePricePerHour: 0, minHours: 2, hoursPerRoom: 0.5, hoursPerBathroom: 0.5, hoursPer100Sqm: 1.0, houseMultiplier: 1.3, petDurationMinutes: 15, isActive: true, includedItems: [] });
+      setNewModalItem('');
     } finally {
       setCreating(false);
     }
@@ -372,6 +381,7 @@ function ServicesTab() {
                 {services.map((s) => {
                   const isEditing = editingId === s.id;
                   return (
+                    <>
                     <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3">
                         {isEditing ? (
@@ -479,6 +489,41 @@ function ServicesTab() {
                         )}
                       </td>
                     </tr>
+                    {isEditing && (
+                      <tr className="bg-blue-50/50 border-b border-blue-100">
+                        <td colSpan={11} className="px-4 py-3">
+                          <p className="text-xs font-medium text-gray-500 mb-2">Ce include serviciul</p>
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {editFields.includedItems.map((item, idx) => (
+                              <span key={idx} className="flex items-center gap-1 text-xs bg-white border border-blue-200 text-blue-700 rounded-full px-2.5 py-0.5">
+                                {item}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditFields((f) => ({ ...f, includedItems: f.includedItems.filter((_, i) => i !== idx) }))}
+                                  className="ml-0.5 text-blue-400 hover:text-blue-700 cursor-pointer"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          <input
+                            value={newIncludedItem}
+                            onChange={(e) => setNewIncludedItem(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && newIncludedItem.trim()) {
+                                setEditFields((f) => ({ ...f, includedItems: [...f.includedItems, newIncludedItem.trim()] }));
+                                setNewIncludedItem('');
+                                e.preventDefault();
+                              }
+                            }}
+                            placeholder="Adauga element și apasa Enter"
+                            className="max-w-xs rounded-lg border border-gray-300 px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    </>
                   );
                 })}
               </tbody>
@@ -556,6 +601,36 @@ function ServicesTab() {
               type="number"
               value={newService.petDurationMinutes}
               onChange={(e) => setNewService((s) => ({ ...s, petDurationMinutes: Number(e.target.value) }))}
+            />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2">Ce include serviciul</p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {newService.includedItems.map((item, idx) => (
+                <span key={idx} className="flex items-center gap-1 text-xs bg-blue-50 border border-blue-200 text-blue-700 rounded-full px-2.5 py-0.5">
+                  {item}
+                  <button
+                    type="button"
+                    onClick={() => setNewService((s) => ({ ...s, includedItems: s.includedItems.filter((_, i) => i !== idx) }))}
+                    className="ml-0.5 text-blue-400 hover:text-blue-700 cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              value={newModalItem}
+              onChange={(e) => setNewModalItem(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newModalItem.trim()) {
+                  setNewService((s) => ({ ...s, includedItems: [...s.includedItems, newModalItem.trim()] }));
+                  setNewModalItem('');
+                  e.preventDefault();
+                }
+              }}
+              placeholder="Adauga element și apasa Enter"
+              className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -1059,6 +1134,137 @@ function CitiesTab() {
   );
 }
 
+// ─── Tab: Platforma ──────────────────────────────────────────────────────────
+
+function PlatformTab() {
+  const { data: modeData, loading: modeLoading, refetch: refetchMode } = useQuery(PLATFORM_MODE);
+  const { data: statsData } = useQuery(WAITLIST_STATS);
+  const { data: leadsData, loading: leadsLoading } = useQuery(WAITLIST_LEADS, {
+    variables: { limit: 100, offset: 0 },
+  });
+  const [updateSetting, { loading: saving }] = useMutation(UPDATE_PLATFORM_SETTING, {
+    onCompleted: () => refetchMode(),
+  });
+
+  const isLive = modeData?.platformMode === 'live';
+
+  async function handleToggle() {
+    await updateSetting({
+      variables: {
+        key: 'platform_mode',
+        value: isLive ? 'pre_release' : 'live',
+      },
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Mode toggle card */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-lg">Modul platformei</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {isLive
+                ? 'Platforma este LIVE — clienții pot face rezervări normative.'
+                : 'Platforma este în PRE-LANSARE — se colectează înscrieri în lista de așteptare.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                isLive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {isLive ? '🟢 LIVE' : '🟡 PRE-LANSARE'}
+            </span>
+            <button
+              onClick={handleToggle}
+              disabled={saving || modeLoading}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${
+                isLive ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  isLive ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Clienți înscriși', value: statsData?.waitlistStats.clientCount ?? 0, color: 'blue' },
+          { label: 'Firme înscrise', value: statsData?.waitlistStats.companyCount ?? 0, color: 'emerald' },
+          { label: 'Total leads', value: statsData?.waitlistStats.totalCount ?? 0, color: 'purple' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+            <div className={`text-3xl font-bold text-${color}-600`}>{value}</div>
+            <div className="text-sm text-gray-500 mt-1">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Leads table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">Lista de așteptare</h3>
+        </div>
+        {leadsLoading ? (
+          <div className="p-8 text-center text-gray-500">Se încarcă...</div>
+        ) : !leadsData?.waitlistLeads?.length ? (
+          <div className="p-8 text-center text-gray-500">Nu există înscrieri încă.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['Tip', 'Nume', 'Email', 'Telefon', 'Oraș/Firmă', 'Data'].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {leadsData.waitlistLeads.map((lead: any) => (
+                  <tr key={lead.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          lead.leadType === 'CLIENT'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        {lead.leadType === 'CLIENT' ? 'Client' : 'Firmă'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{lead.name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{lead.email}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{lead.phone ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{lead.companyName ?? lead.city ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {new Date(lead.createdAt).toLocaleDateString('ro-RO')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -1098,6 +1304,7 @@ export default function SettingsPage() {
       {activeTab === 'services' && <ServicesTab />}
       {activeTab === 'extras' && <ExtrasTab />}
       {activeTab === 'cities' && <CitiesTab />}
+      {activeTab === 'platform' && <PlatformTab />}
     </div>
   );
 }

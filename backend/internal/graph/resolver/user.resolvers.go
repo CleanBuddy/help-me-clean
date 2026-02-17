@@ -142,10 +142,12 @@ func (r *mutationResolver) AdminUpdateUserProfile(ctx context.Context, userID st
 }
 
 // Me is the resolver for the me field.
+// Returns nil (not an error) when unauthenticated so the frontend treats
+// a null response as "not logged in" rather than a hard failure.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	claims := auth.GetUserFromContext(ctx)
 	if claims == nil {
-		return nil, fmt.Errorf("not authenticated")
+		return nil, nil
 	}
 
 	dbUser, err := r.Queries.GetUserByID(ctx, stringToUUID(claims.UserID))

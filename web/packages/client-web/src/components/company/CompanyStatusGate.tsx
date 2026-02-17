@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Building2, Clock, XCircle, ShieldBan, Phone, Mail, LogOut } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -78,6 +79,8 @@ function NoCompanyOverlay() {
 }
 
 function PendingOverlay() {
+  const { logout } = useAuth();
+
   return (
     <StatusOverlay>
       <div className="text-center">
@@ -91,9 +94,16 @@ function PendingOverlay() {
           Echipa noastra verifica documentele si datele firmei tale. Vei primi o
           notificare cand procesul este finalizat.
         </p>
-        <p className="text-gray-400 text-xs">
+        <p className="text-gray-400 text-xs mb-4">
           De obicei, verificarea dureaza 1-2 zile lucratoare.
         </p>
+        <button
+          onClick={logout}
+          className="inline-flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Deconecteaza-te
+        </button>
         <ContactInfo />
       </div>
     </StatusOverlay>
@@ -102,6 +112,7 @@ function PendingOverlay() {
 
 function RejectedOverlay({ reason }: { reason?: string }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   return (
     <StatusOverlay>
@@ -124,6 +135,13 @@ function RejectedOverlay({ reason }: { reason?: string }) {
         <Button onClick={() => navigate('/inregistrare-firma')} className="w-full">
           Aplica din nou
         </Button>
+        <button
+          onClick={logout}
+          className="mt-3 inline-flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Deconecteaza-te
+        </button>
         <ContactInfo />
       </div>
     </StatusOverlay>
@@ -131,6 +149,8 @@ function RejectedOverlay({ reason }: { reason?: string }) {
 }
 
 function SuspendedOverlay() {
+  const { logout } = useAuth();
+
   return (
     <StatusOverlay>
       <div className="text-center">
@@ -140,10 +160,17 @@ function SuspendedOverlay() {
         <h2 className="text-xl font-bold text-gray-900 mb-2">
           Contul firmei a fost suspendat
         </h2>
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-gray-500 text-sm leading-relaxed mb-4">
           Accesul la panoul de administrare a fost restricionat. Te rugam sa ne
           contactezi pentru a afla motivul si pasii urmatori.
         </p>
+        <button
+          onClick={logout}
+          className="inline-flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Deconecteaza-te
+        </button>
         <ContactInfo />
       </div>
     </StatusOverlay>
@@ -151,11 +178,31 @@ function SuspendedOverlay() {
 }
 
 const EXCLUDED_PATHS = ['/inregistrare-firma', '/claim-firma', '/autentificare'];
+const REQUIRED_DOCS = ['certificat_constatator', 'asigurare_raspundere_civila', 'cui_document'];
 
 export default function CompanyStatusGate({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
   const { company, loading, error } = useCompany();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  // Check if all required documents uploaded
+  const allDocsUploaded = company?.documents &&
+    REQUIRED_DOCS.every(type =>
+      company.documents?.some((doc: any) => doc.documentType === type)
+    );
+
+  // Redirect to document upload if pending and documents incomplete
+  useEffect(() => {
+    if (
+      company?.status === 'PENDING_REVIEW' &&
+      !allDocsUploaded &&
+      !pathname.includes('/documente-obligatorii') &&
+      !loading
+    ) {
+      navigate('/firma/documente-obligatorii', { replace: true });
+    }
+  }, [company, allDocsUploaded, pathname, navigate, loading]);
 
   if (!isAuthenticated || EXCLUDED_PATHS.some(p => pathname.startsWith(p))) {
     return <>{children}</>;
@@ -183,6 +230,10 @@ export default function CompanyStatusGate({ children }: { children: ReactNode })
 
   switch (company.status) {
     case 'PENDING_REVIEW':
+      // On document upload page: allow access so company can upload docs
+      if (pathname.includes('/documente-obligatorii')) {
+        return <>{children}</>;
+      }
       return (
         <>
           {children}

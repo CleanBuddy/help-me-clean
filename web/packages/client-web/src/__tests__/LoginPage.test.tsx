@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import LoginPage from '@/pages/LoginPage';
 
@@ -66,9 +66,9 @@ describe('LoginPage', () => {
     });
   });
 
-  it('renders the page title "Autentificare"', () => {
+  it('renders the page title "Bine ai revenit!"', () => {
     renderLoginPage();
-    expect(screen.getByText('Autentificare')).toBeInTheDocument();
+    expect(screen.getByText('Bine ai revenit!')).toBeInTheDocument();
   });
 
   it('shows Google OAuth button', () => {
@@ -78,7 +78,7 @@ describe('LoginPage', () => {
 
   it('shows correct subtitle for Google OAuth', () => {
     renderLoginPage();
-    expect(screen.getByText('Conecteaza-te cu Google pentru a accesa contul tau.')).toBeInTheDocument();
+    expect(screen.getByText('Conectează-te cu contul tău Google pentru a accesa platforma.')).toBeInTheDocument();
   });
 
   it('calls loginWithGoogle when Google button is clicked', async () => {
@@ -103,20 +103,14 @@ describe('LoginPage', () => {
     await user.click(screen.getByTestId('google-login'));
     expect(
       await screen.findByText(
-        'Autentificarea a esuat. Te rugam sa incerci din nou.',
+        'Autentificarea a eșuat. Te rugăm să încerci din nou.',
       ),
     ).toBeInTheDocument();
   });
 
   it('redirects CLIENT to /cont when already authenticated', () => {
     mockUseAuth.mockReturnValue({
-      user: {
-        id: '1',
-        email: 'test@test.com',
-        fullName: 'Test',
-        role: 'CLIENT',
-        status: 'ACTIVE',
-      },
+      user: { id: '1', email: 'test@test.com', fullName: 'Test', role: 'CLIENT', status: 'ACTIVE' },
       loading: false,
       loginWithGoogle: mockLoginWithGoogle,
       logout: vi.fn(),
@@ -124,19 +118,20 @@ describe('LoginPage', () => {
       refetchUser: vi.fn(),
       refreshToken: vi.fn(),
     });
-    renderLoginPage();
-    expect(mockNavigate).toHaveBeenCalledWith('/cont', { replace: true });
+    render(
+      <MemoryRouter initialEntries={['/autentificare']}>
+        <Routes>
+          <Route path="/autentificare" element={<LoginPage />} />
+          <Route path="/cont" element={<div>CLIENT_DASHBOARD</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('CLIENT_DASHBOARD')).toBeInTheDocument();
   });
 
   it('redirects COMPANY_ADMIN to /firma when already authenticated', () => {
     mockUseAuth.mockReturnValue({
-      user: {
-        id: '2',
-        email: 'admin@firma.ro',
-        fullName: 'Admin',
-        role: 'COMPANY_ADMIN',
-        status: 'ACTIVE',
-      },
+      user: { id: '2', email: 'admin@firma.ro', fullName: 'Admin', role: 'COMPANY_ADMIN', status: 'ACTIVE' },
       loading: false,
       loginWithGoogle: mockLoginWithGoogle,
       logout: vi.fn(),
@@ -144,19 +139,20 @@ describe('LoginPage', () => {
       refetchUser: vi.fn(),
       refreshToken: vi.fn(),
     });
-    renderLoginPage();
-    expect(mockNavigate).toHaveBeenCalledWith('/firma', { replace: true });
+    render(
+      <MemoryRouter initialEntries={['/autentificare']}>
+        <Routes>
+          <Route path="/autentificare" element={<LoginPage />} />
+          <Route path="/firma" element={<div>COMPANY_DASHBOARD</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('COMPANY_DASHBOARD')).toBeInTheDocument();
   });
 
   it('redirects GLOBAL_ADMIN to /admin when already authenticated', () => {
     mockUseAuth.mockReturnValue({
-      user: {
-        id: '3',
-        email: 'admin@helpmeclean.ro',
-        fullName: 'Global Admin',
-        role: 'GLOBAL_ADMIN',
-        status: 'ACTIVE',
-      },
+      user: { id: '3', email: 'admin@helpmeclean.ro', fullName: 'Global Admin', role: 'GLOBAL_ADMIN', status: 'ACTIVE' },
       loading: false,
       loginWithGoogle: mockLoginWithGoogle,
       logout: vi.fn(),
@@ -164,7 +160,14 @@ describe('LoginPage', () => {
       refetchUser: vi.fn(),
       refreshToken: vi.fn(),
     });
-    renderLoginPage();
-    expect(mockNavigate).toHaveBeenCalledWith('/admin', { replace: true });
+    render(
+      <MemoryRouter initialEntries={['/autentificare']}>
+        <Routes>
+          <Route path="/autentificare" element={<LoginPage />} />
+          <Route path="/admin" element={<div>ADMIN_DASHBOARD</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('ADMIN_DASHBOARD')).toBeInTheDocument();
   });
 });

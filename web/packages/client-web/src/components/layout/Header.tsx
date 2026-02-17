@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, LogOut, Building2, Shield, User, ChevronDown } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import { useAuth } from '@/context/AuthContext';
+import { usePlatform } from '@/context/PlatformContext';
 import Button from '@/components/ui/Button';
 
 function UserAvatar({ name }: { name: string }) {
@@ -20,7 +21,8 @@ function UserAvatar({ name }: { name: string }) {
 }
 
 export default function Header() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
+  const { isPreRelease } = usePlatform();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -46,41 +48,72 @@ export default function Header() {
 
   const isClient = isAuthenticated && user?.role === 'CLIENT';
   const isCompany = isAuthenticated && user?.role === 'COMPANY_ADMIN';
+  const isCleaner = isAuthenticated && user?.role === 'CLEANER';
   const isAdmin = isAuthenticated && user?.role === 'GLOBAL_ADMIN';
 
+  const dashboardPath = isClient
+    ? '/cont'
+    : isCompany
+      ? '/firma'
+      : isCleaner
+        ? '/worker'
+        : '/admin';
+
+  const dashboardLabel = isClient
+    ? 'Contul meu'
+    : isCompany
+      ? 'Panoul firmei'
+      : isCleaner
+        ? 'Panoul meu'
+        : 'Panou admin';
+
+  const dashboardIcon = isCompany || isCleaner
+    ? <Building2 className="h-4 w-4" />
+    : isAdmin
+      ? <Shield className="h-4 w-4" />
+      : <User className="h-4 w-4" />;
+
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-primary">HelpMeClean</span>
+          {/* Logo — wordmark style */}
+          <Link to="/" className="flex items-center group">
+            <span className="text-xl font-black tracking-tight text-gray-900 group-hover:opacity-80 transition-opacity">
+              HelpMe<span className="text-primary">Clean</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            {isClient ? (
+          <nav className="hidden md:flex items-center gap-8">
+            {authLoading ? (
+              <div className="w-28 h-8 bg-gray-100 rounded-lg animate-pulse" />
+            ) : isAuthenticated ? (
               <>
-                {/* Authenticated CLIENT nav — avatar dropdown */}
+                {/* All authenticated roles — unified avatar dropdown */}
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="flex items-center gap-2 text-gray-700 hover:text-primary font-medium transition cursor-pointer"
                   >
-                    <UserAvatar name={user.fullName || ''} />
-                    <span className="max-w-[140px] truncate">{user.fullName || 'Contul meu'}</span>
+                    <UserAvatar name={user!.fullName || ''} />
+                    <span className="max-w-[140px] truncate text-sm">{user!.fullName || 'Contul meu'}</span>
                     <ChevronDown className={cn('h-4 w-4 transition-transform', dropdownOpen && 'rotate-180')} />
                   </button>
 
                   {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                        <p className="text-xs font-semibold text-gray-900 truncate">{user!.fullName}</p>
+                        <p className="text-xs text-gray-400 truncate">{user!.email}</p>
+                      </div>
                       <Link
-                        to="/cont"
+                        to={dashboardPath}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        <User className="h-4 w-4" />
-                        Contul meu
+                        {dashboardIcon}
+                        {dashboardLabel}
                       </Link>
                       <div className="h-px bg-gray-100 mx-2" />
                       <button
@@ -97,87 +130,44 @@ export default function Header() {
                   )}
                 </div>
               </>
-            ) : isCompany ? (
-              <>
-                {/* COMPANY_ADMIN nav */}
-                <Link
-                  to="/firma"
-                  className="flex items-center gap-1.5 text-gray-600 hover:text-secondary font-medium transition"
-                >
-                  <Building2 className="h-4 w-4" />
-                  Panoul firmei
-                </Link>
-                <div className="h-6 w-px bg-gray-200" />
-                <Link
-                  to="/profil"
-                  className="flex items-center gap-2 text-gray-600 hover:text-primary font-medium transition"
-                >
-                  <UserAvatar name={user!.fullName || ''} />
-                  <span className="max-w-[120px] truncate">{user!.fullName || 'Profil'}</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1.5 text-gray-400 hover:text-danger font-medium transition cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </>
-            ) : isAdmin ? (
-              <>
-                {/* GLOBAL_ADMIN nav */}
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-1.5 text-gray-600 hover:text-secondary font-medium transition"
-                >
-                  <Shield className="h-4 w-4" />
-                  Panou admin
-                </Link>
-                <div className="h-6 w-px bg-gray-200" />
-                <Link
-                  to="/profil"
-                  className="flex items-center gap-2 text-gray-600 hover:text-primary font-medium transition"
-                >
-                  <UserAvatar name={user!.fullName || ''} />
-                  <span className="max-w-[120px] truncate">{user!.fullName || 'Profil'}</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1.5 text-gray-400 hover:text-danger font-medium transition cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </>
             ) : (
               <>
                 {/* Public / landing page nav */}
-                <Link
-                  to="/servicii"
-                  className="text-gray-600 hover:text-primary font-medium transition"
+                <a
+                  href="/#servicii"
+                  className="text-sm text-gray-500 hover:text-gray-900 font-medium transition"
                 >
                   Servicii
-                </Link>
+                </a>
                 <a
                   href="#cum-functioneaza"
-                  className="text-gray-600 hover:text-primary font-medium transition"
+                  className="text-sm text-gray-500 hover:text-gray-900 font-medium transition"
                 >
-                  Cum functioneaza
+                  Cum funcționează
                 </a>
-                <Link
-                  to="/autentificare"
-                  className="text-gray-600 hover:text-primary font-medium transition"
-                >
-                  Autentificare
+                <Link to="/blog" className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                  Blog
                 </Link>
-                <Link
-                  to="/inregistrare-firma"
-                  className="flex items-center gap-1.5 text-gray-600 hover:text-secondary font-medium transition"
-                >
-                  <Building2 className="h-4 w-4" />
-                  Pentru Firme
+                <Link to="/despre-noi" className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                  Despre noi
                 </Link>
-                <Button size="md" onClick={() => navigate('/rezervare')}>
-                  Rezerva acum
-                </Button>
+                {!isPreRelease && (
+                  <Link
+                    to="/autentificare"
+                    className="text-sm text-gray-600 hover:text-gray-900 font-medium transition border border-gray-300 hover:border-gray-400 px-4 py-2 rounded-xl"
+                  >
+                    Intră în cont
+                  </Link>
+                )}
+                {isPreRelease ? (
+                  <Button size="md" onClick={() => navigate('/lista-asteptare')}>
+                    Lista de așteptare
+                  </Button>
+                ) : (
+                  <Button size="md" onClick={() => navigate('/rezervare')}>
+                    Rezervă acum →
+                  </Button>
+                )}
               </>
             )}
           </nav>
@@ -203,79 +193,27 @@ export default function Header() {
           )}
         >
           <nav className="flex flex-col gap-1">
-            {isClient ? (
+            {authLoading ? (
+              <div className="px-3 py-3">
+                <div className="h-4 w-32 bg-gray-100 rounded animate-pulse" />
+              </div>
+            ) : isAuthenticated ? (
               <>
-                {/* Authenticated CLIENT mobile nav */}
+                {/* All authenticated roles — unified mobile nav */}
                 <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-gray-100">
-                  <UserAvatar name={user.fullName || ''} />
+                  <UserAvatar name={user!.fullName || ''} />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{user.fullName}</p>
-                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{user!.fullName}</p>
+                    <p className="text-xs text-gray-500 truncate">{user!.email}</p>
                   </div>
                 </div>
                 <Link
-                  to="/cont"
+                  to={dashboardPath}
                   className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <User className="h-4 w-4" />
-                  Contul meu
-                </Link>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-danger hover:bg-red-50 font-medium cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Deconectare
-                </button>
-              </>
-            ) : isCompany ? (
-              <>
-                <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-gray-100">
-                  <UserAvatar name={user!.fullName || ''} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{user!.fullName}</p>
-                    <p className="text-xs text-gray-500 truncate">{user!.email}</p>
-                  </div>
-                </div>
-                <Link
-                  to="/firma"
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-emerald-50 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Building2 className="h-4 w-4" />
-                  Panoul firmei
-                </Link>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-danger hover:bg-red-50 font-medium cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Deconectare
-                </button>
-              </>
-            ) : isAdmin ? (
-              <>
-                <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-gray-100">
-                  <UserAvatar name={user!.fullName || ''} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{user!.fullName}</p>
-                    <p className="text-xs text-gray-500 truncate">{user!.email}</p>
-                  </div>
-                </div>
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-emerald-50 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Shield className="h-4 w-4" />
-                  Panou admin
+                  {dashboardIcon}
+                  {dashboardLabel}
                 </Link>
                 <button
                   onClick={() => {
@@ -291,45 +229,76 @@ export default function Header() {
             ) : (
               <>
                 {/* Public / landing page mobile nav */}
-                <Link
-                  to="/servicii"
+                <a
+                  href="/#servicii"
                   className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Servicii
-                </Link>
+                </a>
                 <a
                   href="#cum-functioneaza"
                   className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Cum functioneaza
+                  Cum funcționează
                 </a>
                 <Link
-                  to="/autentificare"
+                  to="/blog"
                   className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Autentificare
+                  Blog
                 </Link>
                 <Link
-                  to="/inregistrare-firma"
-                  className="px-3 py-2.5 rounded-xl text-secondary hover:bg-emerald-50 font-medium"
+                  to="/despre-noi"
+                  className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Pentru Firme
+                  Despre noi
                 </Link>
-                <div className="pt-2">
-                  <Button
-                    size="md"
-                    className="w-full"
-                    onClick={() => {
-                      navigate('/rezervare');
-                      setMobileMenuOpen(false);
-                    }}
+                {!isPreRelease && (
+                  <Link
+                    to="/autentificare"
+                    className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
                   >
-                    Rezerva acum
-                  </Button>
+                    Intră în cont
+                  </Link>
+                )}
+                {!isPreRelease && (
+                  <Link
+                    to="/inregistrare-firma"
+                    className="px-3 py-2.5 rounded-xl text-secondary hover:bg-emerald-50 font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Pentru Firme
+                  </Link>
+                )}
+                <div className="pt-2">
+                  {isPreRelease ? (
+                    <Button
+                      size="md"
+                      className="w-full"
+                      onClick={() => {
+                        navigate('/lista-asteptare');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Lista de așteptare
+                    </Button>
+                  ) : (
+                    <Button
+                      size="md"
+                      className="w-full"
+                      onClick={() => {
+                        navigate('/rezervare');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Rezervă acum →
+                    </Button>
+                  )}
                 </div>
               </>
             )}

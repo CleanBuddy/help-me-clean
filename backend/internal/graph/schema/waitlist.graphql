@@ -1,0 +1,42 @@
+enum WaitlistLeadType {
+  CLIENT
+  COMPANY
+}
+
+type WaitlistLead {
+  id: ID!
+  leadType: WaitlistLeadType!
+  name: String!
+  email: String!
+  phone: String
+  city: String
+  companyName: String
+  message: String
+  createdAt: DateTime!
+}
+
+type WaitlistStats {
+  clientCount: Int!
+  companyCount: Int!
+  totalCount: Int!
+}
+
+input JoinWaitlistInput {
+  leadType: WaitlistLeadType!
+  name: String!
+  email: String!
+  phone: String
+  city: String
+  companyName: String
+  message: String
+}
+
+extend type Query {
+  platformMode: String!
+  waitlistLeads(leadType: WaitlistLeadType, limit: Int, offset: Int): [WaitlistLead!]!
+  waitlistStats: WaitlistStats!
+}
+
+extend type Mutation {
+  joinWaitlist(input: JoinWaitlistInput!): WaitlistLead!
+}

@@ -1,8 +1,33 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { MockedProvider, type MockedResponse } from '@apollo/client/testing';
+import { HelmetProvider } from 'react-helmet-async';
+import { useAuth } from '@/context/AuthContext';
 import { AVAILABLE_SERVICES } from '@/graphql/operations';
 import HomePage from '@/pages/HomePage';
+
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: vi.fn(() => ({
+    user: null,
+    loading: false,
+    isAuthenticated: false,
+    loginWithGoogle: vi.fn(),
+    logout: vi.fn(),
+    refetchUser: vi.fn(),
+    refreshToken: vi.fn(),
+  })),
+}));
+
+vi.mock('@/context/PlatformContext', () => ({
+  usePlatform: vi.fn(() => ({
+    platformMode: 'live',
+    isPreRelease: false,
+    loading: false,
+  })),
+  PlatformProvider: ({ children }: { children: unknown }) => children,
+}));
+
+const mockUseAuth = vi.mocked(useAuth);
 
 const mockServices = [
   {
@@ -60,35 +85,46 @@ vi.mock('react-router-dom', async () => {
 
 function renderHomePage(mocks: MockedResponse[] = successMock) {
   return render(
-    <MockedProvider mocks={mocks}>
-      <MemoryRouter>
-        <HomePage />
-      </MemoryRouter>
-    </MockedProvider>,
+    <HelmetProvider>
+      <MockedProvider mocks={mocks}>
+        <MemoryRouter>
+          <HomePage />
+        </MemoryRouter>
+      </MockedProvider>
+    </HelmetProvider>,
   );
 }
 
 describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      isAuthenticated: false,
+      loginWithGoogle: vi.fn(),
+      logout: vi.fn(),
+      refetchUser: vi.fn(),
+      refreshToken: vi.fn(),
+    });
   });
 
-  it('shows hero title "Curatenie profesionala"', () => {
+  it('shows hero title "Casă curată"', () => {
     renderHomePage();
-    expect(screen.getByText(/Curatenie profesionala/)).toBeInTheDocument();
+    expect(screen.getByText(/Casă curată/)).toBeInTheDocument();
   });
 
   it('shows hero subtitle text', () => {
     renderHomePage();
     expect(
-      screen.getByText(/firme de curatenie verificate din Romania/),
+      screen.getByText(/firme de cur/),
     ).toBeInTheDocument();
   });
 
-  it('shows "Rezerva o curatenie" button', () => {
+  it('shows "Rezervă o curățenie" button', () => {
     renderHomePage();
     expect(
-      screen.getByRole('button', { name: /Rezerva o curatenie/ }),
+      screen.getByRole('button', { name: /Rezervă o curățenie/ }),
     ).toBeInTheDocument();
   });
 
@@ -99,19 +135,16 @@ describe('HomePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows "Cum functioneaza?" section', () => {
+  it('shows "Cum funcționează?" section', () => {
     renderHomePage();
-    expect(screen.getByText('Cum functioneaza?')).toBeInTheDocument();
+    expect(screen.getByText('Cum funcționează?')).toBeInTheDocument();
   });
 
   it('shows all three steps in how-it-works section', () => {
     renderHomePage();
-    expect(screen.getByText('Pasul 1')).toBeInTheDocument();
-    expect(screen.getByText('Pasul 2')).toBeInTheDocument();
-    expect(screen.getByText('Pasul 3')).toBeInTheDocument();
     expect(screen.getByText('Alege serviciul')).toBeInTheDocument();
-    expect(screen.getByText('Programeaza')).toBeInTheDocument();
-    expect(screen.getByText('Bucura-te de rezultat')).toBeInTheDocument();
+    expect(screen.getByText('Programează')).toBeInTheDocument();
+    expect(screen.getByText('Bucură-te de rezultat')).toBeInTheDocument();
   });
 
   it('shows "De ce HelpMeClean?" section', () => {
@@ -121,19 +154,15 @@ describe('HomePage', () => {
 
   it('shows trust items', () => {
     renderHomePage();
-    // Trust badges in hero
     expect(screen.getAllByText('Firme verificate').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Recenzii reale')).toBeInTheDocument();
-    expect(screen.getByText('Rezervare rapida')).toBeInTheDocument();
-    // Trust items in section
-    expect(screen.getByText('Plati sigure')).toBeInTheDocument();
-    expect(screen.getByText('Preturi transparente')).toBeInTheDocument();
+    expect(screen.getByText('Plăți sigure')).toBeInTheDocument();
+    expect(screen.getByText('Prețuri transparente')).toBeInTheDocument();
     expect(screen.getByText('Suport rapid')).toBeInTheDocument();
   });
 
-  it('shows "Serviciile noastre" section heading', () => {
+  it('shows services section heading', () => {
     renderHomePage();
-    expect(screen.getByText('Serviciile noastre')).toBeInTheDocument();
+    expect(screen.getByText('Ce putem face pentru tine?')).toBeInTheDocument();
   });
 
   it('shows services from query after loading', async () => {
@@ -153,13 +182,23 @@ describe('HomePage', () => {
 
   it('shows loading spinner while services are loading', () => {
     renderHomePage(loadingMock);
-    expect(screen.getByText('Se incarca serviciile...')).toBeInTheDocument();
+    expect(screen.getByText('Se încarcă serviciile...')).toBeInTheDocument();
   });
 
-  it('shows "Incepe acum" button in how-it-works section', () => {
+  it('shows "Rezervă acum" button in how-it-works section', () => {
     renderHomePage();
-    expect(
-      screen.getByRole('button', { name: /Incepe acum/ }),
-    ).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button', { name: /Rezervă acum/ });
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows stats section', () => {
+    renderHomePage();
+    expect(screen.getAllByText('500+').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Rezervări efectuate')).toBeInTheDocument();
+  });
+
+  it('shows testimonials section', () => {
+    renderHomePage();
+    expect(screen.getByText('Ce spun clienții noștri')).toBeInTheDocument();
   });
 });

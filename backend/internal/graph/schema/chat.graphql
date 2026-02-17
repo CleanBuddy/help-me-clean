@@ -38,9 +38,3 @@ extend type Mutation {
   createAdminChatRoom(userIds: [ID!]!): ChatRoom!
   openBookingChat(bookingId: ID!): ChatRoom!
 }
-
-extend type Subscription {
-  messageSent(roomId: ID!): ChatMessage!
-  bookingUpdated(bookingId: ID!): Booking!
-  notificationReceived: Notification!
-}

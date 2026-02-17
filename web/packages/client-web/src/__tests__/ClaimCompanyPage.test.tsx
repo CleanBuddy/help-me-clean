@@ -52,6 +52,7 @@ describe('ClaimCompanyPage', () => {
     logout: vi.fn(),
     isAuthenticated: false,
     refetchUser: vi.fn(),
+    refreshToken: vi.fn(),
   };
 
   const mockClaimFn = vi.fn();

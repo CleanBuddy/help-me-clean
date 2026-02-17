@@ -4,6 +4,7 @@ import { useMutation } from '@apollo/client';
 import { Building2, CheckCircle, AlertCircle } from 'lucide-react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '@/context/AuthContext';
+import { authService } from '@/services/AuthService';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { CLAIM_COMPANY } from '@/graphql/operations';
@@ -59,7 +60,7 @@ export default function ClaimCompanyPage() {
       await loginWithGoogle(response.credential);
       // After login, the useEffect will trigger handleClaim.
       // But since state may not update synchronously, also claim directly.
-      const jwtToken = localStorage.getItem('token');
+      const jwtToken = authService.getToken();
       if (jwtToken && token) {
         await claimCompany({
           variables: { claimToken: token },

@@ -21,6 +21,9 @@ import {
   FileText,
   Users,
   ShieldCheck,
+  AlertCircle,
+  FileCheck,
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
@@ -178,6 +181,33 @@ interface BookingEdge {
     id: string;
     companyName: string;
   } | null;
+}
+
+// Required company documents for approval
+const REQUIRED_DOCS = ['certificat_constatator', 'asigurare_raspundere_civila', 'cui_document'];
+
+// Helper function to check if all required documents are uploaded and approved
+function getDocumentCompletionStatus(documents: CompanyDocument[]) {
+  const missing: string[] = [];
+  const pending: string[] = [];
+  const rejected: string[] = [];
+
+  REQUIRED_DOCS.forEach((type) => {
+    const doc = documents.find((d) => d.documentType === type);
+    const label = companyDocTypeLabel[type] ?? type;
+
+    if (!doc) {
+      missing.push(label);
+    } else if (doc.status === 'PENDING') {
+      pending.push(label);
+    } else if (doc.status === 'REJECTED') {
+      rejected.push(label);
+    }
+  });
+
+  const ready = missing.length === 0 && pending.length === 0 && rejected.length === 0;
+
+  return { ready, missing, pending, rejected };
 }
 
 export default function CompanyDetailPage() {
@@ -352,6 +382,9 @@ export default function CompanyDetailPage() {
 
   const companyDocuments: CompanyDocument[] = company?.documents ?? [];
   const companyCleaner: CleanerWithDocs[] = company?.cleaners ?? [];
+
+  // Check document completion status for approval
+  const docStatus = getDocumentCompletionStatus(companyDocuments);
 
   const tabs: { key: DetailTab; label: string }[] = [
     { key: 'detalii', label: 'Detalii' },
@@ -542,6 +575,72 @@ export default function CompanyDetailPage() {
 
           {/* Actions Sidebar */}
           <div className="space-y-6">
+            {/* Document Status Summary (only for PENDING_APPROVAL) */}
+            {company.status === 'PENDING_APPROVAL' && (
+              <Card>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FileCheck className="h-5 w-5" />
+                  Status documente obligatorii
+                </h3>
+
+                <div className="space-y-3 mb-4">
+                  {REQUIRED_DOCS.map((type) => {
+                    const doc = companyDocuments.find((d) => d.documentType === type);
+                    const label = companyDocTypeLabel[type] ?? type;
+
+                    return (
+                      <div key={type} className="flex items-center justify-between p-3 rounded-lg border border-gray-200">
+                        <span className="text-sm font-medium text-gray-700">{label}</span>
+
+                        {!doc && <Badge variant="default">Neîncarcat</Badge>}
+                        {doc?.status === 'PENDING' && <Badge variant="warning">În așteptare</Badge>}
+                        {doc?.status === 'APPROVED' && (
+                          <Badge variant="success">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Aprobat
+                          </Badge>
+                        )}
+                        {doc?.status === 'REJECTED' && <Badge variant="danger">Respins</Badge>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {docStatus.ready ? (
+                  <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="flex items-center gap-2 text-sm text-green-800">
+                      <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                      <span className="font-medium">Toate documentele sunt aprobate. Compania poate fi aprobată.</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                    <div className="flex items-start gap-2 text-sm text-amber-800">
+                      <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium mb-1">Compania nu poate fi aprobată încă</p>
+                        {docStatus.missing.length > 0 && (
+                          <p className="text-xs mb-1">
+                            <strong>Lipsă:</strong> {docStatus.missing.join(', ')}
+                          </p>
+                        )}
+                        {docStatus.pending.length > 0 && (
+                          <p className="text-xs mb-1">
+                            <strong>În așteptare:</strong> {docStatus.pending.join(', ')}
+                          </p>
+                        )}
+                        {docStatus.rejected.length > 0 && (
+                            <p className="text-xs">
+                            <strong>Respinse:</strong> {docStatus.rejected.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
+
             <Card>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Actiuni</h3>
               <div className="space-y-3">
@@ -552,6 +651,7 @@ export default function CompanyDetailPage() {
                       className="w-full"
                       onClick={handleApprove}
                       loading={approving}
+                      disabled={!docStatus.ready}
                     >
                       Aproba compania
                     </Button>

@@ -88,3 +88,12 @@ FROM bookings WHERE company_id = $1;
 
 -- name: UpdateCompanyLogo :one
 UPDATE companies SET logo_url = $2, updated_at = NOW() WHERE id = $1 RETURNING *;
+
+-- name: CheckCompanyDocumentsReady :one
+-- Returns true if all 3 required documents exist and are approved
+SELECT
+  COUNT(CASE WHEN document_type = 'certificat_constatator' AND status = 'approved' THEN 1 END) = 1 AND
+  COUNT(CASE WHEN document_type = 'asigurare_raspundere_civila' AND status = 'approved' THEN 1 END) = 1 AND
+  COUNT(CASE WHEN document_type = 'cui_document' AND status = 'approved' THEN 1 END) = 1 AS all_ready
+FROM company_documents
+WHERE company_id = $1;
