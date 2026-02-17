@@ -5,7 +5,6 @@ scalar JSON
 
 type Query
 type Mutation
-type Subscription
 
 type PageInfo {
   hasNextPage: Boolean!

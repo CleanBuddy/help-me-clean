@@ -44,17 +44,26 @@ type GCSStorage struct {
 	projectID  string
 }
 
-// NewGCSStorage creates a GCS-backed storage client
-func NewGCSStorage(ctx context.Context, bucketName, projectID string, credentialsFile string) (*GCSStorage, error) {
+// NewGCSStorage creates a GCS-backed storage client.
+// credentials can be:
+//   - empty string → use Application Default Credentials (Cloud Run / Workload Identity)
+//   - a file path  → use service account key file (local development)
+//   - a JSON blob  → use inline credentials JSON (Vercel, where no filesystem is available)
+func NewGCSStorage(ctx context.Context, bucketName, projectID string, credentials string) (*GCSStorage, error) {
 	var client *storage.Client
 	var err error
 
-	if credentialsFile != "" {
-		// Use service account key file (local development)
-		client, err = storage.NewClient(ctx, option.WithCredentialsFile(credentialsFile))
-	} else {
-		// Use default credentials (Workload Identity in Cloud Run)
+	switch {
+	case credentials == "":
+		// Use Application Default Credentials (Cloud Run Workload Identity, etc.)
 		client, err = storage.NewClient(ctx)
+	case len(credentials) > 0 && credentials[0] == '{':
+		// Inline JSON credentials — used on Vercel where there is no writable filesystem.
+		// Set GOOGLE_APPLICATION_CREDENTIALS to the full JSON content of the service account key.
+		client, err = storage.NewClient(ctx, option.WithCredentialsJSON([]byte(credentials)))
+	default:
+		// File path to a service account key (local development).
+		client, err = storage.NewClient(ctx, option.WithCredentialsFile(credentials))
 	}
 
 	if err != nil {

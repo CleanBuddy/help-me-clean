@@ -42,7 +42,6 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
-	Subscription() SubscriptionResolver
 }
 
 type DirectiveRoot struct {
@@ -491,6 +490,7 @@ type ComplexityRoot struct {
 		InitiateConnectOnboarding     func(childComplexity int) int
 		InviteCleaner                 func(childComplexity int, input model.InviteCleanerInput) int
 		InviteSelfAsCleaner           func(childComplexity int) int
+		JoinWaitlist                  func(childComplexity int, input model.JoinWaitlistInput) int
 		Logout                        func(childComplexity int) int
 		MarkAllNotificationsRead      func(childComplexity int) int
 		MarkBookingPaid               func(childComplexity int, id string) int
@@ -770,6 +770,7 @@ type ComplexityRoot struct {
 		PendingCompanyApplications   func(childComplexity int) int
 		PendingCompanyDocuments      func(childComplexity int) int
 		PersonalityQuestions         func(childComplexity int) int
+		PlatformMode                 func(childComplexity int) int
 		PlatformRevenueReport        func(childComplexity int, from string, to string) int
 		PlatformSettings             func(childComplexity int) int
 		PlatformStats                func(childComplexity int, dateFrom *string, dateTo *string) int
@@ -788,6 +789,8 @@ type ComplexityRoot struct {
 		TopCompaniesByRevenue        func(childComplexity int, from string, to string, limit *int) int
 		UnreadNotificationCount      func(childComplexity int) int
 		User                         func(childComplexity int, id string) int
+		WaitlistLeads                func(childComplexity int, leadType *model.WaitlistLeadType, limit *int, offset *int) int
+		WaitlistStats                func(childComplexity int) int
 	}
 
 	RecurringBookingGroup struct {
@@ -899,12 +902,6 @@ type ComplexityRoot struct {
 		PayoutsEnabled   func(childComplexity int) int
 	}
 
-	Subscription struct {
-		BookingUpdated       func(childComplexity int, bookingID string) int
-		MessageSent          func(childComplexity int, roomID string) int
-		NotificationReceived func(childComplexity int) int
-	}
-
 	TopCompany struct {
 		BookingCount func(childComplexity int) int
 		Commission   func(childComplexity int) int
@@ -933,6 +930,24 @@ type ComplexityRoot struct {
 	UserConnection struct {
 		TotalCount func(childComplexity int) int
 		Users      func(childComplexity int) int
+	}
+
+	WaitlistLead struct {
+		City        func(childComplexity int) int
+		CompanyName func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		Email       func(childComplexity int) int
+		ID          func(childComplexity int) int
+		LeadType    func(childComplexity int) int
+		Message     func(childComplexity int) int
+		Name        func(childComplexity int) int
+		Phone       func(childComplexity int) int
+	}
+
+	WaitlistStats struct {
+		ClientCount  func(childComplexity int) int
+		CompanyCount func(childComplexity int) int
+		TotalCount   func(childComplexity int) int
 	}
 }
 
@@ -1027,6 +1042,7 @@ type MutationResolver interface {
 	UploadAvatar(ctx context.Context, file graphql.Upload) (*model.User, error)
 	UpdateUserRole(ctx context.Context, userID string, role model.UserRole) (*model.User, error)
 	AdminUpdateUserProfile(ctx context.Context, userID string, fullName string, phone *string) (*model.User, error)
+	JoinWaitlist(ctx context.Context, input model.JoinWaitlistInput) (*model.WaitlistLead, error)
 }
 type QueryResolver interface {
 	PlatformStats(ctx context.Context, dateFrom *string, dateTo *string) (*model.PlatformStats, error)
@@ -1119,11 +1135,9 @@ type QueryResolver interface {
 	Me(ctx context.Context) (*model.User, error)
 	SearchUsers(ctx context.Context, query *string, role *model.UserRole, status *model.UserStatus, limit *int, offset *int) (*model.UserConnection, error)
 	User(ctx context.Context, id string) (*model.User, error)
-}
-type SubscriptionResolver interface {
-	MessageSent(ctx context.Context, roomID string) (<-chan *model.ChatMessage, error)
-	BookingUpdated(ctx context.Context, bookingID string) (<-chan *model.Booking, error)
-	NotificationReceived(ctx context.Context) (<-chan *model.Notification, error)
+	PlatformMode(ctx context.Context) (string, error)
+	WaitlistLeads(ctx context.Context, leadType *model.WaitlistLeadType, limit *int, offset *int) ([]*model.WaitlistLead, error)
+	WaitlistStats(ctx context.Context) (*model.WaitlistStats, error)
 }
 
 type executableSchema struct {
@@ -3279,6 +3293,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.InviteSelfAsCleaner(childComplexity), true
+	case "Mutation.joinWaitlist":
+		if e.complexity.Mutation.JoinWaitlist == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_joinWaitlist_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.JoinWaitlist(childComplexity, args["input"].(model.JoinWaitlistInput)), true
 	case "Mutation.logout":
 		if e.complexity.Mutation.Logout == nil {
 			break
@@ -5077,6 +5102,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.PersonalityQuestions(childComplexity), true
+	case "Query.platformMode":
+		if e.complexity.Query.PlatformMode == nil {
+			break
+		}
+
+		return e.complexity.Query.PlatformMode(childComplexity), true
 	case "Query.platformRevenueReport":
 		if e.complexity.Query.PlatformRevenueReport == nil {
 			break
@@ -5255,6 +5286,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+	case "Query.waitlistLeads":
+		if e.complexity.Query.WaitlistLeads == nil {
+			break
+		}
+
+		args, err := ec.field_Query_waitlistLeads_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.WaitlistLeads(childComplexity, args["leadType"].(*model.WaitlistLeadType), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.waitlistStats":
+		if e.complexity.Query.WaitlistStats == nil {
+			break
+		}
+
+		return e.complexity.Query.WaitlistStats(childComplexity), true
 
 	case "RecurringBookingGroup.address":
 		if e.complexity.RecurringBookingGroup.Address == nil {
@@ -5740,35 +5788,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.StripeConnectStatus.PayoutsEnabled(childComplexity), true
 
-	case "Subscription.bookingUpdated":
-		if e.complexity.Subscription.BookingUpdated == nil {
-			break
-		}
-
-		args, err := ec.field_Subscription_bookingUpdated_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Subscription.BookingUpdated(childComplexity, args["bookingId"].(string)), true
-	case "Subscription.messageSent":
-		if e.complexity.Subscription.MessageSent == nil {
-			break
-		}
-
-		args, err := ec.field_Subscription_messageSent_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Subscription.MessageSent(childComplexity, args["roomId"].(string)), true
-	case "Subscription.notificationReceived":
-		if e.complexity.Subscription.NotificationReceived == nil {
-			break
-		}
-
-		return e.complexity.Subscription.NotificationReceived(childComplexity), true
-
 	case "TopCompany.bookingCount":
 		if e.complexity.TopCompany.BookingCount == nil {
 			break
@@ -5881,6 +5900,80 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UserConnection.Users(childComplexity), true
 
+	case "WaitlistLead.city":
+		if e.complexity.WaitlistLead.City == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.City(childComplexity), true
+	case "WaitlistLead.companyName":
+		if e.complexity.WaitlistLead.CompanyName == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.CompanyName(childComplexity), true
+	case "WaitlistLead.createdAt":
+		if e.complexity.WaitlistLead.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.CreatedAt(childComplexity), true
+	case "WaitlistLead.email":
+		if e.complexity.WaitlistLead.Email == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.Email(childComplexity), true
+	case "WaitlistLead.id":
+		if e.complexity.WaitlistLead.ID == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.ID(childComplexity), true
+	case "WaitlistLead.leadType":
+		if e.complexity.WaitlistLead.LeadType == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.LeadType(childComplexity), true
+	case "WaitlistLead.message":
+		if e.complexity.WaitlistLead.Message == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.Message(childComplexity), true
+	case "WaitlistLead.name":
+		if e.complexity.WaitlistLead.Name == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.Name(childComplexity), true
+	case "WaitlistLead.phone":
+		if e.complexity.WaitlistLead.Phone == nil {
+			break
+		}
+
+		return e.complexity.WaitlistLead.Phone(childComplexity), true
+
+	case "WaitlistStats.clientCount":
+		if e.complexity.WaitlistStats.ClientCount == nil {
+			break
+		}
+
+		return e.complexity.WaitlistStats.ClientCount(childComplexity), true
+	case "WaitlistStats.companyCount":
+		if e.complexity.WaitlistStats.CompanyCount == nil {
+			break
+		}
+
+		return e.complexity.WaitlistStats.CompanyCount(childComplexity), true
+	case "WaitlistStats.totalCount":
+		if e.complexity.WaitlistStats.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.WaitlistStats.TotalCount(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -5899,6 +5992,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateServiceExtraInput,
 		ec.unmarshalInputExtraInput,
 		ec.unmarshalInputInviteCleanerInput,
+		ec.unmarshalInputJoinWaitlistInput,
 		ec.unmarshalInputPersonalityAnswerInput,
 		ec.unmarshalInputPriceEstimateInput,
 		ec.unmarshalInputRecurrenceInput,
@@ -5960,23 +6054,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 				Data: buf.Bytes(),
 			}
 		}
-	case ast.Subscription:
-		next := ec._Subscription(ctx, opCtx.Operation.SelectionSet)
-
-		var buf bytes.Buffer
-		return func(ctx context.Context) *graphql.Response {
-			buf.Reset()
-			data := next(ctx)
-
-			if data == nil {
-				return nil
-			}
-			data.MarshalGQL(&buf)
-
-			return &graphql.Response{
-				Data: buf.Bytes(),
-			}
-		}
 
 	default:
 		return graphql.OneShot(graphql.ErrorResponse(ctx, "unsupported GraphQL operation"))
@@ -6024,7 +6101,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/admin.graphql" "schema/analytics.graphql" "schema/auth.graphql" "schema/booking.graphql" "schema/chat.graphql" "schema/cleaner.graphql" "schema/client.graphql" "schema/company.graphql" "schema/invoice.graphql" "schema/location.graphql" "schema/notification.graphql" "schema/payment.graphql" "schema/personality.graphql" "schema/recurring.graphql" "schema/review.graphql" "schema/schema.graphql" "schema/service.graphql" "schema/settings.graphql" "schema/user.graphql"
+//go:embed "schema/admin.graphql" "schema/analytics.graphql" "schema/auth.graphql" "schema/booking.graphql" "schema/chat.graphql" "schema/cleaner.graphql" "schema/client.graphql" "schema/company.graphql" "schema/invoice.graphql" "schema/location.graphql" "schema/notification.graphql" "schema/payment.graphql" "schema/personality.graphql" "schema/recurring.graphql" "schema/review.graphql" "schema/schema.graphql" "schema/service.graphql" "schema/settings.graphql" "schema/user.graphql" "schema/waitlist.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -6055,6 +6132,7 @@ var sources = []*ast.Source{
 	{Name: "schema/service.graphql", Input: sourceData("schema/service.graphql"), BuiltIn: false},
 	{Name: "schema/settings.graphql", Input: sourceData("schema/settings.graphql"), BuiltIn: false},
 	{Name: "schema/user.graphql", Input: sourceData("schema/user.graphql"), BuiltIn: false},
+	{Name: "schema/waitlist.graphql", Input: sourceData("schema/waitlist.graphql"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -6542,6 +6620,17 @@ func (ec *executionContext) field_Mutation_inviteCleaner_args(ctx context.Contex
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNInviteCleanerInput2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐInviteCleanerInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_joinWaitlist_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNJoinWaitlistInput2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐJoinWaitlistInput)
 	if err != nil {
 		return nil, err
 	}
@@ -8170,25 +8259,24 @@ func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs m
 	return args, nil
 }
 
-func (ec *executionContext) field_Subscription_bookingUpdated_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_waitlistLeads_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bookingId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "leadType", ec.unmarshalOWaitlistLeadType2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadType)
 	if err != nil {
 		return nil, err
 	}
-	args["bookingId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Subscription_messageSent_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	args["leadType"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
 	}
-	args["roomId"] = arg0
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -23534,6 +23622,67 @@ func (ec *executionContext) fieldContext_Mutation_adminUpdateUserProfile(ctx con
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_joinWaitlist(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_joinWaitlist,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().JoinWaitlist(ctx, fc.Args["input"].(model.JoinWaitlistInput))
+		},
+		nil,
+		ec.marshalNWaitlistLead2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLead,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_joinWaitlist(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_WaitlistLead_id(ctx, field)
+			case "leadType":
+				return ec.fieldContext_WaitlistLead_leadType(ctx, field)
+			case "name":
+				return ec.fieldContext_WaitlistLead_name(ctx, field)
+			case "email":
+				return ec.fieldContext_WaitlistLead_email(ctx, field)
+			case "phone":
+				return ec.fieldContext_WaitlistLead_phone(ctx, field)
+			case "city":
+				return ec.fieldContext_WaitlistLead_city(ctx, field)
+			case "companyName":
+				return ec.fieldContext_WaitlistLead_companyName(ctx, field)
+			case "message":
+				return ec.fieldContext_WaitlistLead_message(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_WaitlistLead_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WaitlistLead", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_joinWaitlist_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Notification_id(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -31816,6 +31965,133 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_platformMode(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_platformMode,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().PlatformMode(ctx)
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_platformMode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_waitlistLeads(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_waitlistLeads,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().WaitlistLeads(ctx, fc.Args["leadType"].(*model.WaitlistLeadType), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNWaitlistLead2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_waitlistLeads(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_WaitlistLead_id(ctx, field)
+			case "leadType":
+				return ec.fieldContext_WaitlistLead_leadType(ctx, field)
+			case "name":
+				return ec.fieldContext_WaitlistLead_name(ctx, field)
+			case "email":
+				return ec.fieldContext_WaitlistLead_email(ctx, field)
+			case "phone":
+				return ec.fieldContext_WaitlistLead_phone(ctx, field)
+			case "city":
+				return ec.fieldContext_WaitlistLead_city(ctx, field)
+			case "companyName":
+				return ec.fieldContext_WaitlistLead_companyName(ctx, field)
+			case "message":
+				return ec.fieldContext_WaitlistLead_message(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_WaitlistLead_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WaitlistLead", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_waitlistLeads_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_waitlistStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_waitlistStats,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().WaitlistStats(ctx)
+		},
+		nil,
+		ec.marshalNWaitlistStats2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistStats,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_waitlistStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "clientCount":
+				return ec.fieldContext_WaitlistStats_clientCount(ctx, field)
+			case "companyCount":
+				return ec.fieldContext_WaitlistStats_companyCount(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_WaitlistStats_totalCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WaitlistStats", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -34707,219 +34983,6 @@ func (ec *executionContext) fieldContext_StripeConnectStatus_payoutsEnabled(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_messageSent(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	return graphql.ResolveFieldStream(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Subscription_messageSent,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Subscription().MessageSent(ctx, fc.Args["roomId"].(string))
-		},
-		nil,
-		ec.marshalNChatMessage2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐChatMessage,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Subscription_messageSent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_ChatMessage_id(ctx, field)
-			case "sender":
-				return ec.fieldContext_ChatMessage_sender(ctx, field)
-			case "content":
-				return ec.fieldContext_ChatMessage_content(ctx, field)
-			case "messageType":
-				return ec.fieldContext_ChatMessage_messageType(ctx, field)
-			case "isRead":
-				return ec.fieldContext_ChatMessage_isRead(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_ChatMessage_createdAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ChatMessage", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Subscription_messageSent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Subscription_bookingUpdated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	return graphql.ResolveFieldStream(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Subscription_bookingUpdated,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Subscription().BookingUpdated(ctx, fc.Args["bookingId"].(string))
-		},
-		nil,
-		ec.marshalNBooking2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐBooking,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Subscription_bookingUpdated(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Booking_id(ctx, field)
-			case "referenceCode":
-				return ec.fieldContext_Booking_referenceCode(ctx, field)
-			case "client":
-				return ec.fieldContext_Booking_client(ctx, field)
-			case "company":
-				return ec.fieldContext_Booking_company(ctx, field)
-			case "cleaner":
-				return ec.fieldContext_Booking_cleaner(ctx, field)
-			case "address":
-				return ec.fieldContext_Booking_address(ctx, field)
-			case "serviceType":
-				return ec.fieldContext_Booking_serviceType(ctx, field)
-			case "serviceName":
-				return ec.fieldContext_Booking_serviceName(ctx, field)
-			case "scheduledDate":
-				return ec.fieldContext_Booking_scheduledDate(ctx, field)
-			case "scheduledStartTime":
-				return ec.fieldContext_Booking_scheduledStartTime(ctx, field)
-			case "estimatedDurationHours":
-				return ec.fieldContext_Booking_estimatedDurationHours(ctx, field)
-			case "propertyType":
-				return ec.fieldContext_Booking_propertyType(ctx, field)
-			case "numRooms":
-				return ec.fieldContext_Booking_numRooms(ctx, field)
-			case "numBathrooms":
-				return ec.fieldContext_Booking_numBathrooms(ctx, field)
-			case "areaSqm":
-				return ec.fieldContext_Booking_areaSqm(ctx, field)
-			case "hasPets":
-				return ec.fieldContext_Booking_hasPets(ctx, field)
-			case "specialInstructions":
-				return ec.fieldContext_Booking_specialInstructions(ctx, field)
-			case "hourlyRate":
-				return ec.fieldContext_Booking_hourlyRate(ctx, field)
-			case "estimatedTotal":
-				return ec.fieldContext_Booking_estimatedTotal(ctx, field)
-			case "finalTotal":
-				return ec.fieldContext_Booking_finalTotal(ctx, field)
-			case "platformCommissionPct":
-				return ec.fieldContext_Booking_platformCommissionPct(ctx, field)
-			case "extras":
-				return ec.fieldContext_Booking_extras(ctx, field)
-			case "status":
-				return ec.fieldContext_Booking_status(ctx, field)
-			case "startedAt":
-				return ec.fieldContext_Booking_startedAt(ctx, field)
-			case "completedAt":
-				return ec.fieldContext_Booking_completedAt(ctx, field)
-			case "cancelledAt":
-				return ec.fieldContext_Booking_cancelledAt(ctx, field)
-			case "cancellationReason":
-				return ec.fieldContext_Booking_cancellationReason(ctx, field)
-			case "paymentStatus":
-				return ec.fieldContext_Booking_paymentStatus(ctx, field)
-			case "paidAt":
-				return ec.fieldContext_Booking_paidAt(ctx, field)
-			case "recurringGroupId":
-				return ec.fieldContext_Booking_recurringGroupId(ctx, field)
-			case "occurrenceNumber":
-				return ec.fieldContext_Booking_occurrenceNumber(ctx, field)
-			case "timeSlots":
-				return ec.fieldContext_Booking_timeSlots(ctx, field)
-			case "review":
-				return ec.fieldContext_Booking_review(ctx, field)
-			case "chatRoom":
-				return ec.fieldContext_Booking_chatRoom(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Booking_createdAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Subscription_bookingUpdated_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Subscription_notificationReceived(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	return graphql.ResolveFieldStream(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Subscription_notificationReceived,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Subscription().NotificationReceived(ctx)
-		},
-		nil,
-		ec.marshalNNotification2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐNotification,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Subscription_notificationReceived(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Notification_id(ctx, field)
-			case "type":
-				return ec.fieldContext_Notification_type(ctx, field)
-			case "title":
-				return ec.fieldContext_Notification_title(ctx, field)
-			case "body":
-				return ec.fieldContext_Notification_body(ctx, field)
-			case "data":
-				return ec.fieldContext_Notification_data(ctx, field)
-			case "isRead":
-				return ec.fieldContext_Notification_isRead(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Notification_createdAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Notification", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _TopCompany_id(ctx context.Context, field graphql.CollectedField, obj *model.TopCompany) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -35452,6 +35515,354 @@ func (ec *executionContext) _UserConnection_totalCount(ctx context.Context, fiel
 func (ec *executionContext) fieldContext_UserConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "UserConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_id(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_leadType(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_leadType,
+		func(ctx context.Context) (any, error) {
+			return obj.LeadType, nil
+		},
+		nil,
+		ec.marshalNWaitlistLeadType2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_leadType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type WaitlistLeadType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_name(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_email(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_email,
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_phone(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_phone,
+		func(ctx context.Context) (any, error) {
+			return obj.Phone, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_city(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_city,
+		func(ctx context.Context) (any, error) {
+			return obj.City, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_companyName(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_companyName,
+		func(ctx context.Context) (any, error) {
+			return obj.CompanyName, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_companyName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_message(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistLead_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistLead) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistLead_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistLead_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistLead",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistStats_clientCount(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistStats_clientCount,
+		func(ctx context.Context) (any, error) {
+			return obj.ClientCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistStats_clientCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistStats_companyCount(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistStats_companyCount,
+		func(ctx context.Context) (any, error) {
+			return obj.CompanyCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistStats_companyCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WaitlistStats_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.WaitlistStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WaitlistStats_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WaitlistStats_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WaitlistStats",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -37676,6 +38087,75 @@ func (ec *executionContext) unmarshalInputInviteCleanerInput(ctx context.Context
 				return it, err
 			}
 			it.Phone = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputJoinWaitlistInput(ctx context.Context, obj any) (model.JoinWaitlistInput, error) {
+	var it model.JoinWaitlistInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"leadType", "name", "email", "phone", "city", "companyName", "message"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "leadType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("leadType"))
+			data, err := ec.unmarshalNWaitlistLeadType2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LeadType = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Phone = data
+		case "city":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.City = data
+		case "companyName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("companyName"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CompanyName = data
+		case "message":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("message"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Message = data
 		}
 	}
 
@@ -41582,6 +42062,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "joinWaitlist":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_joinWaitlist(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -44644,6 +45131,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "platformMode":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_platformMode(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "waitlistLeads":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_waitlistLeads(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "waitlistStats":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_waitlistStats(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -45335,30 +45888,6 @@ func (ec *executionContext) _StripeConnectStatus(ctx context.Context, sel ast.Se
 	return out
 }
 
-var subscriptionImplementors = []string{"Subscription"}
-
-func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func(ctx context.Context) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionImplementors)
-	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
-		Object: "Subscription",
-	})
-	if len(fields) != 1 {
-		graphql.AddErrorf(ctx, "must subscribe to exactly one stream")
-		return nil
-	}
-
-	switch fields[0].Name {
-	case "messageSent":
-		return ec._Subscription_messageSent(ctx, fields[0])
-	case "bookingUpdated":
-		return ec._Subscription_bookingUpdated(ctx, fields[0])
-	case "notificationReceived":
-		return ec._Subscription_notificationReceived(ctx, fields[0])
-	default:
-		panic("unknown field " + strconv.Quote(fields[0].Name))
-	}
-}
-
 var topCompanyImplementors = []string{"TopCompany"}
 
 func (ec *executionContext) _TopCompany(ctx context.Context, sel ast.SelectionSet, obj *model.TopCompany) graphql.Marshaler {
@@ -45553,6 +46082,122 @@ func (ec *executionContext) _UserConnection(ctx context.Context, sel ast.Selecti
 			}
 		case "totalCount":
 			out.Values[i] = ec._UserConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var waitlistLeadImplementors = []string{"WaitlistLead"}
+
+func (ec *executionContext) _WaitlistLead(ctx context.Context, sel ast.SelectionSet, obj *model.WaitlistLead) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, waitlistLeadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WaitlistLead")
+		case "id":
+			out.Values[i] = ec._WaitlistLead_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "leadType":
+			out.Values[i] = ec._WaitlistLead_leadType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._WaitlistLead_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._WaitlistLead_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "phone":
+			out.Values[i] = ec._WaitlistLead_phone(ctx, field, obj)
+		case "city":
+			out.Values[i] = ec._WaitlistLead_city(ctx, field, obj)
+		case "companyName":
+			out.Values[i] = ec._WaitlistLead_companyName(ctx, field, obj)
+		case "message":
+			out.Values[i] = ec._WaitlistLead_message(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._WaitlistLead_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var waitlistStatsImplementors = []string{"WaitlistStats"}
+
+func (ec *executionContext) _WaitlistStats(ctx context.Context, sel ast.SelectionSet, obj *model.WaitlistStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, waitlistStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WaitlistStats")
+		case "clientCount":
+			out.Values[i] = ec._WaitlistStats_clientCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "companyCount":
+			out.Values[i] = ec._WaitlistStats_companyCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._WaitlistStats_totalCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -47857,6 +48502,11 @@ func (ec *executionContext) marshalNInvoiceTypeCount2ᚖhelpmecleanᚑbackendᚋ
 	return ec._InvoiceTypeCount(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNJoinWaitlistInput2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐJoinWaitlistInput(ctx context.Context, v any) (model.JoinWaitlistInput, error) {
+	res, err := ec.unmarshalInputJoinWaitlistInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNNotification2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐNotification(ctx context.Context, sel ast.SelectionSet, v model.Notification) graphql.Marshaler {
 	return ec._Notification(ctx, sel, &v)
 }
@@ -49215,6 +49865,88 @@ func (ec *executionContext) marshalNUserStatus2helpmecleanᚑbackendᚋinternal�
 	return v
 }
 
+func (ec *executionContext) marshalNWaitlistLead2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLead(ctx context.Context, sel ast.SelectionSet, v model.WaitlistLead) graphql.Marshaler {
+	return ec._WaitlistLead(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWaitlistLead2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WaitlistLead) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNWaitlistLead2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLead(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWaitlistLead2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLead(ctx context.Context, sel ast.SelectionSet, v *model.WaitlistLead) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WaitlistLead(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNWaitlistLeadType2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadType(ctx context.Context, v any) (model.WaitlistLeadType, error) {
+	var res model.WaitlistLeadType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWaitlistLeadType2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadType(ctx context.Context, sel ast.SelectionSet, v model.WaitlistLeadType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNWaitlistStats2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistStats(ctx context.Context, sel ast.SelectionSet, v model.WaitlistStats) graphql.Marshaler {
+	return ec._WaitlistStats(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWaitlistStats2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistStats(ctx context.Context, sel ast.SelectionSet, v *model.WaitlistStats) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WaitlistStats(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNWorkScheduleDayInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWorkScheduleDayInput(ctx context.Context, v any) (*model.WorkScheduleDayInput, error) {
 	res, err := ec.unmarshalInputWorkScheduleDayInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
@@ -49920,6 +50652,22 @@ func (ec *executionContext) unmarshalOUserStatus2ᚖhelpmecleanᚑbackendᚋinte
 }
 
 func (ec *executionContext) marshalOUserStatus2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐUserStatus(ctx context.Context, sel ast.SelectionSet, v *model.UserStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOWaitlistLeadType2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadType(ctx context.Context, v any) (*model.WaitlistLeadType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.WaitlistLeadType)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOWaitlistLeadType2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐWaitlistLeadType(ctx context.Context, sel ast.SelectionSet, v *model.WaitlistLeadType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /cont/
+Disallow: /firma/
+Disallow: /worker/
+
+Sitemap: https://helpmeclean.ro/sitemap.xml

@@ -45,9 +45,6 @@ func (r *mutationResolver) SendMessage(ctx context.Context, roomID string, conte
 		gqlMsg.Sender = dbUserToGQL(sender)
 	}
 
-	// Publish to subscribers.
-	r.PubSub.Publish(roomID, gqlMsg)
-
 	return gqlMsg, nil
 }
 
@@ -312,37 +309,4 @@ func (r *queryResolver) ChatRoom(ctx context.Context, id string) (*model.ChatRoo
 	}
 
 	return gqlRoom, nil
-}
-
-// MessageSent is the resolver for the messageSent field.
-func (r *subscriptionResolver) MessageSent(ctx context.Context, roomID string) (<-chan *model.ChatMessage, error) {
-	claims := auth.GetUserFromContext(ctx)
-	subscriberID := "anon"
-	if claims != nil {
-		subscriberID = claims.UserID
-	}
-
-	ch := r.PubSub.Subscribe(roomID, subscriberID)
-
-	// Unsubscribe when the client disconnects.
-	go func() {
-		<-ctx.Done()
-		r.PubSub.Unsubscribe(roomID, subscriberID)
-	}()
-
-	return ch, nil
-}
-
-// BookingUpdated is the resolver for the bookingUpdated field.
-func (r *subscriptionResolver) BookingUpdated(ctx context.Context, bookingID string) (<-chan *model.Booking, error) {
-	// TODO: Implement real-time subscription with WebSocket/pub-sub for production.
-	ch := make(chan *model.Booking, 1)
-	return ch, nil
-}
-
-// NotificationReceived is the resolver for the notificationReceived field.
-func (r *subscriptionResolver) NotificationReceived(ctx context.Context) (<-chan *model.Notification, error) {
-	// TODO: Implement real-time subscription with WebSocket/pub-sub for production.
-	ch := make(chan *model.Notification, 1)
-	return ch, nil
 }

@@ -3,6 +3,7 @@ import { ApolloProvider } from '@apollo/client';
 import { createApolloClient } from '@helpmeclean/shared';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CompanyProvider } from '@/context/CompanyContext';
+import { PlatformProvider, usePlatform } from '@/context/PlatformContext';
 
 // Layouts
 import PublicLayout from '@/components/layout/PublicLayout';
@@ -18,6 +19,14 @@ import LoginPage from '@/pages/LoginPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import RegisterCompanyPage from '@/pages/RegisterCompanyPage';
 import ClaimCompanyPage from '@/pages/ClaimCompanyPage';
+import WaitlistPage from '@/pages/WaitlistPage';
+import AboutPage from '@/pages/AboutPage';
+import ForCompaniesPage from '@/pages/ForCompaniesPage';
+import ContactPage from '@/pages/ContactPage';
+import TermsPage from '@/pages/TermsPage';
+import PrivacyPage from '@/pages/PrivacyPage';
+import BlogListPage from '@/pages/blog/BlogListPage';
+import BlogPostPage from '@/pages/blog/BlogPostPage';
 
 // Client pages
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
@@ -75,6 +84,15 @@ const httpEndpoint =
 const wsEndpoint = httpEndpoint.replace(/^http/, 'ws');
 
 const client = createApolloClient(httpEndpoint, wsEndpoint);
+
+// ─── Platform Gate ───────────────────────────────────────────────────────────
+
+function BookingGateRoute() {
+  const { isPreRelease, loading } = usePlatform();
+  if (loading) return null;
+  if (isPreRelease) return <Navigate to="/lista-asteptare" replace />;
+  return <BookingPage />;
+}
 
 // ─── Route Guards ────────────────────────────────────────────────────────────
 
@@ -137,8 +155,16 @@ function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/servicii" element={<Navigate to="/#servicii" replace />} />
-        <Route path="/rezervare" element={<BookingPage />} />
+        <Route path="/rezervare" element={<BookingGateRoute />} />
         <Route path="/claim-firma/:token" element={<ClaimCompanyPage />} />
+        <Route path="/lista-asteptare" element={<WaitlistPage />} />
+        <Route path="/despre-noi" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/pentru-firme" element={<ForCompaniesPage />} />
+        <Route path="/termeni" element={<TermsPage />} />
+        <Route path="/confidentialitate" element={<PrivacyPage />} />
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
       </Route>
 
       {/* Client routes - Sidebar layout, auth + CLIENT role */}
@@ -254,9 +280,11 @@ function AppRoutes() {
 function App() {
   return (
     <ApolloProvider client={client}>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <PlatformProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </PlatformProvider>
     </ApolloProvider>
   );
 }

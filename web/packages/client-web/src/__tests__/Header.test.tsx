@@ -16,6 +16,15 @@ vi.mock('@/context/AuthContext', () => ({
   })),
 }));
 
+vi.mock('@/context/PlatformContext', () => ({
+  usePlatform: vi.fn(() => ({
+    platformMode: 'live',
+    isPreRelease: false,
+    loading: false,
+  })),
+  PlatformProvider: ({ children }: { children: unknown }) => children,
+}));
+
 const mockUseAuth = vi.mocked(useAuth);
 
 // Mock react-router-dom's useNavigate

@@ -524,6 +524,16 @@ type InvoiceTypeCount struct {
 	TotalAmount int         `json:"totalAmount"`
 }
 
+type JoinWaitlistInput struct {
+	LeadType    WaitlistLeadType `json:"leadType"`
+	Name        string           `json:"name"`
+	Email       string           `json:"email"`
+	Phone       *string          `json:"phone,omitempty"`
+	City        *string          `json:"city,omitempty"`
+	CompanyName *string          `json:"companyName,omitempty"`
+	Message     *string          `json:"message,omitempty"`
+}
+
 type Mutation struct {
 }
 
@@ -818,9 +828,6 @@ type SubmitReviewInput struct {
 	Comment   *string `json:"comment,omitempty"`
 }
 
-type Subscription struct {
-}
-
 type TimeSlotInput struct {
 	Date      string `json:"date"`
 	StartTime string `json:"startTime"`
@@ -913,6 +920,24 @@ type User struct {
 type UserConnection struct {
 	Users      []*User `json:"users"`
 	TotalCount int     `json:"totalCount"`
+}
+
+type WaitlistLead struct {
+	ID          string           `json:"id"`
+	LeadType    WaitlistLeadType `json:"leadType"`
+	Name        string           `json:"name"`
+	Email       string           `json:"email"`
+	Phone       *string          `json:"phone,omitempty"`
+	City        *string          `json:"city,omitempty"`
+	CompanyName *string          `json:"companyName,omitempty"`
+	Message     *string          `json:"message,omitempty"`
+	CreatedAt   time.Time        `json:"createdAt"`
+}
+
+type WaitlistStats struct {
+	ClientCount  int `json:"clientCount"`
+	CompanyCount int `json:"companyCount"`
+	TotalCount   int `json:"totalCount"`
 }
 
 type WorkScheduleDayInput struct {
@@ -1822,6 +1847,61 @@ func (e *UserStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e UserStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type WaitlistLeadType string
+
+const (
+	WaitlistLeadTypeClient  WaitlistLeadType = "CLIENT"
+	WaitlistLeadTypeCompany WaitlistLeadType = "COMPANY"
+)
+
+var AllWaitlistLeadType = []WaitlistLeadType{
+	WaitlistLeadTypeClient,
+	WaitlistLeadTypeCompany,
+}
+
+func (e WaitlistLeadType) IsValid() bool {
+	switch e {
+	case WaitlistLeadTypeClient, WaitlistLeadTypeCompany:
+		return true
+	}
+	return false
+}
+
+func (e WaitlistLeadType) String() string {
+	return string(e)
+}
+
+func (e *WaitlistLeadType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = WaitlistLeadType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid WaitlistLeadType", str)
+	}
+	return nil
+}
+
+func (e WaitlistLeadType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *WaitlistLeadType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e WaitlistLeadType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

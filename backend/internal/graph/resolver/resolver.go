@@ -11,7 +11,6 @@ import (
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/middleware"
-	"helpmeclean-backend/internal/pubsub"
 	"helpmeclean-backend/internal/service/invoice"
 	"helpmeclean-backend/internal/service/payment"
 	"helpmeclean-backend/internal/storage"
@@ -21,7 +20,6 @@ import (
 type Resolver struct {
 	Pool           *pgxpool.Pool
 	Queries        *db.Queries
-	PubSub         *pubsub.PubSub
 	PaymentService *payment.Service
 	InvoiceService *invoice.Service
 	Storage        storage.Storage
@@ -110,9 +108,7 @@ func (r *Resolver) createBookingChat(ctx context.Context, booking db.Booking, co
 		return
 	}
 
-	// Publish the system message to any active subscribers.
-	gqlMsg := dbChatMessageToGQL(msg)
-	r.PubSub.Publish(room.ID.String(), gqlMsg)
+	_ = msg
 }
 
 // CreateBookingChatFromPayment creates a chat room for a booking that was auto-confirmed

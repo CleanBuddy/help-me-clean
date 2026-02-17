@@ -3075,3 +3075,49 @@ export const UPLOAD_CLEANER_AVATAR = gql`
     }
   }
 `;
+
+// ─── Platform & Waitlist ─────────────────────────────────────────────────────
+
+export const PLATFORM_MODE = gql`
+  query PlatformMode {
+    platformMode
+  }
+`;
+
+export const WAITLIST_STATS = gql`
+  query WaitlistStats {
+    waitlistStats {
+      clientCount
+      companyCount
+      totalCount
+    }
+  }
+`;
+
+export const WAITLIST_LEADS = gql`
+  query WaitlistLeads($leadType: WaitlistLeadType, $limit: Int, $offset: Int) {
+    waitlistLeads(leadType: $leadType, limit: $limit, offset: $offset) {
+      id
+      leadType
+      name
+      email
+      phone
+      city
+      companyName
+      message
+      createdAt
+    }
+  }
+`;
+
+export const JOIN_WAITLIST = gql`
+  mutation JoinWaitlist($input: JoinWaitlistInput!) {
+    joinWaitlist(input: $input) {
+      id
+      email
+      leadType
+      name
+      createdAt
+    }
+  }
+`;

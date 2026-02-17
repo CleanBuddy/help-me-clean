@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { MockedProvider, type MockedResponse } from '@apollo/client/testing';
+import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from '@/context/AuthContext';
 import { AVAILABLE_SERVICES } from '@/graphql/operations';
 import HomePage from '@/pages/HomePage';
@@ -15,6 +16,15 @@ vi.mock('@/context/AuthContext', () => ({
     refetchUser: vi.fn(),
     refreshToken: vi.fn(),
   })),
+}));
+
+vi.mock('@/context/PlatformContext', () => ({
+  usePlatform: vi.fn(() => ({
+    platformMode: 'live',
+    isPreRelease: false,
+    loading: false,
+  })),
+  PlatformProvider: ({ children }: { children: unknown }) => children,
 }));
 
 const mockUseAuth = vi.mocked(useAuth);
@@ -75,11 +85,13 @@ vi.mock('react-router-dom', async () => {
 
 function renderHomePage(mocks: MockedResponse[] = successMock) {
   return render(
-    <MockedProvider mocks={mocks}>
-      <MemoryRouter>
-        <HomePage />
-      </MemoryRouter>
-    </MockedProvider>,
+    <HelmetProvider>
+      <MockedProvider mocks={mocks}>
+        <MemoryRouter>
+          <HomePage />
+        </MemoryRouter>
+      </MockedProvider>
+    </HelmetProvider>,
   );
 }
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, LogOut, Building2, Shield, User, ChevronDown } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import { useAuth } from '@/context/AuthContext';
+import { usePlatform } from '@/context/PlatformContext';
 import Button from '@/components/ui/Button';
 
 function UserAvatar({ name }: { name: string }) {
@@ -21,6 +22,7 @@ function UserAvatar({ name }: { name: string }) {
 
 export default function Header() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
+  const { isPreRelease } = usePlatform();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -143,15 +145,29 @@ export default function Header() {
                 >
                   Cum funcționează
                 </a>
-                <Link
-                  to="/autentificare"
-                  className="text-sm text-gray-600 hover:text-gray-900 font-medium transition border border-gray-300 hover:border-gray-400 px-4 py-2 rounded-xl"
-                >
-                  Intră în cont
+                <Link to="/blog" className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                  Blog
                 </Link>
-                <Button size="md" onClick={() => navigate('/rezervare')}>
-                  Rezervă acum →
-                </Button>
+                <Link to="/despre-noi" className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                  Despre noi
+                </Link>
+                {!isPreRelease && (
+                  <Link
+                    to="/autentificare"
+                    className="text-sm text-gray-600 hover:text-gray-900 font-medium transition border border-gray-300 hover:border-gray-400 px-4 py-2 rounded-xl"
+                  >
+                    Intră în cont
+                  </Link>
+                )}
+                {isPreRelease ? (
+                  <Button size="md" onClick={() => navigate('/lista-asteptare')}>
+                    Lista de așteptare
+                  </Button>
+                ) : (
+                  <Button size="md" onClick={() => navigate('/rezervare')}>
+                    Rezervă acum →
+                  </Button>
+                )}
               </>
             )}
           </nav>
@@ -228,30 +244,61 @@ export default function Header() {
                   Cum funcționează
                 </a>
                 <Link
-                  to="/autentificare"
+                  to="/blog"
                   className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Intră în cont
+                  Blog
                 </Link>
                 <Link
-                  to="/inregistrare-firma"
-                  className="px-3 py-2.5 rounded-xl text-secondary hover:bg-emerald-50 font-medium"
+                  to="/despre-noi"
+                  className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Pentru Firme
+                  Despre noi
                 </Link>
-                <div className="pt-2">
-                  <Button
-                    size="md"
-                    className="w-full"
-                    onClick={() => {
-                      navigate('/rezervare');
-                      setMobileMenuOpen(false);
-                    }}
+                {!isPreRelease && (
+                  <Link
+                    to="/autentificare"
+                    className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
                   >
-                    Rezervă acum →
-                  </Button>
+                    Intră în cont
+                  </Link>
+                )}
+                {!isPreRelease && (
+                  <Link
+                    to="/inregistrare-firma"
+                    className="px-3 py-2.5 rounded-xl text-secondary hover:bg-emerald-50 font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Pentru Firme
+                  </Link>
+                )}
+                <div className="pt-2">
+                  {isPreRelease ? (
+                    <Button
+                      size="md"
+                      className="w-full"
+                      onClick={() => {
+                        navigate('/lista-asteptare');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Lista de așteptare
+                    </Button>
+                  ) : (
+                    <Button
+                      size="md"
+                      className="w-full"
+                      onClick={() => {
+                        navigate('/rezervare');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Rezervă acum →
+                    </Button>
+                  )}
                 </div>
               </>
             )}

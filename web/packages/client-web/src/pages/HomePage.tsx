@@ -1,6 +1,8 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { useAuth } from '@/context/AuthContext';
+import { usePlatform } from '@/context/PlatformContext';
+import SEOHead from '@/components/seo/SEOHead';
 import {
   Sparkles,
   CalendarCheck,
@@ -135,13 +137,13 @@ const TESTIMONIALS = [
   },
   {
     name: 'Andrei Popescu',
-    city: 'Cluj-Napoca',
+    city: 'București',
     text: 'Platforma e simplă și intuitivă. Am rezervat curățenie de 3 ori și de fiecare dată a fost perfect.',
     rating: 5,
   },
   {
     name: 'Elena Dumitrescu',
-    city: 'Timișoara',
+    city: 'București',
     text: 'Prețuri transparente, fără surprize neplăcute. Echipa de curățenie a fost punctuală și profesionistă.',
     rating: 5,
   },
@@ -166,6 +168,7 @@ function scrollToServices() {
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { isPreRelease } = usePlatform();
   const { data, loading } = useQuery(AVAILABLE_SERVICES);
 
   const isClient = isAuthenticated && user?.role === 'CLIENT';
@@ -185,6 +188,36 @@ export default function HomePage() {
 
   return (
     <div>
+      <SEOHead
+        title="Servicii de Curățenie la Domiciliu | HelpMeClean.ro"
+        description="Prima platformă de curățenie din România. Firme verificate, prețuri transparente, plată online. Rezervă curățenie standard, generală sau post-construcție."
+        canonicalUrl="/"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'HelpMeClean',
+          url: 'https://helpmeclean.ro',
+          description: 'Prima platformă marketplace de servicii de curățenie din România',
+          areaServed: 'Romania',
+          contactPoint: {
+            '@type': 'ContactPoint',
+            contactType: 'customer service',
+            email: 'contact@helpmeclean.ro',
+          },
+        }}
+      />
+
+      {isPreRelease && (
+        <div className="bg-amber-50 border-b border-amber-200 py-3 text-center">
+          <p className="text-sm font-medium text-amber-800">
+            Platforma se lansează în curând!{' '}
+            <Link to="/lista-asteptare" className="ml-1 underline font-semibold hover:text-amber-900">
+              Înscrie-te pe lista de așteptare &rarr;
+            </Link>
+          </p>
+        </div>
+      )}
+
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section className="bg-white pt-16 pb-12 sm:pt-24 sm:pb-16 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -229,16 +262,22 @@ export default function HomePage() {
                     </>
                   ) : (
                     <>
-                      <Button size="lg" onClick={() => navigate('/rezervare')}>
-                        Rezervă o curățenie <ArrowRight className="h-5 w-5" />
-                      </Button>
+                      {isPreRelease ? (
+                        <Button size="lg" onClick={() => navigate('/lista-asteptare')}>
+                          Înregistrează-te pe lista de așteptare <ArrowRight className="h-5 w-5" />
+                        </Button>
+                      ) : (
+                        <Button size="lg" onClick={() => navigate('/rezervare')}>
+                          Rezervă o curățenie <ArrowRight className="h-5 w-5" />
+                        </Button>
+                      )}
                       {isClient ? (
                         <Button size="lg" variant="outline" onClick={() => navigate('/cont')}>
                           Contul meu
                         </Button>
                       ) : (
                         <Button size="lg" variant="outline" onClick={() => scrollToServices()}>
-                          Vezi serviciile
+                          {isPreRelease ? 'Descoperă serviciile' : 'Vezi serviciile'}
                         </Button>
                       )}
                     </>
