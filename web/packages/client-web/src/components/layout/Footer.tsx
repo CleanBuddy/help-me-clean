@@ -22,9 +22,9 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-3">Navigare</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/servicii" className="hover:text-white transition">
+                <a href="/#servicii" className="hover:text-white transition">
                   Servicii
-                </Link>
+                </a>
               </li>
               <li>
                 <Link to="/rezervare" className="hover:text-white transition">

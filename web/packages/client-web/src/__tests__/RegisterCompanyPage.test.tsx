@@ -50,7 +50,8 @@ describe('RegisterCompanyPage', () => {
     loginWithGoogle: vi.fn(),
     logout: vi.fn(),
     isAuthenticated: false,
-    refetchUser: vi.fn(),
+    refreshToken: vi.fn().mockResolvedValue(undefined),
+    refetchUser: vi.fn().mockResolvedValue(undefined),
   };
 
   let mockApplyFn: ReturnType<typeof vi.fn>;
@@ -84,9 +85,9 @@ describe('RegisterCompanyPage', () => {
 
   it('renders form with required fields', () => {
     renderPage();
-    expect(screen.getByText('Inregistreaza-ti firma')).toBeInTheDocument();
-    expect(screen.getByLabelText(/nume firma/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/cui/i)).toBeInTheDocument();
+    expect(screen.getByText('Înregistrează-ți firma')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nume firm/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('RO12345678')).toBeInTheDocument();
     expect(screen.getByLabelText(/email contact/i)).toBeInTheDocument();
   });
 
@@ -94,7 +95,7 @@ describe('RegisterCompanyPage', () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
-    expect(screen.getByText('Te rugam sa completezi campurile obligatorii.')).toBeInTheDocument();
+    expect(screen.getByText('Te rugăm să completezi câmpurile obligatorii.')).toBeInTheDocument();
   });
 
   it('submits form successfully and shows success screen', async () => {
@@ -110,8 +111,9 @@ describe('RegisterCompanyPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText(/nume firma/i), 'Test SRL');
-    await user.type(screen.getByLabelText(/cui/i), 'RO12345678');
+    await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
+    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
 
@@ -124,7 +126,7 @@ describe('RegisterCompanyPage', () => {
         }),
       },
     });
-    expect(await screen.findByText('Cerere trimisa cu succes!')).toBeInTheDocument();
+    expect(await screen.findByText('Cerere trimisă cu succes!')).toBeInTheDocument();
   });
 
   it('shows Google Sign-In on success when unauthenticated with claimToken', async () => {
@@ -140,8 +142,9 @@ describe('RegisterCompanyPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText(/nume firma/i), 'Test SRL');
-    await user.type(screen.getByLabelText(/cui/i), 'RO12345678');
+    await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
+    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
 
@@ -161,21 +164,27 @@ describe('RegisterCompanyPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText(/nume firma/i), 'Test SRL');
-    await user.type(screen.getByLabelText(/cui/i), 'RO12345678');
+    await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
+    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
 
-    await screen.findByText('Cerere trimisa cu succes!');
-    expect(screen.getByText(/salveaza acest link/i)).toBeInTheDocument();
+    await screen.findByText('Cerere trimisă cu succes!');
+    expect(screen.getByText(/salvează acest link/i)).toBeInTheDocument();
     expect(screen.getByDisplayValue(/\/claim-firma\/abc123/)).toBeInTheDocument();
   });
 
-  it('authenticated submission without claimToken shows simple success', async () => {
+  it('authenticated submission refreshes token and redirects to document upload', async () => {
+    const mockRefreshToken = vi.fn().mockResolvedValue(undefined);
+    const mockRefetchUser = vi.fn().mockResolvedValue(undefined);
+
     vi.mocked(useAuth).mockReturnValue({
       ...defaultAuth,
       isAuthenticated: true,
-      user: { id: '1', email: 'a@b.com', fullName: 'Admin', role: 'COMPANY_ADMIN', status: 'ACTIVE' },
+      refreshToken: mockRefreshToken,
+      refetchUser: mockRefetchUser,
+      user: { id: '1', email: 'a@b.com', fullName: 'Admin', role: 'CLIENT', status: 'ACTIVE' },
     });
 
     mockApplyFn.mockResolvedValueOnce({
@@ -190,13 +199,18 @@ describe('RegisterCompanyPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText(/nume firma/i), 'Test SRL');
-    await user.type(screen.getByLabelText(/cui/i), 'RO12345678');
+    await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
+    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
 
-    expect(await screen.findByText('Cerere trimisa!')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /mergi la dashboard/i })).toBeInTheDocument();
+    // Should refresh JWT and redirect directly — not show a static success screen
+    await vi.waitFor(() => {
+      expect(mockRefreshToken).toHaveBeenCalledTimes(1);
+      expect(mockRefetchUser).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('/firma/documente-obligatorii');
+    });
   });
 
   it('shows mutation error when apply fails', async () => {
@@ -205,11 +219,12 @@ describe('RegisterCompanyPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText(/nume firma/i), 'Test SRL');
-    await user.type(screen.getByLabelText(/cui/i), 'RO12345678');
+    await user.type(screen.getByLabelText(/Nume firm/i), 'Test SRL');
+    await user.type(screen.getByPlaceholderText('RO12345678'), 'RO12345678');
+    await user.selectOptions(screen.getByRole('combobox'), 'SRL');
     await user.type(screen.getByLabelText(/email contact/i), 'contact@test.ro');
     await user.click(screen.getByRole('button', { name: /trimite cererea/i }));
 
-    expect(await screen.findByText('Inregistrarea a esuat. Te rugam sa incerci din nou.')).toBeInTheDocument();
+    expect(await screen.findByText('Înregistrarea a eșuat. Te rugăm să încerci din nou.')).toBeInTheDocument();
   });
 });

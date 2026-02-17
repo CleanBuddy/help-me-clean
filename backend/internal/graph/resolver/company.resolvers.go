@@ -56,6 +56,18 @@ func (r *mutationResolver) ApplyAsCompany(ctx context.Context, input model.Compa
 		return nil, fmt.Errorf("failed to create company application: %w", err)
 	}
 
+	// For authenticated users, upgrade their role to COMPANY_ADMIN immediately.
+	// (Unauthenticated users get upgraded later via ClaimCompany.)
+	if claims != nil {
+		_, err = r.Queries.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+			ID:   stringToUUID(claims.UserID),
+			Role: db.UserRoleCompanyAdmin,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to upgrade user role: %w", err)
+		}
+	}
+
 	result := &model.CompanyApplicationResult{
 		Company: dbCompanyToGQL(company),
 	}
@@ -259,11 +271,23 @@ func (r *mutationResolver) DeleteCompanyDocument(ctx context.Context, id string)
 // ApproveCompany is the resolver for the approveCompany field.
 func (r *mutationResolver) ApproveCompany(ctx context.Context, id string) (*model.Company, error) {
 	claims := auth.GetUserFromContext(ctx)
-	if claims == nil {
-		return nil, fmt.Errorf("not authenticated")
+	if claims == nil || claims.Role != "global_admin" {
+		return nil, fmt.Errorf("not authenticated or not authorized")
 	}
 
-	company, err := r.Queries.ApproveCompany(ctx, stringToUUID(id))
+	companyUUID := stringToUUID(id)
+
+	// Check if all required documents are approved
+	docsReady, err := r.Queries.CheckCompanyDocumentsReady(ctx, companyUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check documents: %w", err)
+	}
+
+	if !docsReady.Valid || !docsReady.Bool {
+		return nil, fmt.Errorf("cannot approve company: all required documents (Certificat Constatator, Asigurare RCA, Document CUI) must be uploaded and approved first")
+	}
+
+	company, err := r.Queries.ApproveCompany(ctx, companyUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to approve company: %w", err)
 	}

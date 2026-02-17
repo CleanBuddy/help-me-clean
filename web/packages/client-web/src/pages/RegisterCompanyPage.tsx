@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@apollo/client';
-import { Building2, ArrowLeft, CheckCircle, Copy, Check } from 'lucide-react';
+import { CheckCircle, Copy, Check, CheckCheck, Loader2 } from 'lucide-react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '@/context/AuthContext';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { APPLY_AS_COMPANY, CLAIM_COMPANY } from '@/graphql/operations';
+import { APPLY_AS_COMPANY, CLAIM_COMPANY, MY_COMPANY } from '@/graphql/operations';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -15,7 +14,12 @@ export default function RegisterCompanyPage() {
   const navigate = useNavigate();
   const { loginWithGoogle, isAuthenticated, refreshToken, refetchUser } = useAuth();
   const [applyAsCompany, { loading }] = useMutation(APPLY_AS_COMPANY);
-  const [claimCompany] = useMutation(CLAIM_COMPANY);
+  const [claimCompany] = useMutation(CLAIM_COMPANY, {
+    refetchQueries: [{ query: MY_COMPANY }],
+  });
+
+  const [cuiLoading, setCuiLoading] = useState(false);
+  const [cuiStatus, setCuiStatus] = useState<'idle' | 'found' | 'not-found'>('idle');
 
   const [submitted, setSubmitted] = useState(false);
   const [claimToken, setClaimToken] = useState<string | null>(null);
@@ -42,12 +46,44 @@ export default function RegisterCompanyPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleCuiLookup = async () => {
+    const cuiNum = parseInt(form.cui.replace(/\D/g, ''), 10);
+    if (!cuiNum) return;
+    setCuiLoading(true);
+    setCuiStatus('idle');
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const res = await fetch('https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/tva', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ cui: cuiNum, data: today }]),
+      });
+      const json = await res.json();
+      const company = json?.found?.[0];
+      if (company?.denumire) {
+        setForm((prev) => ({
+          ...prev,
+          companyName: company.denumire?.trim() || prev.companyName,
+          address: company.adresa?.trim() || prev.address,
+          contactPhone: company.telefon?.trim() || prev.contactPhone,
+        }));
+        setCuiStatus('found');
+      } else {
+        setCuiStatus('not-found');
+      }
+    } catch {
+      setCuiStatus('not-found');
+    } finally {
+      setCuiLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!form.companyName.trim() || !form.cui.trim() || !form.companyType || !form.contactEmail.trim()) {
-      setError('Te rugam sa completezi campurile obligatorii.');
+      setError('Te rugăm să completezi câmpurile obligatorii.');
       return;
     }
 
@@ -57,10 +93,21 @@ export default function RegisterCompanyPage() {
           input: form,
         },
       });
-      setClaimToken(data?.applyAsCompany?.claimToken ?? null);
+      const token = data?.applyAsCompany?.claimToken ?? null;
+      setClaimToken(token);
+
+      if (isAuthenticated && !token) {
+        // Backend has already linked the company and upgraded the user role.
+        // Refresh JWT so it reflects COMPANY_ADMIN, then redirect to document upload.
+        await refreshToken();
+        await refetchUser();
+        navigate('/firma/documente-obligatorii');
+        return;
+      }
+
       setSubmitted(true);
     } catch {
-      setError('Inregistrarea a esuat. Te rugam sa incerci din nou.');
+      setError('Înregistrarea a eșuat. Te rugăm să încerci din nou.');
     }
   };
 
@@ -69,7 +116,6 @@ export default function RegisterCompanyPage() {
     setClaimLoading(true);
     setClaimError('');
     try {
-      // Cookie is sent automatically with the request (Phase 2 security)
       await claimCompany({
         variables: { claimToken },
       });
@@ -81,10 +127,10 @@ export default function RegisterCompanyPage() {
       await refetchUser();
 
       setClaimed(true);
-      setTimeout(() => navigate('/firma'), 1500);
+      setTimeout(() => navigate('/firma/documente-obligatorii'), 1500);
     } catch (err) {
       console.error('Claim error:', err);
-      setClaimError('Nu am putut asocia firma cu contul tau. Poti incerca din dashboard.');
+      setClaimError('Nu am putut asocia firma cu contul tău. Poți încerca din dashboard.');
     } finally {
       setClaimLoading(false);
     }
@@ -92,7 +138,7 @@ export default function RegisterCompanyPage() {
 
   const handleGoogleSuccess = async (response: CredentialResponse) => {
     if (!response.credential) {
-      setClaimError('Autentificarea Google a esuat.');
+      setClaimError('Autentificarea Google a eșuat.');
       return;
     }
     setClaimError('');
@@ -103,7 +149,7 @@ export default function RegisterCompanyPage() {
       await handleClaimAfterAuth();
     } catch (err) {
       console.error('Google auth error:', err);
-      setClaimError('Autentificarea a esuat. Te rugam sa incerci din nou.');
+      setClaimError('Autentificarea a eșuat. Te rugăm să încerci din nou.');
       setClaimLoading(false);
     }
   };
@@ -119,108 +165,102 @@ export default function RegisterCompanyPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ─── Success Screen ─────────────────────────────────────────────────────────
+  // ─── Success: claimed ────────────────────────────────────────────────────────
+
+  if (submitted && claimed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC] px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-5">
+            <CheckCircle className="h-10 w-10 text-secondary" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Contul a fost asociat!</h1>
+          <p className="text-gray-500 mb-6">
+            Firma ta a fost asociată cu contul Google. Vei fi redirecționat către dashboard...
+          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-secondary">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-secondary" />
+            Se redirecționează...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Success: unclaimed (Google login prompt) ────────────────────────────────
 
   if (submitted) {
-    // Already authenticated (or was authenticated when applying) — no need for claim flow
-    if (isAuthenticated && !claimToken) {
-      return (
-        <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-[#FAFBFC]">
-          <Card className="w-full max-w-md text-center">
-            <CheckCircle className="h-16 w-16 text-secondary mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Cerere trimisa!
-            </h1>
-            <p className="text-gray-500 mb-6">
-              Cererea ta de inregistrare a fost trimisa cu succes.
-              Vei fi notificat prin email cand firma ta va fi aprobata.
-            </p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Mergi la Dashboard
-            </Button>
-          </Card>
-        </div>
-      );
-    }
-
-    // Claimed successfully
-    if (claimed) {
-      return (
-        <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-[#FAFBFC]">
-          <Card className="w-full max-w-md text-center">
-            <CheckCircle className="h-16 w-16 text-secondary mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Contul a fost asociat!
-            </h1>
-            <p className="text-gray-500 mb-6">
-              Firma ta a fost asociata cu contul Google. Vei fi redirectionat catre dashboard...
-            </p>
-          </Card>
-        </div>
-      );
-    }
-
-    // Unauthenticated submission — prompt to sign in
     return (
-      <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-[#FAFBFC]">
-        <Card className="w-full max-w-lg text-center">
-          <CheckCircle className="h-16 w-16 text-secondary mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Cerere trimisa cu succes!
-          </h1>
-          <p className="text-gray-500 mb-6">
-            Conecteaza-te cu Google pentru a asocia aceasta cerere cu contul tau.
-            Astfel vei putea urmari statusul cererii si gestiona firma din dashboard.
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC] px-4 py-12">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-block">
+              <span className="text-2xl font-black tracking-tight text-gray-900">
+                HelpMe<span className="text-primary">Clean</span>
+              </span>
+            </Link>
+          </div>
 
-          {claimLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="h-8 w-8 text-secondary" />
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setClaimError('Autentificarea Google a esuat.')}
-                theme="outline"
-                size="large"
-                text="signin_with"
-                shape="rectangular"
-                width="320"
-              />
-            </div>
-          )}
+            <h1 className="text-xl font-bold text-gray-900 mb-2">Cerere trimisă cu succes!</h1>
+            <p className="text-gray-500 text-sm mb-6">
+              Conectează-te cu Google pentru a asocia această cerere cu contul tău.
+              Astfel vei putea urmări statusul cererii și gestiona firma din dashboard.
+            </p>
 
-          {claimError && (
-            <div className="mt-4 p-3 rounded-xl bg-red-50 text-sm text-red-700">
-              {claimError}
-            </div>
-          )}
-
-          {claimUrl && (
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <p className="text-xs text-gray-400 mb-2">
-                Sau salveaza acest link pentru a te conecta mai tarziu:
-              </p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={claimUrl}
-                  className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 truncate"
-                />
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  {copied ? <Check className="h-3.5 w-3.5 text-secondary" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? 'Copiat' : 'Copiaza'}
-                </button>
+            {claimLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
-            </div>
-          )}
-        </Card>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setClaimError('Autentificarea Google a eșuat.')}
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  width="320"
+                />
+              </div>
+            )}
+
+            {claimError && (
+              <div className="mt-4 p-3 rounded-xl bg-red-50 text-sm text-red-700">
+                {claimError}
+              </div>
+            )}
+
+            {claimUrl && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <p className="text-xs text-gray-400 mb-2">
+                  Sau salvează acest link pentru mai târziu:
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={claimUrl}
+                    className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 truncate"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-secondary" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? 'Copiat' : 'Copiază'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -228,126 +268,215 @@ export default function RegisterCompanyPage() {
   // ─── Registration Form ────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen py-12 px-4 bg-[#FAFBFC]">
-      <div className="max-w-2xl mx-auto">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Inapoi
-        </button>
+    <div className="flex h-screen overflow-hidden">
 
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-            <Building2 className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Inregistreaza-ti firma
-          </h1>
-          <p className="text-gray-500">
-            Completeaza datele firmei tale pentru a aplica ca partener HelpMeClean.
-          </p>
+      {/* ── Left Panel (green brand, desktop only) ─────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[42%] bg-secondary flex-col justify-between p-12 relative overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/10 rounded-full pointer-events-none" />
+        <div className="absolute -bottom-32 -right-12 w-80 h-80 bg-emerald-700/20 rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full pointer-events-none" />
+
+        {/* Top: Logo */}
+        <div className="relative z-10">
+          <Link to="/" className="inline-block">
+            <span className="text-2xl font-black tracking-tight text-white">
+              HelpMeClean
+            </span>
+          </Link>
         </div>
 
-        <Card>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Middle: Pitch */}
+        <div className="relative z-10">
+          <h2 className="text-3xl font-bold text-white leading-snug mb-4">
+            Crește-ți afacerea<br />cu HelpMeClean
+          </h2>
+          <p className="text-emerald-100 mb-8 leading-relaxed">
+            Accesează mii de clienți care caută servicii de curățenie profesionale.
+          </p>
+          <ul className="space-y-3">
+            {[
+              'Clienți verificați, plăți garantate',
+              'Dashboard complet pentru gestionarea comenzilor',
+              'Facturare automată și transparență totală',
+            ].map((benefit) => (
+              <li key={benefit} className="flex items-start gap-3 text-emerald-50 text-sm">
+                <CheckCheck className="h-5 w-5 text-white shrink-0 mt-0.5" />
+                {benefit}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Bottom: Stats */}
+        <div className="relative z-10 flex items-center gap-8 pt-8 border-t border-white/20">
+          <div>
+            <p className="text-2xl font-bold text-white">50+</p>
+            <p className="text-xs text-emerald-100 mt-0.5">firme partenere</p>
+          </div>
+          <div className="h-8 w-px bg-white/20" />
+          <div>
+            <p className="text-2xl font-bold text-white">500+</p>
+            <p className="text-xs text-emerald-100 mt-0.5">comenzi / lună</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right Panel (white form) ────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col bg-white overflow-y-auto">
+
+        {/* Top bar */}
+        <div className="flex items-center justify-end px-8 py-4 border-b border-gray-100 shrink-0">
+          <span className="text-sm text-gray-500 mr-2">Ai deja cont?</span>
+          <Link
+            to="/autentificare"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Intră în cont →
+          </Link>
+        </div>
+
+        {/* Form area */}
+        <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-8">
+          <div className="max-w-xl w-full mx-auto">
+
+            {/* Logo (mobile only) */}
+            <div className="lg:hidden mb-6">
+              <Link to="/">
+                <span className="text-xl font-black tracking-tight text-gray-900">
+                  HelpMe<span className="text-primary">Clean</span>
+                </span>
+              </Link>
+            </div>
+
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              Înregistrează-ți firma
+            </h1>
+            <p className="text-gray-500 text-sm mb-8">
+              Completează datele firmei pentru a deveni partener HelpMeClean.
+            </p>
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Nume firmă *"
+                  placeholder="SC Firma SRL"
+                  value={form.companyName}
+                  onChange={(e) => updateField('companyName', e.target.value)}
+                />
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    CUI <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="RO12345678"
+                      value={form.cui}
+                      onChange={(e) => { updateField('cui', e.target.value); setCuiStatus('idle'); }}
+                      className="flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCuiLookup}
+                      disabled={!form.cui.trim() || cuiLoading}
+                      className="shrink-0 px-4 py-3 rounded-xl border border-primary text-primary text-sm font-medium hover:bg-primary/5 disabled:opacity-40 transition cursor-pointer"
+                    >
+                      {cuiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verifică →'}
+                    </button>
+                  </div>
+                  {cuiStatus === 'found' && (
+                    <p className="flex items-center gap-1 text-xs text-secondary">
+                      <Check className="h-3 w-3" /> Date preluate de la ANAF
+                    </p>
+                  )}
+                  {cuiStatus === 'not-found' && (
+                    <p className="text-xs text-red-500">CUI-ul nu a fost găsit în baza de date ANAF.</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Tip firmă <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={form.companyType}
+                    onChange={(e) => updateField('companyType', e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    required
+                  >
+                    <option value="">Selectează tipul firmei</option>
+                    <option value="SRL">SRL</option>
+                    <option value="PFA">PFA</option>
+                    <option value="II">II (Întreprindere Individuală)</option>
+                  </select>
+                </div>
+                <Input
+                  label="Reprezentant legal"
+                  placeholder="Ion Popescu"
+                  value={form.legalRepresentative}
+                  onChange={(e) => updateField('legalRepresentative', e.target.value)}
+                />
+                <Input
+                  label="Email contact *"
+                  type="email"
+                  placeholder="contact@firma.ro"
+                  value={form.contactEmail}
+                  onChange={(e) => updateField('contactEmail', e.target.value)}
+                />
+                <Input
+                  label="Telefon contact"
+                  placeholder="+40 7XX XXX XXX"
+                  value={form.contactPhone}
+                  onChange={(e) => updateField('contactPhone', e.target.value)}
+                />
+              </div>
+
               <Input
-                label="Nume firma *"
-                placeholder="SC Firma SRL"
-                value={form.companyName}
-                onChange={(e) => updateField('companyName', e.target.value)}
+                label="Adresă"
+                placeholder="Str. Exemplu, Nr. 1"
+                value={form.address}
+                onChange={(e) => updateField('address', e.target.value)}
               />
-              <Input
-                label="CUI *"
-                placeholder="RO12345678"
-                value={form.cui}
-                onChange={(e) => updateField('cui', e.target.value)}
-              />
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Tip firma <span className="text-red-500">*</span>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Oraș"
+                  placeholder="București"
+                  value={form.city}
+                  onChange={(e) => updateField('city', e.target.value)}
+                />
+                <Input
+                  label="Județ"
+                  placeholder="Ilfov"
+                  value={form.county}
+                  onChange={(e) => updateField('county', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Descriere firmă
                 </label>
-                <select
-                  value={form.companyType}
-                  onChange={(e) => updateField('companyType', e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                  required
-                >
-                  <option value="">Selecteaza tipul firmei</option>
-                  <option value="SRL">SRL</option>
-                  <option value="PFA">PFA</option>
-                  <option value="II">II (Intreprindere Individuala)</option>
-                </select>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => updateField('description', e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  placeholder="Descrierea firmei și a serviciilor oferite..."
+                />
               </div>
-              <Input
-                label="Reprezentant legal"
-                placeholder="Ion Popescu"
-                value={form.legalRepresentative}
-                onChange={(e) => updateField('legalRepresentative', e.target.value)}
-              />
-              <Input
-                label="Email contact *"
-                type="email"
-                placeholder="contact@firma.ro"
-                value={form.contactEmail}
-                onChange={(e) => updateField('contactEmail', e.target.value)}
-              />
-              <Input
-                label="Telefon contact"
-                placeholder="+40 7XX XXX XXX"
-                value={form.contactPhone}
-                onChange={(e) => updateField('contactPhone', e.target.value)}
-              />
-            </div>
 
-            <Input
-              label="Adresa"
-              placeholder="Str. Exemplu, Nr. 1"
-              value={form.address}
-              onChange={(e) => updateField('address', e.target.value)}
-            />
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input
-                label="Oras"
-                placeholder="Bucuresti"
-                value={form.city}
-                onChange={(e) => updateField('city', e.target.value)}
-              />
-              <Input
-                label="Judet"
-                placeholder="Ilfov"
-                value={form.county}
-                onChange={(e) => updateField('county', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Descriere firma
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => updateField('description', e.target.value)}
-                rows={4}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                placeholder="Descrierea firmei tale si a serviciilor oferite..."
-              />
-            </div>
-
-            {error && (
-              <div className="p-3 rounded-xl bg-red-50 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" loading={loading} className="w-full" size="lg">
-              Trimite cererea de inregistrare
-            </Button>
-          </form>
-        </Card>
+              <Button type="submit" loading={loading} className="w-full" size="lg">
+                Trimite cererea →
+              </Button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

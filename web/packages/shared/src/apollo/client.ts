@@ -18,7 +18,7 @@ export function createApolloClient(graphqlEndpoint: string, wsEndpoint?: string)
     return {
       headers: {
         ...headers,
-        authorization: token ? `Bearer ${token}` : '',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     };
   });

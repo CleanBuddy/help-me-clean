@@ -49,7 +49,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     <CompanyContext.Provider
       value={{
         company: data?.myCompany ?? null,
-        loading: isAuthenticated && loading,
+        loading: isAuthenticated && (loading || !data),
         error: !!error,
         refetch,
       }}

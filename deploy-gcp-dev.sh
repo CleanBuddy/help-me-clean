@@ -7,7 +7,7 @@ set -e  # Exit on error
 echo "🚀 Deploying HelpMeClean Backend to GCP Development..."
 
 # Configuration
-PROJECT_ID="help-me-clean"
+PROJECT_ID="help-me-clean-486919"
 REGION="europe-west1"
 SERVICE_NAME="helpmeclean-backend-dev"
 IMAGE="gcr.io/${PROJECT_ID}/backend:dev"

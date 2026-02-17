@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/client';
 import { createApolloClient } from '@helpmeclean/shared';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -34,6 +34,7 @@ import RecurringGroupDetailPage from '@/pages/client/RecurringGroupDetailPage';
 
 // Company pages
 import CompanyDashboardPage from '@/pages/company/DashboardPage';
+import DocumentUploadPage from '@/pages/company/DocumentUploadPage';
 import CompanyOrdersPage from '@/pages/company/OrdersPage';
 import CompanyOrderDetailPage from '@/pages/company/OrderDetailPage';
 import TeamPage from '@/pages/company/TeamPage';
@@ -87,6 +88,7 @@ const ROLE_HOME: Record<string, string> = {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -97,7 +99,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/autentificare" replace />;
+    // Pass the attempted path so LoginPage can redirect back after auth.
+    return <Navigate to="/autentificare" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;
@@ -127,13 +130,15 @@ function RoleRoute({ children, role }: { children: React.ReactNode; role: string
 function AppRoutes() {
   return (
     <Routes>
+      {/* Standalone — no Header/Footer (split-screen layout) */}
+      <Route path="/autentificare" element={<LoginPage />} />
+      <Route path="/inregistrare-firma" element={<RegisterCompanyPage />} />
+
       {/* Public routes - Header + Footer layout */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/servicii" element={<ServicesPage />} />
+        <Route path="/servicii" element={<Navigate to="/#servicii" replace />} />
         <Route path="/rezervare" element={<BookingPage />} />
-        <Route path="/autentificare" element={<LoginPage />} />
-        <Route path="/inregistrare-firma" element={<RegisterCompanyPage />} />
         <Route path="/claim-firma/:token" element={<ClaimCompanyPage />} />
       </Route>
 
@@ -175,6 +180,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<CompanyDashboardPage />} />
+        <Route path="documente-obligatorii" element={<DocumentUploadPage />} />
         <Route path="comenzi" element={<CompanyOrdersPage />} />
         <Route path="comenzi/:id" element={<CompanyOrderDetailPage />} />
         <Route path="program" element={<CompanyCalendarPage />} />

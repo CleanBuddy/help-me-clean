@@ -6,27 +6,15 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { useApolloClient, useMutation, useLazyQuery } from '@apollo/client';
-import { ME, SIGN_IN_WITH_GOOGLE, LOGOUT, REFRESH_TOKEN } from '@/graphql/operations';
+import { useApolloClient } from '@apollo/client';
+import { authService, type AuthUser, type AuthState } from '@/services/AuthService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  role: string;
-  status: string;
-  phone?: string;
-  avatarUrl?: string;
-  preferredLanguage?: string;
-  createdAt?: string;
-}
-
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
-  loginWithGoogle: (idToken: string) => Promise<User>;
+  loginWithGoogle: (idToken: string) => Promise<AuthUser>;
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => void;
@@ -39,92 +27,35 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
   const client = useApolloClient();
+  // Lazy initializer reads current singleton state — safe after StrictMode remount.
+  const [state, setState] = useState<AuthState>(() => authService.getState());
 
-  const [fetchMe] = useLazyQuery(ME, {
-    fetchPolicy: 'network-only',
-    onCompleted: (data) => {
-      setUser(data.me);
-      setLoading(false);
-    },
-    onError: () => {
-      localStorage.removeItem('token');
-      setUser(null);
-      setLoading(false);
-    },
-  });
-
-  const [signIn] = useMutation(SIGN_IN_WITH_GOOGLE);
-  const [logoutMutation] = useMutation(LOGOUT);
-  const [refreshTokenMutation] = useMutation(REFRESH_TOKEN);
-
-  // On mount, always try to fetch user (cookie is sent automatically)
-  // This works for both new cookie-based auth and legacy localStorage tokens
   useEffect(() => {
-    fetchMe();
-  }, [fetchMe]);
+    authService.initialize(client);
+    // Re-read state in case it changed during the StrictMode unmount/remount gap.
+    setState(authService.getState());
+    // Subscribe and return the unsubscribe function as cleanup.
+    return authService.subscribe(setState);
+  }, [client]);
 
   const loginWithGoogle = useCallback(
-    async (idToken: string): Promise<User> => {
-      const { data } = await signIn({
-        variables: { idToken, role: 'CLIENT' },
-      });
-      const { user: authUser } = data.signInWithGoogle;
-      // Token is now set as httpOnly cookie by backend (Phase 2 security)
-      // No need to store in localStorage
-      setUser(authUser);
-      return authUser;
-    },
-    [signIn],
+    (idToken: string) => authService.loginWithGoogle(idToken),
+    [],
   );
-
-  const logout = useCallback(async () => {
-    try {
-      // Call logout mutation to clear httpOnly cookie on server
-      await logoutMutation();
-    } catch (error) {
-      console.error('Logout mutation failed:', error);
-      // Continue with client-side cleanup even if mutation fails
-    }
-
-    // Clean up legacy localStorage token (for users with old tokens)
-    localStorage.removeItem('token');
-
-    // Clear local state
-    setUser(null);
-    client.clearStore();
-  }, [client, logoutMutation]);
-
-  const refetchUser = useCallback(() => {
-    fetchMe();
-  }, [fetchMe]);
-
-  const refreshToken = useCallback(async () => {
-    try {
-      const { data } = await refreshTokenMutation();
-      if (data?.refreshToken?.user) {
-        setUser(data.refreshToken.user);
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-    }
-  }, [refreshTokenMutation]);
+  const logout = useCallback(() => authService.logout(), []);
+  const refetchUser = useCallback(() => authService.refetchUser(), []);
+  const refreshToken = useCallback(() => authService.refreshToken(), []);
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        loading,
+        user: state.user,
+        loading: state.loading,
         loginWithGoogle,
         logout,
-        isAuthenticated: !!user,
+        isAuthenticated: !!state.user,
         refetchUser,
         refreshToken,
       }}
