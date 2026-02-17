@@ -82,40 +82,23 @@ func NewHandler(ctx context.Context) (http.Handler, func(), error) {
 	paymentSvc := payment.NewService(queries)
 	invoiceSvc := invoice.NewService(queries)
 
-	// File storage — GCS for production, local for development.
+	// File storage — always GCS.
 	env := os.Getenv("ENVIRONMENT")
 	gcsCredentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	isVercel := os.Getenv("VERCEL") == "1"
-
-	var store storage.Storage
-	if env != "production" && gcsCredentials == "" && !isVercel {
-		port := os.Getenv("PORT")
-		if port == "" {
-			port = "8080"
-		}
-		uploadsDir := "./uploads"
-		baseURL := "http://localhost:" + port + "/uploads"
-		store = storage.NewLocalStorage(uploadsDir, baseURL)
-		log.Printf("Using local file storage: %s", uploadsDir)
-		r.Get("/uploads/*", func(w http.ResponseWriter, r *http.Request) {
-			http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))).ServeHTTP(w, r)
-		})
-	} else {
-		gcsBucket := os.Getenv("GCS_BUCKET")
-		gcsProjectID := os.Getenv("GCS_PROJECT_ID")
-		if gcsBucket == "" {
-			return nil, shutdown, fmt.Errorf("GCS_BUCKET environment variable is required for GCS storage")
-		}
-		if gcsProjectID == "" {
-			return nil, shutdown, fmt.Errorf("GCS_PROJECT_ID environment variable is required for GCS storage")
-		}
-		gcsStore, err := storage.NewGCSStorage(ctx, gcsBucket, gcsProjectID, gcsCredentials)
-		if err != nil {
-			return nil, shutdown, fmt.Errorf("failed to initialize GCS storage: %w", err)
-		}
-		store = gcsStore
-		log.Printf("Using Google Cloud Storage: bucket=%s, project=%s", gcsBucket, gcsProjectID)
+	gcsBucket := os.Getenv("GCS_BUCKET")
+	gcsProjectID := os.Getenv("GCS_PROJECT_ID")
+	if gcsBucket == "" {
+		return nil, shutdown, fmt.Errorf("GCS_BUCKET environment variable is required")
 	}
+	if gcsProjectID == "" {
+		return nil, shutdown, fmt.Errorf("GCS_PROJECT_ID environment variable is required")
+	}
+	gcsStore, err := storage.NewGCSStorage(ctx, gcsBucket, gcsProjectID, gcsCredentials)
+	if err != nil {
+		return nil, shutdown, fmt.Errorf("failed to initialize GCS storage: %w", err)
+	}
+	store := gcsStore
+	log.Printf("Using Google Cloud Storage: bucket=%s, project=%s", gcsBucket, gcsProjectID)
 
 	// Stripe webhook — must be registered BEFORE auth middleware.
 	stripeWebhook := webhook.NewStripeHandler(paymentSvc)
