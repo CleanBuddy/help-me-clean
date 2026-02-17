@@ -85,9 +85,10 @@ func NewHandler(ctx context.Context) (http.Handler, func(), error) {
 	// File storage — GCS for production, local for development.
 	env := os.Getenv("ENVIRONMENT")
 	gcsCredentials := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	isVercel := os.Getenv("VERCEL") == "1"
 
 	var store storage.Storage
-	if env != "production" && gcsCredentials == "" {
+	if env != "production" && gcsCredentials == "" && !isVercel {
 		port := os.Getenv("PORT")
 		if port == "" {
 			port = "8080"
