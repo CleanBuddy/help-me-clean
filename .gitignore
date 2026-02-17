@@ -58,6 +58,9 @@ temp/
 # Generated files
 **/generated/
 **/__generated__/
+# sqlc generated Go code must be committed so Vercel can build without dev tools
+!backend/internal/db/generated/
+!backend/internal/db/generated/**
 
 # iOS
 *.pbxuser

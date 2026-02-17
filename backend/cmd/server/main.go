@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"helpmeclean-backend/internal/app"
+	"helpmeclean-backend/app"
 )
 
 func main() {
