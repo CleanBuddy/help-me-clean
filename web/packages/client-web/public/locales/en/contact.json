@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "title": "Contact | HelpMeClean.ro",
+    "description": "Contact the HelpMeClean team for support, partnerships or questions about Romania's cleaning marketplace."
+  },
+  "hero": {
+    "title": "Contact us",
+    "subtitle": "We're here to help. Write to us and we'll respond within one business day."
+  },
+  "info": {
+    "title": "Contact information",
+    "email": "Email",
+    "phone": "Phone",
+    "city": "City",
+    "schedule": "Hours",
+    "cityValue": "Bucharest, Romania",
+    "scheduleValue": "Monday–Friday, 9:00–18:00"
+  },
+  "form": {
+    "title": "Send a message",
+    "name": "Full name",
+    "email": "Email address",
+    "subject": "Subject",
+    "message": "Message",
+    "placeholder_name": "John Smith",
+    "placeholder_email": "john@example.com",
+    "placeholder_message": "How can we help?",
+    "submit": "Send message",
+    "subjects": ["Customer support", "Company partnership", "Press", "Other"]
+  },
+  "faq": {
+    "title": "Frequently asked questions",
+    "q1": "When does the platform launch?",
+    "a1": "HelpMeClean is in pre-launch phase. We're preparing to open the platform soon, starting with Bucharest. Join the waitlist to get priority access and launch notifications.",
+    "q2": "How do I register as a cleaning company?",
+    "a2": "You can apply as a partner company through the 'For Companies' page. You need a valid tax ID (CUI), civil liability insurance and company documents. The verification process takes up to 48 hours, after which your account is activated.",
+    "q3": "How does company verification work?",
+    "a3": "Each partner company undergoes a document verification process (registration certificate, civil insurance, tax ID). We actively verify identity and documents to ensure our clients only work with trusted professionals."
+  }
+}

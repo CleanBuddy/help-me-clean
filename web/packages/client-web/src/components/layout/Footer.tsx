@@ -1,7 +1,12 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { usePlatform } from '@/context/PlatformContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { ROUTE_MAP } from '@/i18n/routes';
 
 export default function Footer() {
+  const { t } = useTranslation('common');
+  const { lang } = useLanguage();
   const currentYear = new Date().getFullYear();
   const { isPreRelease } = usePlatform();
 
@@ -13,48 +18,46 @@ export default function Footer() {
           <div className="md:col-span-2">
             <span className="text-2xl font-bold text-white">HelpMeClean</span>
             <p className="mt-3 text-sm leading-relaxed max-w-md">
-              Prima platforma de tip marketplace din Romania care conecteaza
-              clientii cu firme de curatenie verificate. Plati digitale,
-              facturare automata, transparenta totala.
+              {t('footer.tagline')}
             </p>
           </div>
 
           {/* Links */}
           <div>
-            <h4 className="text-white font-semibold mb-3">Navigare</h4>
+            <h4 className="text-white font-semibold mb-3">{t('footer.nav')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <a href="/#servicii" className="hover:text-white transition">
-                  Servicii
+                  {t('footer.services')}
                 </a>
               </li>
               {!isPreRelease && (
                 <li>
-                  <Link to="/rezervare" className="hover:text-white transition">
-                    Rezerva o curatenie
+                  <Link to={ROUTE_MAP.booking[lang]} className="hover:text-white transition">
+                    {t('footer.bookCleaning')}
                   </Link>
                 </li>
               )}
               {!isPreRelease && (
                 <li>
                   <Link to="/cont/comenzi" className="hover:text-white transition">
-                    Comenzile mele
+                    {t('footer.myOrders')}
                   </Link>
                 </li>
               )}
               <li>
-                <Link to="/blog" className="hover:text-white transition">
-                  Blog
+                <Link to={ROUTE_MAP.blog[lang]} className="hover:text-white transition">
+                  {t('footer.blog')}
                 </Link>
               </li>
               <li>
-                <Link to="/despre-noi" className="hover:text-white transition">
-                  Despre noi
+                <Link to={ROUTE_MAP.about[lang]} className="hover:text-white transition">
+                  {t('footer.about')}
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="hover:text-white transition">
-                  Contact
+                <Link to={ROUTE_MAP.contact[lang]} className="hover:text-white transition">
+                  {t('footer.contactLink')}
                 </Link>
               </li>
             </ul>
@@ -62,17 +65,17 @@ export default function Footer() {
 
           {/* Pentru Firme */}
           <div>
-            <h4 className="text-white font-semibold mb-3">Pentru Firme</h4>
+            <h4 className="text-white font-semibold mb-3">{t('footer.forCompanies')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/pentru-firme" className="hover:text-white transition">
-                  Devino partener
+                <Link to={ROUTE_MAP.forCompanies[lang]} className="hover:text-white transition">
+                  {t('footer.becomePartner')}
                 </Link>
               </li>
               {!isPreRelease && (
                 <li>
                   <Link to="/firma" className="hover:text-white transition">
-                    Dashboard firma
+                    {t('footer.companyDashboard')}
                   </Link>
                 </li>
               )}
@@ -81,26 +84,26 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="text-white font-semibold mb-3">Contact</h4>
+            <h4 className="text-white font-semibold mb-3">{t('footer.contact')}</h4>
             <ul className="space-y-2 text-sm">
-              <li>contact@helpmeclean.ro</li>
-              <li>+40 700 000 000</li>
-              <li>Bucuresti, Romania</li>
+              <li>{t('footer.email')}</li>
+              <li>{t('footer.phone')}</li>
+              <li>{t('footer.city')}</li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-white mb-3">Legal</h4>
+            <h4 className="font-semibold text-white mb-3">{t('footer.legal')}</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/termeni" className="text-gray-300 hover:text-white text-sm transition-colors">
-                  Termeni și condiții
+                <Link to={ROUTE_MAP.terms[lang]} className="text-gray-300 hover:text-white text-sm transition-colors">
+                  {t('footer.terms')}
                 </Link>
               </li>
               <li>
-                <Link to="/confidentialitate" className="text-gray-300 hover:text-white text-sm transition-colors">
-                  Politica de confidențialitate
+                <Link to={ROUTE_MAP.privacy[lang]} className="text-gray-300 hover:text-white text-sm transition-colors">
+                  {t('footer.privacy')}
                 </Link>
               </li>
             </ul>
@@ -108,7 +111,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-gray-800 text-sm text-center">
-          &copy; {currentYear} HelpMeClean. Toate drepturile rezervate.
+          &copy; {currentYear} HelpMeClean. {t('footer.rights')}
         </div>
       </div>
     </footer>

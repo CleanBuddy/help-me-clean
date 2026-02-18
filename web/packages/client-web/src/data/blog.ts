@@ -1,7 +1,11 @@
 export type BlogCategory = 'sfaturi' | 'ghid-orase' | 'cum-sa';
 
+export type BlogLanguage = 'ro' | 'en';
+
 export interface BlogPost {
   slug: string;
+  lang: BlogLanguage;
+  linkedSlug?: string;
   title: string;
   excerpt: string;
   content: string; // HTML string
@@ -29,6 +33,8 @@ export const CATEGORY_COLORS: Record<BlogCategory, string> = {
 export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'cum-sa-alegi-firma-curatenie-bucuresti',
+    lang: 'ro',
+    linkedSlug: 'how-to-choose-a-cleaning-company-in-bucharest',
     title: 'Cum să alegi firma de curățenie potrivită în București',
     excerpt:
       'Un ghid complet pentru alegerea unei firme de curățenie de încredere în capitală. De la verificarea documentelor la evaluarea recenziilor.',
@@ -97,6 +103,8 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: 'curatenie-apartament-ghid-complet',
+    lang: 'ro',
+    linkedSlug: 'apartment-cleaning-complete-guide',
     title: 'Curățenie apartament: ghid complet pas cu pas',
     excerpt:
       'Tot ce trebuie să știi despre curățenia profesională a apartamentului: ordine, produse, frecvență și cât durează.',
@@ -172,6 +180,8 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: 'beneficiile-curatenie-profesionala-birou',
+    lang: 'ro',
+    linkedSlug: 'benefits-professional-office-cleaning',
     title: 'De ce merită să angajezi o firmă de curățenie pentru birou',
     excerpt:
       'Un birou curat crește productivitatea cu 15% și reduce absenteismul. Descoperă beneficiile curățeniei profesionale pentru afacerea ta.',
@@ -233,12 +243,167 @@ export const BLOG_POSTS: BlogPost[] = [
 <p>Curățenia profesională a biroului nu este un lux rezervat corporațiilor mari — este o decizie de business rațională pentru orice companie care vrea să reducă absenteismul, să atragă și să rețină talente și să lase o impresie bună partenerilor. Dacă ești antreprenor sau manager în căutarea unui furnizor verificat, <a href="/lista-asteptare">HelpMeClean</a> se lansează cu o rețea de firme de curățenie certificate, cu recenzii reale și prețuri transparente.</p>
 `,
   },
+  {
+    slug: 'how-to-choose-a-cleaning-company-in-bucharest',
+    lang: 'en',
+    linkedSlug: 'cum-sa-alegi-firma-curatenie-bucuresti',
+    title: 'How to Choose the Right Cleaning Company in Bucharest',
+    excerpt:
+      'A complete guide to choosing a reliable cleaning company in Bucharest. Learn what documents to check, how to read reviews, and what questions to ask.',
+    category: 'sfaturi',
+    tags: ['cleaning company bucharest', 'cleaning services', 'professional cleaning'],
+    author: 'HelpMeClean Team',
+    publishedAt: '2026-01-15',
+    readTimeMinutes: 6,
+    metaTitle: 'How to Choose a Cleaning Company in Bucharest | HelpMeClean',
+    metaDescription:
+      'Complete guide to choosing the right cleaning company in Bucharest. Check documents, read reviews and know what to ask before booking.',
+    content: `<h2>Why choosing the right cleaning company matters</h2>
+<p>Finding a reliable cleaning company in Bucharest can feel overwhelming — there are thousands of options, ranging from freelancers to established firms. A wrong choice can mean unreliable staff, property damage, or hidden costs. This guide helps you make the right decision.</p>
+
+<h2>1. Verify their legal registration</h2>
+<p>Always check that the company is legally registered in Romania. Ask for their <strong>CUI (Unique Identification Code)</strong> and verify it on the ANAF website. A legitimate company will have no issues providing this information.</p>
+<p>Additionally, check that they have <strong>civil liability insurance</strong>. This protects you in case of accidental damage during the cleaning service.</p>
+
+<h2>2. Check reviews and ratings</h2>
+<p>Look for reviews on multiple platforms — Google Maps, Facebook, and specialised cleaning marketplaces. Pay attention to:</p>
+<ul>
+<li>Consistency of positive feedback across different dates</li>
+<li>How the company responds to negative reviews</li>
+<li>Specific mentions of punctuality, professionalism, and results</li>
+<li>Whether reviewers are verified customers</li>
+</ul>
+
+<h2>3. Ask the right questions</h2>
+<p>Before booking, ask these essential questions:</p>
+<ul>
+<li>What cleaning products do you use? Are they safe for children and pets?</li>
+<li>Are your employees background-checked?</li>
+<li>What happens if something is damaged during cleaning?</li>
+<li>Do you provide all equipment and supplies?</li>
+<li>What is your cancellation policy?</li>
+</ul>
+
+<h2>4. Compare prices transparently</h2>
+<p>Reputable companies provide clear pricing — either per hour or per service type. Be wary of unusually low prices, which often indicate either poor quality or hidden additional costs. On HelpMeClean, all prices are transparent and displayed before you book.</p>
+
+<h2>5. Use a verified marketplace</h2>
+<p>The safest way to find a cleaning company in Bucharest is through a platform that pre-screens all companies. HelpMeClean verifies every partner company's documents, insurance, and reviews before approving them on the platform.</p>
+<p>This means you can book with confidence, knowing every company you see has passed our verification process.</p>`,
+  },
+  {
+    slug: 'apartment-cleaning-complete-guide',
+    lang: 'en',
+    linkedSlug: 'curatenie-apartament-ghid-complet',
+    title: 'Apartment Cleaning: A Complete Step-by-Step Guide',
+    excerpt:
+      'Everything you need to know about apartment cleaning — from choosing the right service to preparing your home and what to expect from professional cleaners.',
+    category: 'cum-sa',
+    tags: ['apartment cleaning', 'house cleaning guide', 'professional cleaning'],
+    author: 'HelpMeClean Team',
+    publishedAt: '2026-01-22',
+    readTimeMinutes: 8,
+    metaTitle: 'Apartment Cleaning: Complete Step-by-Step Guide | HelpMeClean',
+    metaDescription:
+      'Complete guide to apartment cleaning — how to prepare, what to expect, and how to get the best results from professional cleaning services.',
+    content: `<h2>Types of apartment cleaning services</h2>
+<p>Before booking, it's important to understand the different types of cleaning available:</p>
+<ul>
+<li><strong>Standard cleaning</strong>: Regular maintenance cleaning — dusting, vacuuming, mopping, bathroom and kitchen cleaning. Ideal for weekly or bi-weekly appointments.</li>
+<li><strong>Deep cleaning</strong>: Thorough cleaning that reaches neglected areas — behind appliances, inside cupboards, grout cleaning, window sills. Recommended every 3–6 months.</li>
+<li><strong>Move-in/move-out cleaning</strong>: Intensive cleaning for empty apartments before or after tenancy.</li>
+<li><strong>Post-construction cleaning</strong>: Specialised cleaning to remove construction dust, debris, and residue after renovation work.</li>
+</ul>
+
+<h2>How to prepare for professional cleaners</h2>
+<p>Getting the most from your cleaning session starts before the cleaners arrive:</p>
+<ol>
+<li><strong>Declutter surfaces</strong>: Clear countertops, tables, and floors of personal items. Cleaners can't clean around piles of objects.</li>
+<li><strong>Secure valuables</strong>: Put away jewellery, cash, and important documents.</li>
+<li><strong>Communicate specific needs</strong>: Note any areas requiring special attention or products to avoid (e.g., wood floors, marble surfaces).</li>
+<li><strong>Ensure access</strong>: Make sure cleaners can access all rooms, including storage areas if needed.</li>
+<li><strong>Put pets somewhere safe</strong>: Some pets get stressed by strangers; it's kinder to keep them in a separate room or with a neighbour.</li>
+</ol>
+
+<h2>What professional cleaners do (and don't do)</h2>
+<p>Professional cleaning companies typically include:</p>
+<ul>
+<li>Dusting all accessible surfaces</li>
+<li>Vacuuming carpets and mopping hard floors</li>
+<li>Cleaning bathrooms (toilet, sink, bath/shower, mirrors)</li>
+<li>Kitchen cleaning (countertops, exterior of appliances, sink)</li>
+<li>Emptying bins</li>
+</ul>
+<p>Standard cleaning usually excludes: interior of ovens, fridge cleaning, window exteriors, heavy furniture moving, and laundry.</p>
+
+<h2>How many hours does apartment cleaning take?</h2>
+<p>As a general guide:</p>
+<ul>
+<li>Studio / 1-room apartment: 2–3 hours</li>
+<li>2-room apartment: 3–4 hours</li>
+<li>3-room apartment: 4–5 hours</li>
+<li>4+ rooms: 5–7 hours</li>
+</ul>
+<p>Deep cleaning typically takes 50–100% longer than standard cleaning.</p>
+
+<h2>Getting the best results</h2>
+<p>To ensure consistently great results: book the same team regularly, provide specific feedback after each session, and maintain your home between professional cleanings with basic daily tidying.</p>`,
+  },
+  {
+    slug: 'benefits-professional-office-cleaning',
+    lang: 'en',
+    linkedSlug: 'beneficiile-curatenie-profesionala-birou',
+    title: 'Why Hiring a Professional Office Cleaning Company Is Worth It',
+    excerpt:
+      'Discover the real benefits of professional office cleaning — from employee productivity and health to client impressions and cost savings.',
+    category: 'sfaturi',
+    tags: ['office cleaning', 'professional cleaning', 'workplace hygiene'],
+    author: 'HelpMeClean Team',
+    publishedAt: '2026-02-01',
+    readTimeMinutes: 5,
+    metaTitle: 'Why Hire a Professional Office Cleaning Company | HelpMeClean',
+    metaDescription:
+      "Professional office cleaning improves employee health, productivity and client impressions. Find out why it's worth the investment.",
+    content: `<h2>The true cost of a dirty office</h2>
+<p>A messy, unhygienic workplace costs more than you might think. Studies show that employees take more sick days in poorly maintained offices, productivity drops when workspaces are cluttered, and potential clients often form negative first impressions based on office cleanliness.</p>
+<p>Professional cleaning is not a cost — it's an investment that pays for itself.</p>
+
+<h2>Health and reduced sick days</h2>
+<p>Offices are hotspots for bacteria and viruses. Shared keyboards, door handles, phones, and kitchen areas can harbour hundreds of thousands of germs. Professional cleaners use appropriate disinfectants and techniques to significantly reduce bacterial load.</p>
+<p>Companies with regular professional cleaning report fewer sick days, lower staff turnover due to health issues, and better overall workplace wellbeing.</p>
+
+<h2>Employee productivity</h2>
+<p>Research consistently shows that a clean, organised workspace improves focus and productivity. When employees don't have to worry about tidying up or cleaning common areas, they can concentrate fully on their work.</p>
+<p>Moreover, professional cleaning improves air quality by removing dust and allergens — reducing headaches, eye irritation, and respiratory issues that impair concentration.</p>
+
+<h2>Professional image for clients</h2>
+<p>Your office is your brand's physical manifestation. A clean, well-maintained office communicates professionalism, attention to detail, and respect for visitors.</p>
+<p>In contrast, dusty surfaces, dirty toilets, or overflowing bins can undermine even the most polished business presentation.</p>
+
+<h2>Cost efficiency vs. in-house cleaning</h2>
+<p>Many companies assume hiring in-house cleaning staff is cheaper. When you factor in employment costs, equipment, supplies, supervision time, holiday cover, and sick pay, professional cleaning services often prove more cost-effective — with the added benefit of accountability and consistent quality standards.</p>
+
+<h2>Choosing the right office cleaning partner</h2>
+<p>Look for a company that offers flexible scheduling (after hours or at weekends), uses eco-friendly products, has verifiable insurance, and provides a dedicated account manager. On HelpMeClean, all partner companies are pre-verified for exactly these criteria.</p>`,
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
 }
 
-export function getRelatedPosts(currentSlug: string, limit = 2): BlogPost[] {
-  return BLOG_POSTS.filter((p) => p.slug !== currentSlug).slice(0, limit);
+export function getPostsByLanguage(lang: BlogLanguage): BlogPost[] {
+  return BLOG_POSTS.filter((p) => p.lang === lang);
+}
+
+export function getLinkedPost(post: BlogPost): BlogPost | undefined {
+  if (!post.linkedSlug) return undefined;
+  return BLOG_POSTS.find((p) => p.slug === post.linkedSlug);
+}
+
+export function getRelatedPosts(currentSlug: string, limit = 2, lang?: BlogLanguage): BlogPost[] {
+  return BLOG_POSTS.filter((p) => p.slug !== currentSlug && (!lang || p.lang === lang)).slice(
+    0,
+    limit,
+  );
 }

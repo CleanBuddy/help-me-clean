@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "title": "Blog | HelpMeClean.ro",
+    "description": "Cleaning tips, guides and articles about professional cleaning services in Romania."
+  },
+  "categories": {
+    "all": "All",
+    "sfaturi": "Tips",
+    "ghid-orase": "City Guides",
+    "cum-sa": "How To"
+  },
+  "readTime": "min read",
+  "readMore": "Read article",
+  "relatedTitle": "Related articles",
+  "backToBlog": "Back to blog",
+  "noArticles": "No articles in this category.",
+  "heroTitle": "Blog",
+  "heroSubtitle": "Tips, guides and news about professional cleaning",
+  "ctaTitle": "Ready to book a cleaning?",
+  "ctaSubtitle": "Our platform is launching soon. Join the waitlist.",
+  "ctaButton": "Sign up"
+}

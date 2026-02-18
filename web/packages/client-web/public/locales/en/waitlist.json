@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Waitlist | HelpMeClean.ro",
+    "description": "Join the waitlist and be the first to know when HelpMeClean launches in your city."
+  },
+  "badge": "Launching soon",
+  "title": "Be the first to know when we launch",
+  "subtitle": "Sign up now and get priority access to the platform, plus",
+  "discount": "15% off",
+  "discountSuffix": "your first booking.",
+  "features": {
+    "notification": "Launch notification",
+    "discount": "15% off first booking",
+    "priority": "Priority access"
+  },
+  "tabs": {
+    "client": "I want cleaning",
+    "company": "I represent a company"
+  },
+  "clientForm": {
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone (optional)",
+    "city": "City (optional)",
+    "placeholder_name": "e.g. John Smith",
+    "placeholder_email": "john@email.com",
+    "placeholder_phone": "+40 7XX XXX XXX",
+    "placeholder_city": "Select your city",
+    "submit": "Join the waitlist",
+    "submitting": "Sending..."
+  },
+  "companyForm": {
+    "contact": "Contact person",
+    "companyName": "Company name",
+    "email": "Email",
+    "phone": "Phone",
+    "city": "County / Main city (optional)",
+    "message": "Message (optional)",
+    "placeholder_contact": "e.g. Maria Ionescu",
+    "placeholder_company": "e.g. Clean Pro SRL",
+    "placeholder_email": "contact@yourcleaningcompany.com",
+    "placeholder_phone": "+40 7XX XXX XXX",
+    "placeholder_city": "e.g. Bucharest, Cluj-Napoca...",
+    "placeholder_message": "Tell us more about your company...",
+    "submit": "I want to become a partner",
+    "submitting": "Sending..."
+  },
+  "validation": {
+    "nameRequired": "Name is required.",
+    "emailRequired": "Email is required.",
+    "emailInvalid": "Email address is not valid.",
+    "contactRequired": "Contact person is required.",
+    "companyRequired": "Company name is required.",
+    "phoneRequired": "Phone is required for companies.",
+    "alreadyRegistered": "This email address is already on the waitlist.",
+    "genericError": "An error occurred. Please try again."
+  },
+  "success": {
+    "title": "Successfully joined!",
+    "clientMsg": "We'll contact you when the platform launches in {{city}} and notify you first.",
+    "companyMsg": "We'll contact you soon to discuss the partnership with HelpMeClean.",
+    "confirmEmail": "Check your email for confirmation"
+  },
+  "alreadyRegistered": {
+    "title": "You're already registered!",
+    "msg": "You're already on our waitlist. We'll notify you first when we launch in your city.",
+    "badge": "Successfully registered"
+  },
+  "socialProof": "Already",
+  "socialProofSuffix": "people signed up",
+  "privacy": "By signing up you agree to the",
+  "terms": "Terms and Conditions",
+  "and": "and",
+  "privacyPolicy": "Privacy Policy",
+  "noSpam": "No spam.",
+  "cities": {
+    "other": "Other city"
+  }
+}

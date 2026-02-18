@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "title": "Servicii de Curățenie la Domiciliu | HelpMeClean.ro",
+    "description": "Prima platformă de curățenie din România. Firme verificate, prețuri transparente, plată online. Rezervă curățenie standard, generală sau post-construcție."
+  },
+  "preReleaseBanner": "Platforma se lansează în curând!",
+  "preReleaseBannerLink": "Înscrie-te pe lista de așteptare →",
+  "hero": {
+    "badge": "Platforma #1 de curățenie din România",
+    "headline1": "Casă curată,",
+    "headline2": "fără bătăi",
+    "headline3": "de cap.",
+    "subheadline": "Conectăm clienții cu firme de curățenie verificate din România. Rezervi în 2 minute, plătești online, te bucuri de rezultat.",
+    "ctaDashboard": "Mergi la contul tău",
+    "ctaAdmin": "Panou admin",
+    "ctaServices": "Vezi serviciile",
+    "ctaWaitlist": "Înregistrează-te pe lista de așteptare",
+    "ctaBook": "Rezervă o curățenie",
+    "ctaMyAccount": "Contul meu",
+    "ctaDiscover": "Descoperă serviciile",
+    "socialProof": "rezervări efectuate"
+  },
+  "bookingCard": {
+    "confirmed": "Rezervare confirmată",
+    "service": "Curățenie Standard",
+    "date": "Mâine, 10:00",
+    "duration": "3 ore",
+    "company": "CleanPro SRL",
+    "labelDate": "Data",
+    "labelDuration": "Durată",
+    "labelCompany": "Firmă",
+    "labelTotal": "Total",
+    "total": "180 lei",
+    "securePayment": "Plată securizată · Anulare gratuită",
+    "reviews": "500+ recenzii",
+    "verifiedFirm": "Firmă verificată"
+  },
+  "trustBadges": {
+    "verified": "Firme verificate și asigurate",
+    "securePay": "Plată securizată",
+    "invoice": "E-factură inclusă",
+    "noSubscription": "Fără abonament",
+    "freeCancellation": "Anulare gratuită"
+  },
+  "services": {
+    "sectionLabel": "Servicii",
+    "title": "Ce putem face pentru tine?",
+    "subtitle": "Alege tipul de curățenie potrivit și rezervă în câteva minute.",
+    "loading": "Se încarcă serviciile...",
+    "priceUnit": "/oră",
+    "minHours": "Minim {{count}} ore"
+  },
+  "howItWorks": {
+    "sectionLabel": "Proces",
+    "title": "Cum funcționează?",
+    "subtitle": "Trei pași simpli către o locuință curată.",
+    "step1Title": "Alege serviciul",
+    "step1Desc": "Selectează tipul de curățenie, numărul de camere și data dorită.",
+    "step2Title": "Programează",
+    "step2Desc": "Confirmă detaliile și plasează comanda. O firmă va prelua cererea ta rapid.",
+    "step3Title": "Bucură-te de rezultat",
+    "step3Desc": "Echipa vine la tine. Tu te relaxezi, noi ne ocupăm de restul.",
+    "cta": "Rezervă acum"
+  },
+  "stats": {
+    "bookings": "Rezervări efectuate",
+    "companies": "Firme partenere",
+    "rating": "Rating mediu",
+    "payments": "Plăți securizate"
+  },
+  "trust": {
+    "sectionLabel": "De ce noi",
+    "title": "De ce HelpMeClean?",
+    "subtitle": "Siguranță, transparență și calitate în fiecare serviciu.",
+    "verified": {
+      "title": "Firme verificate",
+      "desc": "Toate firmele partenere trec printr-un proces strict de verificare și acreditare."
+    },
+    "payments": {
+      "title": "Plăți sigure",
+      "desc": "Platești online în siguranță. Banii ajung la firmă doar după finalizarea lucrării."
+    },
+    "prices": {
+      "title": "Prețuri transparente",
+      "desc": "Niciun cost ascuns. Știi prețul final înainte de a confirma rezervarea."
+    },
+    "support": {
+      "title": "Suport rapid",
+      "desc": "Echipa noastră este disponibilă să te ajute cu orice problemă sau întrebare."
+    },
+    "invoice": {
+      "title": "E-factură automată",
+      "desc": "Factură electronică emisă automat după fiecare serviciu, conformă cu legislația română."
+    }
+  },
+  "testimonials": {
+    "sectionLabel": "Recenzii",
+    "title": "Ce spun clienții noștri",
+    "t1": {
+      "name": "Maria Ionescu",
+      "city": "București",
+      "text": "Am găsit o firmă excelentă în mai puțin de 5 minute. Serviciu impecabil, recomand cu toată încrederea!"
+    },
+    "t2": {
+      "name": "Andrei Popescu",
+      "city": "București",
+      "text": "Platforma e simplă și intuitivă. Am rezervat curățenie de 3 ori și de fiecare dată a fost perfect."
+    },
+    "t3": {
+      "name": "Elena Dumitrescu",
+      "city": "București",
+      "text": "Prețuri transparente, fără surprize neplăcute. Echipa de curățenie a fost punctuală și profesionistă."
+    }
+  },
+  "partners": {
+    "sectionLabel": "Parteneri",
+    "title": "Ești firmă de curățenie?",
+    "subtitle": "Alătură-te platformei HelpMeClean și primește comenzi de la clienți din toată România.",
+    "step1Title": "Aplici online",
+    "step1Desc": "Trimiți documentele firmei în 5 minute, direct din platformă.",
+    "step2Title": "Ești aprobat",
+    "step2Desc": "Echipa noastră verifică și activează contul tău în 24–48 de ore.",
+    "step3Title": "Primești comenzi",
+    "step3Desc": "Clienții te găsesc și rezervă direct — tu te ocupi de curățenie.",
+    "b1Title": "Clienți noi",
+    "b1Desc": "Primești comenzi de la clienți verificați din zona ta de acoperire.",
+    "b2Title": "Plăți digitale",
+    "b2Desc": "Încasezi online, fără bătăi de cap cu numerarul sau facturile.",
+    "b3Title": "Administrare simplă",
+    "b3Desc": "Dashboard dedicat pentru comenzi, echipă și comunicare cu clienții.",
+    "b4Title": "Creștere garantată",
+    "b4Desc": "Vizibilitate pe platformă, recenzii și rating pentru mai mulți clienți.",
+    "cta": "Aplică ca partener"
+  }
+}

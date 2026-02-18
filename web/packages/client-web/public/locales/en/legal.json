@@ -1,0 +1,152 @@
+{
+  "terms": {
+    "meta": {
+      "title": "Terms and Conditions | HelpMeClean.ro",
+      "description": "Terms and conditions for using the HelpMeClean.ro platform."
+    },
+    "title": "Terms and Conditions",
+    "lastUpdated": "Last updated: January 1, 2024",
+    "intro": "Please read these Terms and Conditions carefully before using the HelpMeClean.ro platform. By accessing or using our services, you agree to these terms.",
+    "s1": {
+      "title": "1. Definitions",
+      "intro": "In this document, the terms below have the following meanings:",
+      "platform": "Platform",
+      "platformDef": "the helpmeclean.ro website and associated applications, operated by HelpMeClean SRL",
+      "user": "User",
+      "userDef": "any natural or legal person who accesses or uses the Platform",
+      "client": "Client",
+      "clientDef": "the user who orders cleaning services through the Platform",
+      "partner": "Partner company",
+      "partnerDef": "the verified and approved cleaning company that provides services through the Platform",
+      "service": "Service",
+      "serviceDef": "the cleaning service booked and paid for through the Platform",
+      "account": "Account",
+      "accountDef": "the account created by the User to access the Platform's features"
+    },
+    "s2": {
+      "title": "2. Use of the platform",
+      "p1": "HelpMeClean.ro is an intermediary platform that facilitates the connection between Clients and partner cleaning companies. The Platform is not the direct provider of cleaning services.",
+      "p2": "Use of the Platform is permitted to persons aged at least 18 years. By creating an account, you confirm that you have full legal capacity.",
+      "p3": "Bookings made through the Platform constitute direct contracts between the Client and the Partner company. HelpMeClean SRL acts exclusively as an intermediary and is not a party to the cleaning services contract."
+    },
+    "s3": {
+      "title": "3. User obligations",
+      "intro": "Platform users undertake to:",
+      "o1": "Provide accurate and complete information when registering and placing orders;",
+      "o2": "Not use the Platform for illegal purposes or contrary to public order;",
+      "o3": "Not disrupt the normal operation of the Platform or other users;",
+      "o4": "Not reproduce, distribute or modify Platform content without HelpMeClean SRL's written consent;",
+      "o5": "Maintain the confidentiality of account access credentials;",
+      "o6": "Pay for booked services at the displayed prices;",
+      "o7": "Allow the cleaning team access to the address specified at the scheduled date."
+    },
+    "s4": {
+      "title": "4. Prices and payments",
+      "p1": "All prices displayed on the Platform include VAT where applicable and are expressed in Romanian lei (RON). The final service price is calculated automatically based on the area, number of rooms and selected additional services.",
+      "p2": "Payment is made electronically, by bank card, through the Stripe payment processor. HelpMeClean SRL does not store your card data.",
+      "p3": "HelpMeClean SRL charges an intermediary commission from the value of each transaction. The commission is included in the final price displayed to the Client."
+    },
+    "s5": {
+      "title": "5. Cancellation and refund",
+      "p1": "The Client may cancel a booking free of charge at least 24 hours before the scheduled time. Cancellations made less than 24 hours in advance may be subject to a cancellation fee according to the Partner company's policy.",
+      "p2": "If the service was not provided as contracted, the Client may request a partial or full refund through the Platform within 48 hours of the scheduled service completion. Refund requests are reviewed individually by the HelpMeClean team."
+    },
+    "s6": {
+      "title": "6. Liability",
+      "p1": "HelpMeClean SRL is not liable for direct or indirect damages caused by Partner companies' failure to fulfil their contractual obligations. Our liability as intermediary is limited to the value of the intermediary commission charged for that transaction.",
+      "p2": "Partner companies are required to maintain active professional civil liability insurance throughout the entire collaboration with HelpMeClean. Insurance documents are verified during each company's onboarding and periodically thereafter."
+    },
+    "s7": {
+      "title": "7. Changes to the terms",
+      "p1": "HelpMeClean SRL reserves the right to modify these Terms and Conditions at any time. Changes take effect on the date of publication on the Platform. Continued use of the Platform after publication of changes constitutes acceptance of the new terms. We recommend checking this page periodically."
+    },
+    "s8": {
+      "title": "8. Contact",
+      "p1": "For any questions regarding these Terms and Conditions, you can contact us at contact@helpmeclean.ro or at HelpMeClean SRL's registered office, Bucharest, Romania."
+    }
+  },
+  "privacy": {
+    "meta": {
+      "title": "Privacy Policy | HelpMeClean.ro",
+      "description": "Privacy policy and personal data protection on the HelpMeClean.ro platform, in compliance with GDPR."
+    },
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: January 1, 2024",
+    "intro": "HelpMeClean SRL respects users' right to privacy and is committed to protecting personal data in accordance with Regulation (EU) 2016/679 (GDPR) and applicable national legislation. This policy describes the types of data collected, the purpose of processing, and your rights.",
+    "s1": {
+      "title": "1. Data controller",
+      "p1": "The personal data controller is HelpMeClean SRL, registered in Bucharest, Romania. You can contact us for any aspect related to data processing at: dpo@helpmeclean.ro."
+    },
+    "s2": {
+      "title": "2. Data collected",
+      "intro": "Depending on how you use the Platform, we collect the following categories of data:",
+      "cat1Title": "Identification data",
+      "cat1Items": ["First and last name", "Email address", "Phone number", "Profile photo (optional)"],
+      "cat2Title": "Location and address data",
+      "cat2Items": ["Address for service delivery", "City and county", "GPS coordinates (optional, for route optimisation)"],
+      "cat3Title": "Payment data",
+      "cat3Items": ["Card data processed by Stripe (not stored directly by us)", "Transaction history", "Billing data (tax ID, fiscal address)"],
+      "cat4Title": "Usage data",
+      "cat4Items": ["Booking history", "Reviews and ratings", "Platform chat messages", "Access data (IP, browser, operating system)"]
+    },
+    "s3": {
+      "title": "3. Purpose of processing",
+      "intro": "We process your data for the following purposes:",
+      "scope1": "Contract performance",
+      "scope1Desc": "processing and managing cleaning service bookings",
+      "scope2": "Communication",
+      "scope2Desc": "booking status notifications, chat with the cleaning company, support",
+      "scope3": "Payments",
+      "scope3Desc": "processing financial transactions and issuing invoices",
+      "scope4": "Security",
+      "scope4Desc": "fraud prevention, identity verification, account protection",
+      "scope5": "Service improvement",
+      "scope5Desc": "anonymised statistical analysis to improve the platform",
+      "scope6": "Legal obligations",
+      "scope6Desc": "compliance with tax requirements and other applicable regulations"
+    },
+    "s4": {
+      "title": "4. Legal basis for processing",
+      "intro": "We process your data on the basis of:",
+      "b1": "Contract performance (Art. 6(1)(b) GDPR) — for managing bookings and payments;",
+      "b2": "Consent (Art. 6(1)(a) GDPR) — for marketing communications, if you have opted in;",
+      "b3": "Legitimate interest (Art. 6(1)(f) GDPR) — for fraud prevention and platform security;",
+      "b4": "Legal obligation (Art. 6(1)(c) GDPR) — for tax and accounting obligations."
+    },
+    "s5": {
+      "title": "5. Your rights",
+      "intro": "Under GDPR, you have the following rights in relation to your data:",
+      "r1": "Right of access",
+      "r1Desc": "You may request a copy of the data we hold about you.",
+      "r2": "Right to rectification",
+      "r2Desc": "You may correct inaccurate or incomplete data at any time.",
+      "r3": "Right to erasure",
+      "r3Desc": "You may request deletion of your data, subject to certain legal exceptions.",
+      "r4": "Right to data portability",
+      "r4Desc": "You may receive your data in a structured format.",
+      "r5": "Right to object",
+      "r5Desc": "You may object to processing based on legitimate interest.",
+      "r6": "Right to restriction",
+      "r6Desc": "You may request restriction of processing in certain circumstances.",
+      "contact": "To exercise your rights, contact us at dpo@helpmeclean.ro. You will receive a response within 30 days. You also have the right to lodge a complaint with the National Supervisory Authority for Personal Data Processing (ANSPDCP)."
+    },
+    "s6": {
+      "title": "6. Cookies",
+      "intro": "The Platform uses cookies and similar technologies to ensure correct operation of services and to analyse traffic.",
+      "c1": "Essential cookies",
+      "c1Desc": "Necessary for the platform to function (authentication, session). Cannot be disabled.",
+      "c2": "Analytical cookies",
+      "c2Desc": "We collect anonymised usage data via Google Analytics to improve the platform.",
+      "c3": "Functional cookies",
+      "c3Desc": "Store your preferences (language, settings) for a better experience."
+    },
+    "s7": {
+      "title": "7. Data retention period",
+      "p1": "We retain your data for as long as necessary for the purposes described above or as required by legal obligations. Account data is retained for the duration of service use. Upon account deletion, personal data is anonymised or deleted within 30 days, except for data required for tax obligations (retained for 10 years by law)."
+    },
+    "s8": {
+      "title": "8. DPO contact",
+      "p1": "Our Data Protection Officer can be contacted at: dpo@helpmeclean.ro. Any question, request or complaint relating to the processing of personal data can be addressed to this address."
+    }
+  }
+}

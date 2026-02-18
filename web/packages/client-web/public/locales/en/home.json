@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "title": "Professional Cleaning Services in Romania | HelpMeClean.ro",
+    "description": "Romania's first cleaning marketplace. Verified companies, transparent pricing, online payment. Book standard, deep or post-construction cleaning in minutes."
+  },
+  "preReleaseBanner": "Platform launching soon!",
+  "preReleaseBannerLink": "Join the waitlist →",
+  "hero": {
+    "badge": "Romania's #1 cleaning platform",
+    "headline1": "Clean home,",
+    "headline2": "no hassle.",
+    "headline3": "",
+    "subheadline": "We connect clients with verified cleaning companies in Romania. Book in 2 minutes, pay online, enjoy the result.",
+    "ctaDashboard": "Go to your account",
+    "ctaAdmin": "Admin panel",
+    "ctaServices": "View services",
+    "ctaWaitlist": "Join the waitlist",
+    "ctaBook": "Book a cleaning",
+    "ctaMyAccount": "My account",
+    "ctaDiscover": "Discover services",
+    "socialProof": "bookings made"
+  },
+  "bookingCard": {
+    "confirmed": "Booking confirmed",
+    "service": "Standard Cleaning",
+    "date": "Tomorrow, 10:00",
+    "duration": "3 hours",
+    "company": "CleanPro SRL",
+    "labelDate": "Date",
+    "labelDuration": "Duration",
+    "labelCompany": "Company",
+    "labelTotal": "Total",
+    "total": "180 RON",
+    "securePayment": "Secure payment · Free cancellation",
+    "reviews": "500+ reviews",
+    "verifiedFirm": "Verified company"
+  },
+  "trustBadges": {
+    "verified": "Verified & insured companies",
+    "securePay": "Secure payment",
+    "invoice": "Invoice included",
+    "noSubscription": "No subscription",
+    "freeCancellation": "Free cancellation"
+  },
+  "services": {
+    "sectionLabel": "Services",
+    "title": "What can we do for you?",
+    "subtitle": "Choose the right cleaning type and book in minutes.",
+    "loading": "Loading services...",
+    "priceUnit": "/hour",
+    "minHours": "Minimum {{count}} hours"
+  },
+  "howItWorks": {
+    "sectionLabel": "Process",
+    "title": "How does it work?",
+    "subtitle": "Three simple steps to a clean home.",
+    "step1Title": "Choose your service",
+    "step1Desc": "Select the cleaning type, number of rooms and preferred date.",
+    "step2Title": "Schedule",
+    "step2Desc": "Confirm the details and place your order. A company will accept quickly.",
+    "step3Title": "Enjoy the result",
+    "step3Desc": "The team comes to you. You relax, we handle the rest.",
+    "cta": "Book now"
+  },
+  "stats": {
+    "bookings": "Bookings made",
+    "companies": "Partner companies",
+    "rating": "Average rating",
+    "payments": "Secure payments"
+  },
+  "trust": {
+    "sectionLabel": "Why us",
+    "title": "Why HelpMeClean?",
+    "subtitle": "Safety, transparency and quality in every service.",
+    "verified": {
+      "title": "Verified companies",
+      "desc": "All partner companies go through a strict verification and accreditation process."
+    },
+    "payments": {
+      "title": "Secure payments",
+      "desc": "Pay online safely. Money reaches the company only after the job is done."
+    },
+    "prices": {
+      "title": "Transparent pricing",
+      "desc": "No hidden costs. You know the final price before confirming your booking."
+    },
+    "support": {
+      "title": "Fast support",
+      "desc": "Our team is available to help you with any issue or question."
+    },
+    "invoice": {
+      "title": "Automatic invoice",
+      "desc": "Electronic invoice issued automatically after every service, compliant with Romanian law."
+    }
+  },
+  "testimonials": {
+    "sectionLabel": "Reviews",
+    "title": "What our clients say",
+    "t1": {
+      "name": "Maria Ionescu",
+      "city": "Bucharest",
+      "text": "I found an excellent company in less than 5 minutes. Impeccable service, I highly recommend!"
+    },
+    "t2": {
+      "name": "Andrei Popescu",
+      "city": "Bucharest",
+      "text": "The platform is simple and intuitive. I've booked cleaning 3 times and each time it was perfect."
+    },
+    "t3": {
+      "name": "Elena Dumitrescu",
+      "city": "Bucharest",
+      "text": "Transparent pricing, no unpleasant surprises. The cleaning team was punctual and professional."
+    }
+  },
+  "partners": {
+    "sectionLabel": "Partners",
+    "title": "Are you a cleaning company?",
+    "subtitle": "Join HelpMeClean and receive orders from clients across Romania.",
+    "step1Title": "Apply online",
+    "step1Desc": "Submit your company documents in 5 minutes, directly from the platform.",
+    "step2Title": "Get approved",
+    "step2Desc": "Our team verifies and activates your account within 24–48 hours.",
+    "step3Title": "Receive orders",
+    "step3Desc": "Clients find you and book directly — you focus on the cleaning.",
+    "b1Title": "New clients",
+    "b1Desc": "Receive orders from verified clients in your service area.",
+    "b2Title": "Digital payments",
+    "b2Desc": "Collect online, no hassle with cash or invoices.",
+    "b3Title": "Simple management",
+    "b3Desc": "Dedicated dashboard for orders, team and client communication.",
+    "b4Title": "Guaranteed growth",
+    "b4Desc": "Platform visibility, reviews and rating to attract more clients.",
+    "cta": "Apply as partner"
+  }
+}

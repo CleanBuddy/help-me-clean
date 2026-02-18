@@ -1,1 +1,36 @@
-import '@testing-library/jest-dom/vitest'
+import '@testing-library/jest-dom/vitest';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+// Import all RO translation namespaces so tests get real Romanian strings
+import roCommon from '../../public/locales/ro/common.json';
+import roHome from '../../public/locales/ro/home.json';
+import roWaitlist from '../../public/locales/ro/waitlist.json';
+import roAbout from '../../public/locales/ro/about.json';
+import roContact from '../../public/locales/ro/contact.json';
+import roCompanies from '../../public/locales/ro/companies.json';
+import roBlog from '../../public/locales/ro/blog.json';
+import roLegal from '../../public/locales/ro/legal.json';
+import roAuth from '../../public/locales/ro/auth.json';
+
+// Initialise i18next synchronously so all tests get real Romanian translations
+// without needing to mock useTranslation in every test file.
+i18n.use(initReactI18next).init({
+  lng: 'ro',
+  fallbackLng: 'ro',
+  initImmediate: false,
+  resources: {
+    ro: {
+      common: roCommon,
+      home: roHome,
+      waitlist: roWaitlist,
+      about: roAbout,
+      contact: roContact,
+      companies: roCompanies,
+      blog: roBlog,
+      legal: roLegal,
+      auth: roAuth,
+    },
+  },
+  interpolation: { escapeValue: false },
+});

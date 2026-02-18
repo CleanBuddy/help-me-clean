@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "title": "For Cleaning Companies | HelpMeClean.ro",
+    "description": "Partner with HelpMeClean: get new clients online, manage bookings digitally and grow your cleaning business in Romania."
+  },
+  "hero": {
+    "title": "Grow your business with HelpMeClean",
+    "subtitle": "We bring new clients directly to your door. No hidden fees, no hassle — just verified orders and guaranteed payments.",
+    "ctaApply": "Apply now",
+    "ctaWaitlist": "Join the waitlist"
+  },
+  "benefits": {
+    "title": "Why choose HelpMeClean?",
+    "subtitle": "The platform built specifically for cleaning companies in Romania.",
+    "b1Title": "New clients online",
+    "b1Desc": "We reach thousands of households in Bucharest and major cities. You focus on cleaning, we handle marketing.",
+    "b2Title": "Safe digital payments",
+    "b2Desc": "Payments are processed online and guaranteed. No chasing payments — collect directly into your account.",
+    "b3Title": "Simplified management",
+    "b3Desc": "Dedicated dashboard to manage orders, team and schedule. Everything in one place.",
+    "b4Title": "Guaranteed growth",
+    "b4Desc": "Partner companies report an average 40% increase in orders within their first 3 months."
+  },
+  "howToJoin": {
+    "title": "How to become a partner?",
+    "subtitle": "The process takes less than 10 minutes.",
+    "s1Step": "01",
+    "s1Title": "Apply online",
+    "s1Desc": "Fill in the form with your company details: tax ID, contact person, service area.",
+    "s2Step": "02",
+    "s2Title": "Document verification",
+    "s2Desc": "Our team verifies your company documents (registration certificate, civil insurance) within 48 hours.",
+    "s3Step": "03",
+    "s3Title": "Receive orders",
+    "s3Desc": "Your account is activated and you start receiving bookings from HelpMeClean directly on your phone."
+  },
+  "requirements": {
+    "title": "Partner requirements",
+    "r1Title": "Valid tax ID (CUI)",
+    "r1Desc": "Legally registered company in Romania with an active unique tax identification number.",
+    "r2Title": "Civil liability insurance",
+    "r2Desc": "Civil liability insurance for cleaning activities, covering potential damages.",
+    "r3Title": "Company documents",
+    "r3Desc": "Registration certificate from the Trade Register and articles of incorporation."
+  },
+  "cta": {
+    "title": "Ready to grow?",
+    "subtitle": "Join the first partner companies and get priority access to orders in the HelpMeClean platform.",
+    "ctaApply": "Apply now",
+    "ctaWaitlist": "Join the waitlist"
+  }
+}

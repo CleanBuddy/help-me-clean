@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "title": "Pentru Firme de Curățenie | HelpMeClean.ro",
+    "description": "Parteneriat cu HelpMeClean: obține clienți noi online, gestionează rezervările digital și crește-ți afacerea de curățenie în România."
+  },
+  "hero": {
+    "title": "Crește-ți afacerea cu HelpMeClean",
+    "subtitle": "Aducem clienți noi direct la ușa ta. Fără comisioane ascunse, fără bătăi de cap — doar comenzi verificate și plăți garantate.",
+    "ctaApply": "Aplică acum",
+    "ctaWaitlist": "Înscrie-te pe lista de așteptare"
+  },
+  "benefits": {
+    "title": "De ce să alegi HelpMeClean?",
+    "subtitle": "Platforma construită special pentru firmele de curățenie din România.",
+    "b1Title": "Clienți noi online",
+    "b1Desc": "Ajungem la mii de gospodării din București și orașele mari. Tu te ocupi de curățenie, noi de marketing.",
+    "b2Title": "Plăți digitale sigure",
+    "b2Desc": "Plățile sunt procesate online și garantate. Nu mai alergi după bani — încasezi direct în cont.",
+    "b3Title": "Management simplificat",
+    "b3Desc": "Dashboard dedicat pentru gestionarea comenzilor, echipei și programului. Totul într-un singur loc.",
+    "b4Title": "Creștere garantată",
+    "b4Desc": "Firmele partenere raportează o creștere medie de 40% a comenzilor în primele 3 luni de activitate."
+  },
+  "howToJoin": {
+    "title": "Cum devii partener?",
+    "subtitle": "Procesul durează mai puțin de 10 minute.",
+    "s1Step": "01",
+    "s1Title": "Aplică online",
+    "s1Desc": "Completează formularul cu datele firmei tale: CUI, persoană de contact, zona de acoperire.",
+    "s2Step": "02",
+    "s2Title": "Verificare documente",
+    "s2Desc": "Echipa noastră verifică documentele firmei (certificat de înregistrare, asigurare civilă) în maxim 48 de ore.",
+    "s3Step": "03",
+    "s3Title": "Primești comenzi",
+    "s3Desc": "Contul tău este activat și începi să primești rezervări din platforma HelpMeClean direct pe telefon."
+  },
+  "requirements": {
+    "title": "Cerințe pentru parteneri",
+    "r1Title": "CUI valid",
+    "r1Desc": "Firmă înregistrată legal în România cu cod unic de identificare fiscală activ.",
+    "r2Title": "Asigurare civilă",
+    "r2Desc": "Poliță de asigurare civilă pentru activitățile de curățenie, acoperind eventualele daune.",
+    "r3Title": "Documente firmă",
+    "r3Desc": "Certificat de înregistrare la Registrul Comerțului și actul constitutiv."
+  },
+  "cta": {
+    "title": "Pregătit să crești?",
+    "subtitle": "Alătură-te primelor firme partenere și obține acces prioritar la comenzile din platforma HelpMeClean.",
+    "ctaApply": "Aplică acum",
+    "ctaWaitlist": "Înscrie-te pe lista de așteptare"
+  }
+}

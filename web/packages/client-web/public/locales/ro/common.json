@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "services": "Servicii",
+    "howItWorks": "Cum funcționează",
+    "blog": "Blog",
+    "about": "Despre noi",
+    "login": "Intră în cont",
+    "waitlist": "Lista de așteptare",
+    "bookNow": "Rezervă acum →",
+    "forCompanies": "Pentru Firme",
+    "myAccount": "Contul meu",
+    "companyPanel": "Panoul firmei",
+    "myPanel": "Panoul meu",
+    "adminPanel": "Panou admin",
+    "logout": "Deconectare"
+  },
+  "footer": {
+    "tagline": "Prima platforma de tip marketplace din Romania care conecteaza clientii cu firme de curatenie verificate. Plati digitale, facturare automata, transparenta totala.",
+    "nav": "Navigare",
+    "forCompanies": "Pentru Firme",
+    "contact": "Contact",
+    "legal": "Legal",
+    "services": "Servicii",
+    "bookCleaning": "Rezerva o curatenie",
+    "myOrders": "Comenzile mele",
+    "blog": "Blog",
+    "about": "Despre noi",
+    "contactLink": "Contact",
+    "becomePartner": "Devino partener",
+    "companyDashboard": "Dashboard firma",
+    "terms": "Termeni și condiții",
+    "privacy": "Politica de confidențialitate",
+    "rights": "Toate drepturile rezervate.",
+    "email": "contact@helpmeclean.ro",
+    "phone": "+40 700 000 000",
+    "city": "Bucuresti, Romania"
+  }
+}

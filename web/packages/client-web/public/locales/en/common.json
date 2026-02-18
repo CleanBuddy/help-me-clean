@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "services": "Services",
+    "howItWorks": "How it works",
+    "blog": "Blog",
+    "about": "About us",
+    "login": "Sign in",
+    "waitlist": "Join waitlist",
+    "bookNow": "Book now →",
+    "forCompanies": "For Companies",
+    "myAccount": "My account",
+    "companyPanel": "Company panel",
+    "myPanel": "My panel",
+    "adminPanel": "Admin panel",
+    "logout": "Sign out"
+  },
+  "footer": {
+    "tagline": "Romania's first cleaning marketplace connecting clients with verified cleaning companies. Digital payments, automatic invoicing, total transparency.",
+    "nav": "Navigation",
+    "forCompanies": "For Companies",
+    "contact": "Contact",
+    "legal": "Legal",
+    "services": "Services",
+    "bookCleaning": "Book a cleaning",
+    "myOrders": "My orders",
+    "blog": "Blog",
+    "about": "About us",
+    "contactLink": "Contact",
+    "becomePartner": "Become a partner",
+    "companyDashboard": "Company dashboard",
+    "terms": "Terms and conditions",
+    "privacy": "Privacy policy",
+    "rights": "All rights reserved.",
+    "email": "contact@helpmeclean.ro",
+    "phone": "+40 700 000 000",
+    "city": "Bucharest, Romania"
+  }
+}

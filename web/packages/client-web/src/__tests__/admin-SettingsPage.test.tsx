@@ -36,7 +36,7 @@ function renderSettingsPage() {
 }
 
 const mockSettings = [
-  { key: 'commission_pct', value: '15', description: 'Procentul comisionului platformei' },
+  { key: 'platform_commission_pct', value: '15', description: 'Procentul comisionului platformei' },
   { key: 'support_email', value: 'support@helpmeclean.ro', description: 'Adresa email pentru suport' },
   { key: 'support_phone', value: '0800123456', description: 'Numarul de telefon suport' },
   { key: 'min_booking_hours', value: '2', description: 'Numarul minim de ore' },

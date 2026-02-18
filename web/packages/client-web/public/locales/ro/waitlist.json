@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Lista de Așteptare | HelpMeClean.ro",
+    "description": "Înscrie-te pe lista de așteptare și fii primul care află când HelpMeClean se lansează în orașul tău."
+  },
+  "badge": "Lansare în curând",
+  "title": "Fii primul care știe când ne lansăm",
+  "subtitle": "Înscrie-te acum și primești acces prioritar la platformă, plus",
+  "discount": "15% reducere",
+  "discountSuffix": "la prima rezervare.",
+  "features": {
+    "notification": "Notificare la lansare",
+    "discount": "15% reducere prima rezervare",
+    "priority": "Acces prioritar"
+  },
+  "tabs": {
+    "client": "Vreau curățenie",
+    "company": "Reprezint o firmă"
+  },
+  "clientForm": {
+    "name": "Nume complet",
+    "email": "Email",
+    "phone": "Telefon (opțional)",
+    "city": "Oraș (opțional)",
+    "placeholder_name": "ex. Andrei Popescu",
+    "placeholder_email": "andrei@email.com",
+    "placeholder_phone": "+40 7XX XXX XXX",
+    "placeholder_city": "Selectează orașul tău",
+    "submit": "Mă înscriu pe lista de așteptare",
+    "submitting": "Se trimite..."
+  },
+  "companyForm": {
+    "contact": "Persoana de contact",
+    "companyName": "Denumire firmă",
+    "email": "Email",
+    "phone": "Telefon",
+    "city": "Județ / Oraș principal (opțional)",
+    "message": "Mesaj (opțional)",
+    "placeholder_contact": "ex. Maria Ionescu",
+    "placeholder_company": "ex. Clean Pro SRL",
+    "placeholder_email": "contact@firmatadecuratenie.ro",
+    "placeholder_phone": "+40 7XX XXX XXX",
+    "placeholder_city": "ex. București, Cluj-Napoca...",
+    "placeholder_message": "Spune-ne mai multe despre firma ta...",
+    "submit": "Vreau să devin partener",
+    "submitting": "Se trimite..."
+  },
+  "validation": {
+    "nameRequired": "Numele este obligatoriu.",
+    "emailRequired": "Emailul este obligatoriu.",
+    "emailInvalid": "Adresa de email nu este validă.",
+    "contactRequired": "Persoana de contact este obligatorie.",
+    "companyRequired": "Denumirea firmei este obligatorie.",
+    "phoneRequired": "Telefonul este obligatoriu pentru firme.",
+    "alreadyRegistered": "Această adresă de email este deja înscrisă pe lista de așteptare.",
+    "genericError": "A apărut o eroare. Te rugăm să încerci din nou."
+  },
+  "success": {
+    "title": "Te-ai înscris cu succes!",
+    "clientMsg": "Te vom contacta când platforma se lansează în {{city}} și te vom anunța primul.",
+    "companyMsg": "Te vom contacta în curând pentru a discuta despre parteneriatul cu HelpMeClean.",
+    "confirmEmail": "Verifică emailul pentru confirmare"
+  },
+  "alreadyRegistered": {
+    "title": "Ești deja înscris!",
+    "msg": "Ești deja pe lista noastră de așteptare. Te vom anunța primul când ne lansăm în orașul tău.",
+    "badge": "Înregistrat cu succes"
+  },
+  "socialProof": "Avem deja",
+  "socialProofSuffix": "persoane înscrise",
+  "privacy": "Prin înregistrare ești de acord cu",
+  "terms": "Termenii și Condițiile",
+  "and": "și",
+  "privacyPolicy": "Politica de Confidențialitate",
+  "noSpam": "Nu trimitem spam.",
+  "cities": {
+    "other": "Alt oraș"
+  }
+}

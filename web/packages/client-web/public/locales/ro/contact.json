@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "title": "Contact | HelpMeClean.ro",
+    "description": "Contactează echipa HelpMeClean pentru suport, parteneriate sau întrebări despre platforma de curățenie din România."
+  },
+  "hero": {
+    "title": "Contactează-ne",
+    "subtitle": "Suntem aici să te ajutăm. Scrie-ne și îți răspundem în cel mult o zi lucrătoare."
+  },
+  "info": {
+    "title": "Informații de contact",
+    "email": "Email",
+    "phone": "Telefon",
+    "city": "Oraș",
+    "schedule": "Program",
+    "cityValue": "București, România",
+    "scheduleValue": "Luni–Vineri, 9:00–18:00"
+  },
+  "form": {
+    "title": "Trimite un mesaj",
+    "name": "Nume complet",
+    "email": "Adresă email",
+    "subject": "Subiect",
+    "message": "Mesaj",
+    "placeholder_name": "Ion Popescu",
+    "placeholder_email": "ion@exemplu.ro",
+    "placeholder_message": "Cum te putem ajuta?",
+    "submit": "Trimite mesajul",
+    "subjects": ["Suport client", "Parteneriat firmă", "Presă", "Altele"]
+  },
+  "faq": {
+    "title": "Întrebări frecvente",
+    "q1": "Când se lansează platforma?",
+    "a1": "HelpMeClean se află în faza de pre-lansare. Ne pregătim să deschidem platforma în curând, începând cu București. Înscrie-te pe lista de așteptare pentru a primi acces prioritar și notificări despre lansare.",
+    "q2": "Cum mă înregistrez ca firmă de curățenie?",
+    "a2": "Poți aplica ca firmă parteneră prin pagina \"Pentru Firme\". Ai nevoie de un CUI valid, asigurare civilă și documentele firmei. Procesul de verificare durează maxim 48 de ore, după care contul tău va fi activat.",
+    "q3": "Cum funcționează verificarea firmelor?",
+    "a3": "Fiecare firmă parteneră trece printr-un proces de verificare a documentelor (certificat de înregistrare, asigurare civilă, CUI). Verificăm activ identitatea și documentele pentru a garanta că clienții noștri lucrează doar cu profesioniști de încredere."
+  }
+}

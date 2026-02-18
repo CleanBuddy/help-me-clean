@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "title": "Blog | HelpMeClean.ro",
+    "description": "Sfaturi de curățenie, ghiduri și articole despre servicii profesionale de curățenie în România."
+  },
+  "categories": {
+    "all": "Toate",
+    "sfaturi": "Sfaturi",
+    "ghid-orase": "Ghid Orașe",
+    "cum-sa": "Cum să"
+  },
+  "readTime": "min citire",
+  "readMore": "Citește articolul",
+  "relatedTitle": "Articole similare",
+  "backToBlog": "Înapoi la blog",
+  "noArticles": "Nu există articole în această categorie.",
+  "heroTitle": "Blog",
+  "heroSubtitle": "Sfaturi, ghiduri și noutăți despre curățenia profesională",
+  "ctaTitle": "Vrei să rezervi o curățenie?",
+  "ctaSubtitle": "Platforma noastră se lansează în curând. Înscrie-te pe lista de așteptare.",
+  "ctaButton": "Înregistrează-te"
+}

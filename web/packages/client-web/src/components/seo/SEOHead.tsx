@@ -6,6 +6,11 @@ interface ArticleMeta {
   tags: string[];
 }
 
+interface AlternateUrl {
+  ro: string;
+  en: string;
+}
+
 interface SEOHeadProps {
   title: string;
   description: string;
@@ -15,6 +20,10 @@ interface SEOHeadProps {
   articleMeta?: ArticleMeta;
   structuredData?: object;
   noIndex?: boolean;
+  /** Current page language — drives og:locale */
+  lang?: 'ro' | 'en';
+  /** Alternate language paths for hreflang — relative paths (e.g. { ro: '/despre-noi', en: '/en/about-us' }) */
+  alternateUrl?: AlternateUrl;
 }
 
 const BASE_URL = 'https://helpmeclean.ro';
@@ -29,9 +38,12 @@ export default function SEOHead({
   articleMeta,
   structuredData,
   noIndex = false,
+  lang = 'ro',
+  alternateUrl,
 }: SEOHeadProps) {
   const fullTitle = title.includes('HelpMeClean') ? title : `${title} | HelpMeClean`;
   const canonical = canonicalUrl ? `${BASE_URL}${canonicalUrl}` : undefined;
+  const ogLocale = lang === 'en' ? 'en_US' : 'ro_RO';
 
   return (
     <Helmet>
@@ -40,12 +52,21 @@ export default function SEOHead({
       {noIndex && <meta name="robots" content="noindex, nofollow" />}
       {canonical && <link rel="canonical" href={canonical} />}
 
+      {/* hreflang — signals language variants to Google */}
+      {alternateUrl && (
+        <>
+          <link rel="alternate" hrefLang="ro" href={`${BASE_URL}${alternateUrl.ro}`} />
+          <link rel="alternate" hrefLang="en" href={`${BASE_URL}${alternateUrl.en}`} />
+          <link rel="alternate" hrefLang="x-default" href={`${BASE_URL}${alternateUrl.ro}`} />
+        </>
+      )}
+
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:type" content={ogType} />
       <meta property="og:image" content={ogImage} />
       {canonical && <meta property="og:url" content={canonical} />}
-      <meta property="og:locale" content="ro_RO" />
+      <meta property="og:locale" content={ogLocale} />
       <meta property="og:site_name" content="HelpMeClean" />
 
       <meta name="twitter:card" content="summary_large_image" />

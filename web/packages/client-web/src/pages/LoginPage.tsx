@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '@/context/AuthContext';
+import { ROUTE_MAP } from '@/i18n/routes';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -15,6 +17,7 @@ const ROLE_HOME: Record<string, string> = {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
+  const { t } = useTranslation('auth');
   const navigate = useNavigate();
   const location = useLocation();
   const { loginWithGoogle, isAuthenticated, loading, user } = useAuth();
@@ -39,7 +42,7 @@ export default function LoginPage() {
 
   const handleGoogleSuccess = async (response: CredentialResponse) => {
     if (!response.credential) {
-      setError('Autentificarea Google a eșuat.');
+      setError(t('errors.googleFailed'));
       return;
     }
     setError('');
@@ -47,7 +50,7 @@ export default function LoginPage() {
       const authUser = await loginWithGoogle(response.credential);
       navigate(from || ROLE_HOME[authUser.role] || '/', { replace: true });
     } catch {
-      setError('Autentificarea a eșuat. Te rugăm să încerci din nou.');
+      setError(t('errors.generic'));
     }
   };
 
@@ -70,13 +73,13 @@ export default function LoginPage() {
         {/* Central message */}
         <div className="relative z-10">
           <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-4">
-            Platforma #1 de curățenie din România
+            {t('hero.badge')}
           </p>
           <h2 className="text-4xl font-black text-white leading-tight mb-6">
-            Casă curată,<br />fără bătăi de cap.
+            {t('hero.headline')}
           </h2>
           <p className="text-white/70 text-base leading-relaxed max-w-xs">
-            Conectăm clienții cu firme de curățenie verificate. Simplu, rapid, fără surprize.
+            {t('hero.subtitle')}
           </p>
         </div>
 
@@ -84,15 +87,15 @@ export default function LoginPage() {
         <div className="relative z-10 flex gap-8">
           <div>
             <p className="text-3xl font-black text-white">500+</p>
-            <p className="text-white/50 text-sm mt-0.5">rezervări</p>
+            <p className="text-white/50 text-sm mt-0.5">{t('hero.stat1')}</p>
           </div>
           <div>
             <p className="text-3xl font-black text-secondary">50+</p>
-            <p className="text-white/50 text-sm mt-0.5">firme active</p>
+            <p className="text-white/50 text-sm mt-0.5">{t('hero.stat2')}</p>
           </div>
           <div>
             <p className="text-3xl font-black text-white">4.9★</p>
-            <p className="text-white/50 text-sm mt-0.5">rating mediu</p>
+            <p className="text-white/50 text-sm mt-0.5">{t('hero.stat3')}</p>
           </div>
         </div>
       </div>
@@ -109,12 +112,12 @@ export default function LoginPage() {
           </Link>
           <div className="hidden lg:block" />
           <p className="text-sm text-gray-500">
-            Ești firmă?{' '}
+            {t('form.isCompany')}{' '}
             <Link
-              to="/inregistrare-firma"
+              to={ROUTE_MAP.registerFirm.ro}
               className="text-primary font-semibold hover:underline"
             >
-              Înregistrează-te
+              {t('form.register')}
             </Link>
           </p>
         </div>
@@ -123,16 +126,16 @@ export default function LoginPage() {
         <div className="flex-1 flex items-center justify-center px-8 py-12">
           <div className="w-full max-w-sm">
             <h1 className="text-3xl font-black text-gray-900 mb-2">
-              Bine ai revenit!
+              {t('form.title')}
             </h1>
             <p className="text-gray-500 mb-8 leading-relaxed">
-              Conectează-te cu contul tău Google pentru a accesa platforma.
+              {t('form.subtitle')}
             </p>
 
             <div className="flex flex-col items-start gap-3">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
-                onError={() => setError('Autentificarea Google a eșuat.')}
+                onError={() => setError(t('errors.googleFailed'))}
                 useOneTap
                 theme="outline"
                 size="large"
@@ -147,10 +150,10 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-8 text-xs text-gray-400 leading-relaxed">
-              Prin conectare ești de acord cu{' '}
-              <span className="text-gray-500 font-medium">Termenii și condițiile</span>{' '}
-              și{' '}
-              <span className="text-gray-500 font-medium">Politica de confidențialitate</span>.
+              {t('form.privacy')}{' '}
+              <span className="text-gray-500 font-medium">{t('form.terms')}</span>{' '}
+              {t('form.and')}{' '}
+              <span className="text-gray-500 font-medium">{t('form.privacyPolicy')}</span>.
             </p>
           </div>
         </div>

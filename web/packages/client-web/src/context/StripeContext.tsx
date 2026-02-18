@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
+import { useLanguage } from '@/context/LanguageContext';
 
 const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder',
@@ -28,12 +29,13 @@ export function StripeElementsWrapper({
   clientSecret: string;
   children: ReactNode;
 }) {
+  const { lang } = useLanguage();
   return (
     <Elements
       stripe={stripePromise}
       options={{
         clientSecret,
-        locale: 'ro',
+        locale: lang,
         appearance: {
           theme: 'stripe',
           variables: {

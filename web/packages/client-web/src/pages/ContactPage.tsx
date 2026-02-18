@@ -1,64 +1,53 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SEOHead from '@/components/seo/SEOHead';
 import { Mail, Phone, MapPin, Clock, ChevronDown, ChevronUp } from 'lucide-react';
-
-const CONTACT_INFO = [
-  {
-    icon: Mail,
-    label: 'Email',
-    value: 'contact@helpmeclean.ro',
-    href: 'mailto:contact@helpmeclean.ro',
-  },
-  {
-    icon: Phone,
-    label: 'Telefon',
-    value: '+40 700 000 000',
-    href: 'tel:+40700000000',
-  },
-  {
-    icon: MapPin,
-    label: 'Oraș',
-    value: 'București, România',
-    href: undefined,
-  },
-  {
-    icon: Clock,
-    label: 'Program',
-    value: 'Luni–Vineri, 9:00–18:00',
-    href: undefined,
-  },
-];
-
-const SUBJECTS = [
-  'Suport client',
-  'Parteneriat firmă',
-  'Presă',
-  'Altele',
-];
-
-const FAQS = [
-  {
-    question: 'Când se lansează platforma?',
-    answer:
-      'HelpMeClean se află în faza de pre-lansare. Ne pregătim să deschidem platforma în curând, începând cu București. Înscrie-te pe lista de așteptare pentru a primi acces prioritar și notificări despre lansare.',
-  },
-  {
-    question: 'Cum mă înregistrez ca firmă de curățenie?',
-    answer:
-      'Poți aplica ca firmă parteneră prin pagina "Pentru Firme". Ai nevoie de un CUI valid, asigurare civilă și documentele firmei. Procesul de verificare durează maxim 48 de ore, după care contul tău va fi activat.',
-  },
-  {
-    question: 'Cum funcționează verificarea firmelor?',
-    answer:
-      'Fiecare firmă parteneră trece printr-un proces de verificare a documentelor (certificat de înregistrare, asigurare civilă, CUI). Verificăm activ identitatea și documentele pentru a garanta că clienții noștri lucrează doar cu profesioniști de încredere.',
-  },
-];
+import { useLanguage } from '@/context/LanguageContext';
+import { ROUTE_MAP } from '@/i18n/routes';
 
 export default function ContactPage() {
+  const { t } = useTranslation('contact');
+  const { lang } = useLanguage();
+
+  const CONTACT_INFO = [
+    {
+      icon: Mail,
+      label: t('info.email'),
+      value: 'contact@helpmeclean.ro',
+      href: 'mailto:contact@helpmeclean.ro',
+    },
+    {
+      icon: Phone,
+      label: t('info.phone'),
+      value: '+40 700 000 000',
+      href: 'tel:+40700000000',
+    },
+    {
+      icon: MapPin,
+      label: t('info.city'),
+      value: t('info.cityValue'),
+      href: undefined,
+    },
+    {
+      icon: Clock,
+      label: t('info.schedule'),
+      value: t('info.scheduleValue'),
+      href: undefined,
+    },
+  ];
+
+  const SUBJECTS = t('form.subjects', { returnObjects: true }) as string[];
+
+  const FAQS = [
+    { question: t('faq.q1'), answer: t('faq.a1') },
+    { question: t('faq.q2'), answer: t('faq.a2') },
+    { question: t('faq.q3'), answer: t('faq.a3') },
+  ];
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    subject: SUBJECTS[0],
+    subject: SUBJECTS[0] ?? '',
     message: '',
   });
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -75,17 +64,19 @@ export default function ContactPage() {
   return (
     <>
       <SEOHead
-        title="Contact | HelpMeClean.ro"
-        description="Contactează echipa HelpMeClean pentru suport, parteneriate sau întrebări despre platforma de curățenie din România."
-        canonicalUrl="/contact"
+        title={t('meta.title')}
+        description={t('meta.description')}
+        canonicalUrl={ROUTE_MAP.contact[lang]}
+        lang={lang}
+        alternateUrl={{ ro: ROUTE_MAP.contact.ro, en: ROUTE_MAP.contact.en }}
       />
       <div className="bg-white">
         {/* Header */}
         <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-16 px-4 text-center">
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-4xl font-bold mb-4">Contactează-ne</h1>
+            <h1 className="text-4xl font-bold mb-4">{t('hero.title')}</h1>
             <p className="text-blue-100 text-lg">
-              Suntem aici să te ajutăm. Scrie-ne și îți răspundem în cel mult o zi lucrătoare.
+              {t('hero.subtitle')}
             </p>
           </div>
         </section>
@@ -95,7 +86,7 @@ export default function ContactPage() {
           <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12">
             {/* Left: Contact info */}
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-8">Informații de contact</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-8">{t('info.title')}</h2>
               <div className="space-y-5">
                 {CONTACT_INFO.map(({ icon: Icon, label, value, href }) => (
                   <div key={label} className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-blue-200 hover:shadow-sm transition">
@@ -119,11 +110,11 @@ export default function ContactPage() {
 
             {/* Right: Contact form */}
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-8">Trimite un mesaj</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-8">{t('form.title')}</h2>
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Nume complet
+                    {t('form.name')}
                   </label>
                   <input
                     id="name"
@@ -131,13 +122,13 @@ export default function ContactPage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="Ion Popescu"
+                    placeholder={t('form.placeholder_name')}
                     className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
                   />
                 </div>
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Adresă email
+                    {t('form.email')}
                   </label>
                   <input
                     id="email"
@@ -145,13 +136,13 @@ export default function ContactPage() {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
-                    placeholder="ion@exemplu.ro"
+                    placeholder={t('form.placeholder_email')}
                     className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
                   />
                 </div>
                 <div>
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Subiect
+                    {t('form.subject')}
                   </label>
                   <select
                     id="subject"
@@ -168,7 +159,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Mesaj
+                    {t('form.message')}
                   </label>
                   <textarea
                     id="message"
@@ -176,7 +167,7 @@ export default function ContactPage() {
                     rows={5}
                     value={formData.message}
                     onChange={(e) => setFormData((f) => ({ ...f, message: e.target.value }))}
-                    placeholder="Cum te putem ajuta?"
+                    placeholder={t('form.placeholder_message')}
                     className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
                   />
                 </div>
@@ -184,7 +175,7 @@ export default function ContactPage() {
                   type="submit"
                   className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
-                  Trimite mesajul
+                  {t('form.submit')}
                 </button>
               </form>
             </div>
@@ -195,7 +186,7 @@ export default function ContactPage() {
         <section className="bg-gray-50 py-20 px-4">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
-              Întrebări frecvente
+              {t('faq.title')}
             </h2>
             <div className="space-y-4">
               {FAQS.map(({ question, answer }, idx) => (

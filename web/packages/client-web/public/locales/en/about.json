@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "title": "About Us | HelpMeClean.ro",
+    "description": "HelpMeClean is Romania's first cleaning marketplace. Our mission is to connect clients with verified cleaning companies."
+  },
+  "hero": {
+    "title": "Romania's first cleaning platform",
+    "subtitle": "We connect clients with verified cleaning companies, transparently and quickly."
+  },
+  "mission": {
+    "title": "Our mission",
+    "p1": "Romania's cleaning sector is largely informal — millions of transactions happen without invoices, guarantees or protection. HelpMeClean changes that.",
+    "p2": "We are building Romania's first digital cleaning marketplace, where companies are verified, payments are secure and quality is guaranteed."
+  },
+  "stats": {
+    "households": "Households in Bucharest",
+    "companies": "Cleaning companies in RO",
+    "informal": "Informal market",
+    "founded": "Year founded"
+  },
+  "values": {
+    "title": "Our values",
+    "transparency": {
+      "title": "Transparency",
+      "desc": "Clear pricing, no hidden costs. You know exactly what you pay."
+    },
+    "quality": {
+      "title": "Verified quality",
+      "desc": "Every company goes through a rigorous verification process."
+    },
+    "community": {
+      "title": "Community",
+      "desc": "We build a community of professionals and satisfied clients."
+    },
+    "growth": {
+      "title": "Growth",
+      "desc": "We help cleaning companies digitise their business."
+    }
+  },
+  "cta": {
+    "title": "Want to be the first to try us?",
+    "subtitle": "The platform is launching soon. Sign up and get priority access.",
+    "button": "Join the waitlist"
+  }
+}

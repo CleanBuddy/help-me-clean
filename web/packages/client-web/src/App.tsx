@@ -4,6 +4,9 @@ import { createApolloClient } from '@helpmeclean/shared';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CompanyProvider } from '@/context/CompanyContext';
 import { PlatformProvider, usePlatform } from '@/context/PlatformContext';
+import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
+import { PageAlternateProvider } from '@/context/PageAlternateContext';
+import { ROUTE_MAP } from '@/i18n/routes';
 
 // Layouts
 import PublicLayout from '@/components/layout/PublicLayout';
@@ -89,8 +92,9 @@ const client = createApolloClient(httpEndpoint, wsEndpoint);
 
 function BookingGateRoute() {
   const { isPreRelease, loading } = usePlatform();
+  const { lang } = useLanguage();
   if (loading) return null;
-  if (isPreRelease) return <Navigate to="/lista-asteptare" replace />;
+  if (isPreRelease) return <Navigate to={ROUTE_MAP.waitlist[lang]} replace />;
   return <BookingPage />;
 }
 
@@ -116,7 +120,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    // Pass the attempted path so LoginPage can redirect back after auth.
     return <Navigate to="/autentificare" state={{ from: location.pathname }} replace />;
   }
 
@@ -151,7 +154,7 @@ function AppRoutes() {
       <Route path="/autentificare" element={<LoginPage />} />
       <Route path="/inregistrare-firma" element={<RegisterCompanyPage />} />
 
-      {/* Public routes - Header + Footer layout */}
+      {/* ── Romanian public routes (no prefix) ── */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/servicii" element={<Navigate to="/#servicii" replace />} />
@@ -165,6 +168,20 @@ function AppRoutes() {
         <Route path="/confidentialitate" element={<PrivacyPage />} />
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
+      </Route>
+
+      {/* ── English public routes (/en/ prefix) ── */}
+      <Route path="/en" element={<PublicLayout />}>
+        <Route index element={<HomePage />} />
+        <Route path="about-us" element={<AboutPage />} />
+        <Route path="contact" element={<ContactPage />} />
+        <Route path="for-companies" element={<ForCompaniesPage />} />
+        <Route path="waitlist" element={<WaitlistPage />} />
+        <Route path="terms" element={<TermsPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
+        <Route path="blog" element={<BlogListPage />} />
+        <Route path="blog/:slug" element={<BlogPostPage />} />
+        <Route path="booking" element={<BookingGateRoute />} />
       </Route>
 
       {/* Client routes - Sidebar layout, auth + CLIENT role */}
@@ -282,7 +299,11 @@ function App() {
     <ApolloProvider client={client}>
       <PlatformProvider>
         <AuthProvider>
-          <AppRoutes />
+          <PageAlternateProvider>
+            <LanguageProvider>
+              <AppRoutes />
+            </LanguageProvider>
+          </PageAlternateProvider>
         </AuthProvider>
       </PlatformProvider>
     </ApolloProvider>

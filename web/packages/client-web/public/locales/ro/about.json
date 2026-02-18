@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "title": "Despre Noi | HelpMeClean.ro",
+    "description": "HelpMeClean este prima platformă de servicii de curățenie din România. Misiunea noastră este să conectăm clienții cu firme de curățenie verificate."
+  },
+  "hero": {
+    "title": "Prima platformă de curățenie din România",
+    "subtitle": "Conectăm clienții cu firme de curățenie verificate, transparent și rapid."
+  },
+  "mission": {
+    "title": "Misiunea noastră",
+    "p1": "Sectorul de curățenie din România este în mare parte informal — milioane de tranzacții se fac fără factură, fără garanții și fără protecție. HelpMeClean schimbă asta.",
+    "p2": "Creăm prima piață digitală de servicii de curățenie din România, unde firmele sunt verificate, plățile sunt sigure și calitatea este garantată."
+  },
+  "stats": {
+    "households": "Gospodării în București",
+    "companies": "Firme de curățenie în RO",
+    "informal": "Piață informală",
+    "founded": "Anul fondării"
+  },
+  "values": {
+    "title": "Valorile noastre",
+    "transparency": {
+      "title": "Transparență",
+      "desc": "Prețuri clare, fără costuri ascunse. Știi exact ce plătești."
+    },
+    "quality": {
+      "title": "Calitate verificată",
+      "desc": "Fiecare firmă trece printr-un proces riguros de verificare."
+    },
+    "community": {
+      "title": "Comunitate",
+      "desc": "Construim o comunitate de profesioniști și clienți mulțumiți."
+    },
+    "growth": {
+      "title": "Creștere",
+      "desc": "Ajutăm firmele de curățenie să-și digitalizeze afacerea."
+    }
+  },
+  "cta": {
+    "title": "Vrei să fii primul care ne testează?",
+    "subtitle": "Platforma se lansează în curând. Înscrie-te și primești acces prioritar.",
+    "button": "Înscrie-te pe lista de așteptare"
+  }
+}

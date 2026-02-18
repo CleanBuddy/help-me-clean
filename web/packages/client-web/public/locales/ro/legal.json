@@ -1,0 +1,152 @@
+{
+  "terms": {
+    "meta": {
+      "title": "Termeni și Condiții | HelpMeClean.ro",
+      "description": "Termenii și condițiile de utilizare ale platformei HelpMeClean.ro."
+    },
+    "title": "Termeni și Condiții",
+    "lastUpdated": "Ultima actualizare: 1 ianuarie 2024",
+    "intro": "Vă rugăm să citiți cu atenție acești Termeni și Condiții înainte de a utiliza platforma HelpMeClean.ro. Prin accesarea sau utilizarea serviciilor noastre, sunteți de acord cu acești termeni.",
+    "s1": {
+      "title": "1. Definiții",
+      "intro": "În cuprinsul prezentului document, termenii de mai jos au următoarele semnificații:",
+      "platform": "Platforma",
+      "platformDef": "site-ul web helpmeclean.ro și aplicațiile asociate, operate de HelpMeClean SRL",
+      "user": "Utilizator",
+      "userDef": "orice persoană fizică sau juridică care accesează sau utilizează Platforma",
+      "client": "Client",
+      "clientDef": "utilizatorul care comandă servicii de curățenie prin Platformă",
+      "partner": "Firmă parteneră",
+      "partnerDef": "compania de curățenie verificată și aprobată care prestează servicii prin Platformă",
+      "service": "Serviciu",
+      "serviceDef": "prestarea de curățenie rezervată și plătită prin intermediul Platformei",
+      "account": "Cont",
+      "accountDef": "contul creat de Utilizator pentru accesarea funcționalităților Platformei"
+    },
+    "s2": {
+      "title": "2. Utilizarea platformei",
+      "p1": "HelpMeClean.ro este o platformă de intermediere care facilitează legătura între Clienți și Firmele partenere de curățenie. Platforma nu este furnizorul direct al serviciilor de curățenie.",
+      "p2": "Utilizarea Platformei este permisă persoanelor cu vârsta de cel puțin 18 ani. Prin crearea unui cont, confirmați că aveți capacitate juridică deplină.",
+      "p3": "Rezervările efectuate prin Platformă constituie contracte directe între Client și Firma parteneră. HelpMeClean SRL acționează exclusiv ca intermediar și nu este parte în contractul de prestare a serviciilor de curățenie."
+    },
+    "s3": {
+      "title": "3. Obligațiile utilizatorului",
+      "intro": "Utilizatorii Platformei se obligă:",
+      "o1": "Să furnizeze informații corecte și complete la înregistrare și la plasarea comenzilor;",
+      "o2": "Să nu utilizeze Platforma în scopuri ilegale sau contrare ordinii publice;",
+      "o3": "Să nu perturbe funcționarea normală a Platformei sau a altor utilizatori;",
+      "o4": "Să nu reproducă, distribuie sau modifice conținutul Platformei fără acordul scris al HelpMeClean SRL;",
+      "o5": "Să respecte confidențialitatea datelor de acces la cont;",
+      "o6": "Să achite contravaloarea serviciilor rezervate conform prețurilor afișate;",
+      "o7": "Să permită accesul echipei de curățenie la adresa specificată la data rezervată."
+    },
+    "s4": {
+      "title": "4. Prețuri și plăți",
+      "p1": "Toate prețurile afișate pe Platformă includ TVA acolo unde este aplicabil și sunt exprimate în lei românești (RON). Prețul final al serviciului se calculează automat pe baza suprafeței, numărului de camere și serviciilor suplimentare alese.",
+      "p2": "Plata se efectuează electronic, prin card bancar, prin intermediul procesorului de plăți Stripe. HelpMeClean SRL nu stochează datele cardului dumneavoastră.",
+      "p3": "HelpMeClean SRL percepe un comision de intermediere din valoarea fiecărei tranzacții. Comisionul este inclus în prețul final afișat Clientului."
+    },
+    "s5": {
+      "title": "5. Anulare și rambursare",
+      "p1": "Clientul poate anula o rezervare gratuit cu cel puțin 24 de ore înainte de ora programată. Anulările efectuate cu mai puțin de 24 de ore pot fi supuse unei taxe de anulare conform politicii Firmei partenere.",
+      "p2": "În cazul în care serviciul nu a fost prestat conform contractului, Clientul poate solicita o rambursare parțială sau totală prin intermediul Platformei, în termen de 48 de ore de la finalizarea programată a serviciului. Cererile de rambursare sunt analizate individual de echipa HelpMeClean."
+    },
+    "s6": {
+      "title": "6. Răspundere",
+      "p1": "HelpMeClean SRL nu răspunde pentru prejudiciile directe sau indirecte cauzate de neîndeplinirea obligațiilor contractuale de către Firmele partenere. Răspunderea noastră în calitate de intermediar este limitată la valoarea comisionului de intermediere perceput pentru tranzacția respectivă.",
+      "p2": "Firmele partenere sunt obligate să dețină asigurare civilă profesională activă pe durata întregii colaborări cu HelpMeClean. Verificarea documentelor de asigurare se efectuează la onboardingul fiecărei firme și periodic ulterior."
+    },
+    "s7": {
+      "title": "7. Modificări ale termenilor",
+      "p1": "HelpMeClean SRL își rezervă dreptul de a modifica acești Termeni și Condiții în orice moment. Modificările intră în vigoare la data publicării pe Platformă. Continuarea utilizării Platformei după publicarea modificărilor constituie acceptul noilor termeni. Vă recomandăm să verificați periodic această pagină."
+    },
+    "s8": {
+      "title": "8. Contact",
+      "p1": "Pentru orice întrebări referitoare la acești Termeni și Condiții, ne puteți contacta la adresa de email contact@helpmeclean.ro sau la sediul social al HelpMeClean SRL, București, România."
+    }
+  },
+  "privacy": {
+    "meta": {
+      "title": "Politica de Confidențialitate | HelpMeClean.ro",
+      "description": "Politica de confidențialitate și protecția datelor cu caracter personal pe platforma HelpMeClean.ro, conform GDPR."
+    },
+    "title": "Politica de Confidențialitate",
+    "lastUpdated": "Ultima actualizare: 1 ianuarie 2024",
+    "intro": "HelpMeClean SRL respectă dreptul la confidențialitate al utilizatorilor și se angajează să protejeze datele cu caracter personal în conformitate cu Regulamentul (UE) 2016/679 (GDPR) și legislația națională aplicabilă. Această politică descrie tipurile de date colectate, scopul prelucrării și drepturile dumneavoastră.",
+    "s1": {
+      "title": "1. Operatorul de date",
+      "p1": "Operatorul de date cu caracter personal este HelpMeClean SRL, cu sediul în București, România. Ne puteți contacta pentru orice aspect legat de prelucrarea datelor la adresa: dpo@helpmeclean.ro."
+    },
+    "s2": {
+      "title": "2. Datele colectate",
+      "intro": "În funcție de modul în care utilizați Platforma, colectăm următoarele categorii de date:",
+      "cat1Title": "Date de identificare",
+      "cat1Items": ["Nume și prenume", "Adresă de email", "Număr de telefon", "Fotografie de profil (opțional)"],
+      "cat2Title": "Date de localizare și adresă",
+      "cat2Items": ["Adresa pentru prestarea serviciului", "Oraș și județ", "Coordonate GPS (opțional, pentru optimizarea rutelor)"],
+      "cat3Title": "Date de plată",
+      "cat3Items": ["Date card procesate de Stripe (nu le stocăm direct)", "Istoricul tranzacțiilor", "Date de facturare (CUI, adresă fiscală)"],
+      "cat4Title": "Date de utilizare",
+      "cat4Items": ["Istoricul rezervărilor", "Recenzii și evaluări", "Mesaje în chat-ul platformei", "Date de acces (IP, browser, sistem de operare)"]
+    },
+    "s3": {
+      "title": "3. Scopul prelucrării",
+      "intro": "Prelucrăm datele dumneavoastră în următoarele scopuri:",
+      "scope1": "Executarea contractului",
+      "scope1Desc": "procesarea și gestionarea rezervărilor de servicii de curățenie",
+      "scope2": "Comunicare",
+      "scope2Desc": "notificări despre statusul rezervărilor, chat cu firma de curățenie, suport",
+      "scope3": "Plăți",
+      "scope3Desc": "procesarea tranzacțiilor financiare și emiterea facturilor",
+      "scope4": "Securitate",
+      "scope4Desc": "prevenirea fraudelor, verificarea identității, protejarea conturilor",
+      "scope5": "Îmbunătățirea serviciului",
+      "scope5Desc": "analize statistice anonimizate pentru îmbunătățirea platformei",
+      "scope6": "Obligații legale",
+      "scope6Desc": "respectarea cerințelor fiscale și a altor reglementări aplicabile"
+    },
+    "s4": {
+      "title": "4. Temeiul juridic al prelucrării",
+      "intro": "Prelucrăm datele dumneavoastră pe baza:",
+      "b1": "Executării contractului (Art. 6 alin. 1 lit. b GDPR) — pentru gestionarea rezervărilor și plăților;",
+      "b2": "Consimțământului (Art. 6 alin. 1 lit. a GDPR) — pentru comunicări de marketing, dacă ați optat;",
+      "b3": "Interesului legitim (Art. 6 alin. 1 lit. f GDPR) — pentru prevenirea fraudelor și securitatea platformei;",
+      "b4": "Obligației legale (Art. 6 alin. 1 lit. c GDPR) — pentru obligații fiscale și contabile."
+    },
+    "s5": {
+      "title": "5. Drepturile dumneavoastră",
+      "intro": "Conform GDPR, beneficiați de următoarele drepturi în legătură cu datele dumneavoastră:",
+      "r1": "Dreptul de acces",
+      "r1Desc": "Puteți solicita o copie a datelor pe care le deținem despre dumneavoastră.",
+      "r2": "Dreptul la rectificare",
+      "r2Desc": "Puteți corecta datele inexacte sau incomplete în orice moment.",
+      "r3": "Dreptul la ștergere",
+      "r3Desc": "Puteți solicita ștergerea datelor, cu anumite excepții legale.",
+      "r4": "Dreptul la portabilitate",
+      "r4Desc": "Puteți primi datele dumneavoastră într-un format structurat.",
+      "r5": "Dreptul la opoziție",
+      "r5Desc": "Puteți obiecta la prelucrarea datelor bazată pe interes legitim.",
+      "r6": "Dreptul la restricție",
+      "r6Desc": "Puteți solicita limitarea prelucrării în anumite circumstanțe.",
+      "contact": "Pentru a vă exercita drepturile, contactați-ne la dpo@helpmeclean.ro. Veți primi un răspuns în termen de 30 de zile. Aveți de asemenea dreptul de a depune o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP)."
+    },
+    "s6": {
+      "title": "6. Cookies",
+      "intro": "Platforma utilizează cookies și tehnologii similare pentru a asigura funcționarea corectă a serviciilor și pentru a analiza traficul.",
+      "c1": "Cookies esențiale",
+      "c1Desc": "Necesare pentru funcționarea platformei (autentificare, sesiune). Nu pot fi dezactivate.",
+      "c2": "Cookies analitice",
+      "c2Desc": "Colectăm date anonimizate de utilizare prin Google Analytics pentru a îmbunătăți platforma.",
+      "c3": "Cookies funcționale",
+      "c3Desc": "Rețin preferințele dumneavoastră (limbă, setări) pentru o experiență mai bună."
+    },
+    "s7": {
+      "title": "7. Durata retenției datelor",
+      "p1": "Păstrăm datele dumneavoastră atât timp cât este necesar pentru scopurile descrise mai sus sau cât impun obligațiile legale. Datele din contul dumneavoastră sunt păstrate pe toată durata utilizării serviciului. La ștergerea contului, datele personale sunt anonimizate sau șterse în termen de 30 de zile, cu excepția datelor necesare pentru obligații fiscale (păstrate 10 ani conform legii)."
+    },
+    "s8": {
+      "title": "8. Contact DPO",
+      "p1": "Responsabilul nostru cu protecția datelor (Data Protection Officer) poate fi contactat la adresa: dpo@helpmeclean.ro. Orice întrebare, solicitare sau plângere legată de prelucrarea datelor cu caracter personal poate fi adresată la această adresă."
+    }
+  }
+}
