@@ -21,6 +21,8 @@ import {
   BadgeCheck,
   Banknote,
   CalendarX2,
+  ClipboardList,
+  Receipt,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -96,6 +98,35 @@ const TRUST_ITEMS = [
     bg: 'bg-purple-50',
     border: 'border-l-purple-500',
   },
+  {
+    icon: Receipt,
+    title: 'E-factură automată',
+    description: 'Factură electronică emisă automat după fiecare serviciu, conformă cu legislația română.',
+    color: 'text-rose-600',
+    bg: 'bg-rose-50',
+    border: 'border-l-rose-500',
+  },
+];
+
+const PARTNER_STEPS = [
+  {
+    icon: ClipboardList,
+    step: '1',
+    title: 'Aplici online',
+    description: 'Trimiți documentele firmei în 5 minute, direct din platformă.',
+  },
+  {
+    icon: CheckCircle2,
+    step: '2',
+    title: 'Ești aprobat',
+    description: 'Echipa noastră verifică și activează contul tău în 24–48 de ore.',
+  },
+  {
+    icon: TrendingUp,
+    step: '3',
+    title: 'Primești comenzi',
+    description: 'Clienții te găsesc și rezervă direct — tu te ocupi de curățenie.',
+  },
 ];
 
 const PARTNER_BENEFITS = [
@@ -152,6 +183,7 @@ const TESTIMONIALS = [
 const TRUST_BADGES = [
   { icon: BadgeCheck, label: 'Firme verificate și asigurate' },
   { icon: Banknote, label: 'Plată securizată' },
+  { icon: Receipt, label: 'E-factură inclusă' },
   { icon: CheckCircle2, label: 'Fără abonament' },
   { icon: CalendarX2, label: 'Anulare gratuită' },
 ];
@@ -598,6 +630,24 @@ export default function HomePage() {
               <p className="text-gray-500 max-w-xl text-lg">
                 Alătură-te platformei HelpMeClean și primește comenzi de la clienți din toată România.
               </p>
+            </div>
+
+            {/* Partner 3-step flow */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+              {PARTNER_STEPS.map((step) => (
+                <div key={step.step} className="flex gap-4 items-start">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-secondary font-black text-sm">
+                    {step.step}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <step.icon className="h-4 w-4 text-secondary" />
+                      <h3 className="text-base font-bold text-gray-900">{step.title}</h3>
+                    </div>
+                    <p className="text-sm text-gray-500 leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">

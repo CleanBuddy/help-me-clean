@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import { CheckCircle, Users, Bell, Star, Zap } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import SEOHead from '@/components/seo/SEOHead';
+import { trackWaitlistSignup } from '@/lib/analytics';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -396,6 +397,7 @@ export default function WaitlistPage() {
       setSubmittedCity(form.city);
       setSubmittedLeadType('CLIENT');
       setSubmitted(true);
+      trackWaitlistSignup('CLIENT');
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'A apărut o eroare. Te rugăm să încerci din nou.';
@@ -428,6 +430,7 @@ export default function WaitlistPage() {
       setSubmittedCity(form.city);
       setSubmittedLeadType('COMPANY');
       setSubmitted(true);
+      trackWaitlistSignup('COMPANY');
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'A apărut o eroare. Te rugăm să încerci din nou.';

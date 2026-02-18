@@ -5,6 +5,40 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HelpMeClean - Curatenie profesionala</title>
+
+    <!-- Google Analytics 4 -->
+    <script>
+      window.__GA4_ID__ = '%VITE_GA4_MEASUREMENT_ID%';
+      if (window.__GA4_ID__ && window.__GA4_ID__ !== '%VITE_GA4_MEASUREMENT_ID%') {
+        (function (i, s, o, g, r, a, m) {
+          i['GoogleAnalyticsObject'] = r;
+          i[r] = i[r] || function () { (i[r].q = i[r].q || []).push(arguments); };
+          i[r].l = 1 * new Date();
+        })(window, document, 'script', 'https://www.googletagmanager.com/gtag/js', 'gtag');
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        window.gtag('js', new Date());
+        window.gtag('config', window.__GA4_ID__);
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.__GA4_ID__;
+        document.head.appendChild(s);
+      }
+    </script>
+
+    <!-- Meta Pixel -->
+    <script>
+      window.__META_PIXEL_ID__ = '%VITE_META_PIXEL_ID%';
+      if (window.__META_PIXEL_ID__ && window.__META_PIXEL_ID__ !== '%VITE_META_PIXEL_ID%') {
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', window.__META_PIXEL_ID__);
+        fbq('track', 'PageView');
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
