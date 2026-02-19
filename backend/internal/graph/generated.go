@@ -504,6 +504,7 @@ type ComplexityRoot struct {
 		RefreshToken                  func(childComplexity int) int
 		RegisterDeviceToken           func(childComplexity int, token string) int
 		RejectCompany                 func(childComplexity int, id string, reason string) int
+		RequestEmailOtp               func(childComplexity int, email string, role model.UserRole) int
 		RequestRefund                 func(childComplexity int, bookingID string, reason string) int
 		ResumeRecurringGroup          func(childComplexity int, id string) int
 		ReviewCleanerDocument         func(childComplexity int, id string, approved bool, rejectionReason *string) int
@@ -542,6 +543,7 @@ type ComplexityRoot struct {
 		UploadCompanyLogo             func(childComplexity int, file graphql.Upload) int
 		UploadFile                    func(childComplexity int, file graphql.Upload, purpose string) int
 		UpsertBillingProfile          func(childComplexity int, input model.BillingProfileInput) int
+		VerifyEmailOtp                func(childComplexity int, email string, code string, role model.UserRole) int
 	}
 
 	Notification struct {
@@ -834,6 +836,11 @@ type ComplexityRoot struct {
 		Status      func(childComplexity int) int
 	}
 
+	RequestOtpResponse struct {
+		DevCode func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	RevenueByMonth struct {
 		BookingCount func(childComplexity int) int
 		Commission   func(childComplexity int) int
@@ -963,6 +970,8 @@ type MutationResolver interface {
 	RefreshToken(ctx context.Context) (*model.AuthPayload, error)
 	RegisterDeviceToken(ctx context.Context, token string) (bool, error)
 	Logout(ctx context.Context) (bool, error)
+	RequestEmailOtp(ctx context.Context, email string, role model.UserRole) (*model.RequestOtpResponse, error)
+	VerifyEmailOtp(ctx context.Context, email string, code string, role model.UserRole) (*model.AuthPayload, error)
 	CreateBookingRequest(ctx context.Context, input model.CreateBookingInput) (*model.Booking, error)
 	CancelBooking(ctx context.Context, id string, reason *string) (*model.Booking, error)
 	AssignCleanerToBooking(ctx context.Context, bookingID string, cleanerID string) (*model.Booking, error)
@@ -3427,6 +3436,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RejectCompany(childComplexity, args["id"].(string), args["reason"].(string)), true
+	case "Mutation.requestEmailOtp":
+		if e.complexity.Mutation.RequestEmailOtp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_requestEmailOtp_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RequestEmailOtp(childComplexity, args["email"].(string), args["role"].(model.UserRole)), true
 	case "Mutation.requestRefund":
 		if e.complexity.Mutation.RequestRefund == nil {
 			break
@@ -3845,6 +3865,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpsertBillingProfile(childComplexity, args["input"].(model.BillingProfileInput)), true
+	case "Mutation.verifyEmailOtp":
+		if e.complexity.Mutation.VerifyEmailOtp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_verifyEmailOtp_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.VerifyEmailOtp(childComplexity, args["email"].(string), args["code"].(string), args["role"].(model.UserRole)), true
 
 	case "Notification.body":
 		if e.complexity.Notification.Body == nil {
@@ -5516,6 +5547,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RefundRequest.Status(childComplexity), true
 
+	case "RequestOtpResponse.devCode":
+		if e.complexity.RequestOtpResponse.DevCode == nil {
+			break
+		}
+
+		return e.complexity.RequestOtpResponse.DevCode(childComplexity), true
+	case "RequestOtpResponse.success":
+		if e.complexity.RequestOtpResponse.Success == nil {
+			break
+		}
+
+		return e.complexity.RequestOtpResponse.Success(childComplexity), true
+
 	case "RevenueByMonth.bookingCount":
 		if e.complexity.RevenueByMonth.BookingCount == nil {
 			break
@@ -6747,6 +6791,22 @@ func (ec *executionContext) field_Mutation_rejectCompany_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_requestEmailOtp_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "role", ec.unmarshalNUserRole2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐUserRole)
+	if err != nil {
+		return nil, err
+	}
+	args["role"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_requestRefund_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7317,6 +7377,27 @@ func (ec *executionContext) field_Mutation_upsertBillingProfile_args(ctx context
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_verifyEmailOtp_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "code", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["code"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "role", ec.unmarshalNUserRole2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐUserRole)
+	if err != nil {
+		return nil, err
+	}
+	args["role"] = arg2
 	return args, nil
 }
 
@@ -18231,6 +18312,102 @@ func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, fiel
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_requestEmailOtp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_requestEmailOtp,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RequestEmailOtp(ctx, fc.Args["email"].(string), fc.Args["role"].(model.UserRole))
+		},
+		nil,
+		ec.marshalNRequestOtpResponse2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐRequestOtpResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_requestEmailOtp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_RequestOtpResponse_success(ctx, field)
+			case "devCode":
+				return ec.fieldContext_RequestOtpResponse_devCode(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RequestOtpResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_requestEmailOtp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_verifyEmailOtp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_verifyEmailOtp,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().VerifyEmailOtp(ctx, fc.Args["email"].(string), fc.Args["code"].(string), fc.Args["role"].(model.UserRole))
+		},
+		nil,
+		ec.marshalNAuthPayload2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐAuthPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_verifyEmailOtp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "token":
+				return ec.fieldContext_AuthPayload_token(ctx, field)
+			case "user":
+				return ec.fieldContext_AuthPayload_user(ctx, field)
+			case "isNewUser":
+				return ec.fieldContext_AuthPayload_isNewUser(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_verifyEmailOtp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -33599,6 +33776,64 @@ func (ec *executionContext) fieldContext_RefundRequest_createdAt(_ context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _RequestOtpResponse_success(ctx context.Context, field graphql.CollectedField, obj *model.RequestOtpResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RequestOtpResponse_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RequestOtpResponse_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RequestOtpResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RequestOtpResponse_devCode(ctx context.Context, field graphql.CollectedField, obj *model.RequestOtpResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RequestOtpResponse_devCode,
+		func(ctx context.Context) (any, error) {
+			return obj.DevCode, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RequestOtpResponse_devCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RequestOtpResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _RevenueByMonth_month(ctx context.Context, field graphql.CollectedField, obj *model.RevenueByMonth) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -41509,6 +41744,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "requestEmailOtp":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_requestEmailOtp(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "verifyEmailOtp":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_verifyEmailOtp(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createBookingRequest":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createBookingRequest(ctx, field)
@@ -45420,6 +45669,47 @@ func (ec *executionContext) _RefundRequest(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var requestOtpResponseImplementors = []string{"RequestOtpResponse"}
+
+func (ec *executionContext) _RequestOtpResponse(ctx context.Context, sel ast.SelectionSet, obj *model.RequestOtpResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, requestOtpResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RequestOtpResponse")
+		case "success":
+			out.Values[i] = ec._RequestOtpResponse_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "devCode":
+			out.Values[i] = ec._RequestOtpResponse_devCode(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var revenueByMonthImplementors = []string{"RevenueByMonth"}
 
 func (ec *executionContext) _RevenueByMonth(ctx context.Context, sel ast.SelectionSet, obj *model.RevenueByMonth) graphql.Marshaler {
@@ -49252,6 +49542,20 @@ func (ec *executionContext) unmarshalNRefundStatus2helpmecleanᚑbackendᚋinter
 
 func (ec *executionContext) marshalNRefundStatus2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐRefundStatus(ctx context.Context, sel ast.SelectionSet, v model.RefundStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNRequestOtpResponse2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐRequestOtpResponse(ctx context.Context, sel ast.SelectionSet, v model.RequestOtpResponse) graphql.Marshaler {
+	return ec._RequestOtpResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRequestOtpResponse2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐRequestOtpResponse(ctx context.Context, sel ast.SelectionSet, v *model.RequestOtpResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RequestOtpResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNRevenueByMonth2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐRevenueByMonthᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RevenueByMonth) graphql.Marshaler {

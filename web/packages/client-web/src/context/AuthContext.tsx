@@ -16,6 +16,8 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   loginWithGoogle: (idToken: string) => Promise<AuthUser>;
+  requestEmailOtp: (email: string, role?: string) => Promise<{ success: boolean; devCode?: string }>;
+  loginWithEmailOtp: (email: string, code: string, role?: string) => Promise<AuthUser>;
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => void;
@@ -45,6 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (idToken: string) => authService.loginWithGoogle(idToken),
     [],
   );
+  const requestEmailOtp = useCallback(
+    (email: string, role?: string) => authService.requestEmailOtp(email, role),
+    [],
+  );
+  const loginWithEmailOtp = useCallback(
+    (email: string, code: string, role?: string) => authService.loginWithEmailOtp(email, code, role),
+    [],
+  );
   const logout = useCallback(() => authService.logout(), []);
   const refetchUser = useCallback(() => authService.refetchUser(), []);
   const refreshToken = useCallback(() => authService.refreshToken(), []);
@@ -55,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: state.user,
         loading: state.loading,
         loginWithGoogle,
+        requestEmailOtp,
+        loginWithEmailOtp,
         logout,
         isAuthenticated: !!state.user,
         refetchUser,

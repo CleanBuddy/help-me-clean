@@ -4,9 +4,21 @@ type AuthPayload {
   isNewUser: Boolean!
 }
 
+# Response for requestEmailOtp mutation.
+# devCode is only populated when ENVIRONMENT != "production" (dev/staging),
+# so developers can test the OTP flow without a real mail server.
+type RequestOtpResponse {
+  success: Boolean!
+  devCode: String
+}
+
 extend type Mutation {
   signInWithGoogle(idToken: String!, role: UserRole!): AuthPayload!
   refreshToken: AuthPayload!
   registerDeviceToken(token: String!): Boolean!
   logout: Boolean!
+
+  # Email OTP authentication
+  requestEmailOtp(email: String!, role: UserRole!): RequestOtpResponse!
+  verifyEmailOtp(email: String!, code: String!, role: UserRole!): AuthPayload!
 }

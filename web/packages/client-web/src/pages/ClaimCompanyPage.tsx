@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation } from '@apollo/client';
-import { Building2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Building2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '@/context/AuthContext';
-import { authService } from '@/services/AuthService';
+import { authService, type AuthUser } from '@/services/AuthService';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import EmailOtpModal from '@/components/auth/EmailOtpModal';
 import { CLAIM_COMPANY } from '@/graphql/operations';
 
 export default function ClaimCompanyPage() {
@@ -18,6 +19,7 @@ export default function ClaimCompanyPage() {
   const [claimed, setClaimed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   // If the user is already authenticated, attempt to claim immediately.
   useEffect(() => {
@@ -44,6 +46,28 @@ export default function ClaimCompanyPage() {
       setTimeout(() => navigate('/firma'), 1500);
     } catch {
       setError('Link-ul este invalid sau firma a fost deja revendicata.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpSuccess = async (_user: AuthUser) => {
+    setError('');
+    setLoading(true);
+    try {
+      const jwtToken = authService.getToken();
+      if (jwtToken && token) {
+        await claimCompany({
+          variables: { claimToken: token },
+          context: { headers: { Authorization: `Bearer ${jwtToken}` } },
+        });
+        await refreshToken();
+        await refetchUser();
+        setClaimed(true);
+        setTimeout(() => navigate('/firma'), 1500);
+      }
+    } catch {
+      setError('Revendicarea a esuat. Te rugam sa incerci din nou.');
     } finally {
       setLoading(false);
     }
@@ -156,6 +180,22 @@ export default function ClaimCompanyPage() {
                 shape="rectangular"
                 width="320"
               />
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 w-full max-w-[320px]">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400">sau</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOtpModal(true)}
+                className="w-full max-w-[320px] rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition flex items-center justify-center gap-2"
+              >
+                <Mail className="h-4 w-4" />
+                Continuă cu email
+              </button>
             </div>
           )}
 
@@ -165,6 +205,14 @@ export default function ClaimCompanyPage() {
             </div>
           )}
         </Card>
+
+        <EmailOtpModal
+          open={showOtpModal}
+          onClose={() => setShowOtpModal(false)}
+          onSuccess={handleOtpSuccess}
+          role="COMPANY_ADMIN"
+          title="Revendică firma cu email"
+        />
       </div>
     </div>
   );

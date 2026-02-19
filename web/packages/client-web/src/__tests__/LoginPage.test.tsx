@@ -76,9 +76,9 @@ describe('LoginPage', () => {
     expect(screen.getByTestId('google-login')).toBeInTheDocument();
   });
 
-  it('shows correct subtitle for Google OAuth', () => {
+  it('shows correct subtitle for auth options', () => {
     renderLoginPage();
-    expect(screen.getByText('Conectează-te cu contul tău Google pentru a accesa platforma.')).toBeInTheDocument();
+    expect(screen.getByText('Conectează-te cu contul tău Google sau prin email pentru a accesa platforma.')).toBeInTheDocument();
   });
 
   it('calls loginWithGoogle when Google button is clicked', async () => {

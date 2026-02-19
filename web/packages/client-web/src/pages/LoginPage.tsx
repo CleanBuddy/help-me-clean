@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { Mail } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ROUTE_MAP } from '@/i18n/routes';
+import EmailOtpModal from '@/components/auth/EmailOtpModal';
+import type { AuthUser } from '@/services/AuthService';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -23,6 +26,7 @@ export default function LoginPage() {
   const { loginWithGoogle, isAuthenticated, loading, user } = useAuth();
 
   const [error, setError] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   const from = (location.state as { from?: string })?.from;
 
@@ -144,10 +148,35 @@ export default function LoginPage() {
                 width="360"
               />
 
+              {/* Divider */}
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400">sau</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOtpModal(true)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition flex items-center justify-center gap-2"
+              >
+                <Mail className="h-4 w-4" />
+                Continuă cu email
+              </button>
+
               {error && (
                 <p className="text-sm text-red-500">{error}</p>
               )}
             </div>
+
+            <EmailOtpModal
+              open={showOtpModal}
+              onClose={() => setShowOtpModal(false)}
+              onSuccess={(authUser: AuthUser) =>
+                navigate(from || ROLE_HOME[authUser.role] || '/', { replace: true })
+              }
+              role="CLIENT"
+            />
 
             <p className="mt-8 text-xs text-gray-400 leading-relaxed">
               {t('form.privacy')}{' '}

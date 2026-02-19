@@ -44,6 +44,34 @@ export const LOGOUT = gql`
   }
 `;
 
+export const REQUEST_EMAIL_OTP = gql`
+  mutation RequestEmailOtp($email: String!, $role: UserRole!) {
+    requestEmailOtp(email: $email, role: $role) {
+      success
+      devCode
+    }
+  }
+`;
+
+export const VERIFY_EMAIL_OTP = gql`
+  mutation VerifyEmailOtp($email: String!, $code: String!, $role: UserRole!) {
+    verifyEmailOtp(email: $email, code: $code, role: $role) {
+      token
+      user {
+        id
+        email
+        fullName
+        role
+        status
+        phone
+        avatarUrl
+        preferredLanguage
+      }
+      isNewUser
+    }
+  }
+`;
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 export const ME = gql`

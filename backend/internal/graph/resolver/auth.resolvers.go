@@ -7,13 +7,18 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/middleware"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // SignInWithGoogle is the resolver for the signInWithGoogle field.
@@ -172,4 +177,118 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 		return true, nil
 	}
 	return false, fmt.Errorf("unable to clear authentication cookie")
+}
+
+// RequestEmailOtp is the resolver for the requestEmailOtp field.
+func (r *mutationResolver) RequestEmailOtp(ctx context.Context, emailAddr string, role model.UserRole) (*model.RequestOtpResponse, error) {
+	emailAddr = strings.ToLower(strings.TrimSpace(emailAddr))
+	if emailAddr == "" {
+		return nil, fmt.Errorf("email is required")
+	}
+
+	// Rate-limit: max 3 active (unexpired, unused) codes per email per 10-minute window.
+	count, err := r.Queries.CountActiveEmailOTPs(ctx, emailAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check rate limit: %w", err)
+	}
+	if count >= 3 {
+		return nil, fmt.Errorf("prea multe cereri — așteptați înainte de a solicita un cod nou")
+	}
+
+	code, err := generateOTPCode()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate OTP: %w", err)
+	}
+
+	dbRole := strings.ToLower(string(gqlUserRoleToDb(role)))
+	if _, err := r.Queries.CreateEmailOTP(ctx, db.CreateEmailOTPParams{
+		Email: emailAddr,
+		Code:  code,
+		Role:  dbRole,
+	}); err != nil {
+		return nil, fmt.Errorf("failed to save OTP: %w", err)
+	}
+
+	skipped, err := r.EmailService.SendOTP(emailAddr, code)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send OTP email: %w", err)
+	}
+
+	// In non-production (or when SMTP is unconfigured), expose the code so developers
+	// can test without a real mail server.
+	var devCode *string
+	if skipped || os.Getenv("ENVIRONMENT") != "production" {
+		devCode = &code
+	}
+
+	return &model.RequestOtpResponse{
+		Success: true,
+		DevCode: devCode,
+	}, nil
+}
+
+// VerifyEmailOtp is the resolver for the verifyEmailOtp field.
+func (r *mutationResolver) VerifyEmailOtp(ctx context.Context, emailAddr string, code string, role model.UserRole) (*model.AuthPayload, error) {
+	emailAddr = strings.ToLower(strings.TrimSpace(emailAddr))
+	code = strings.TrimSpace(code)
+
+	if len(code) != 6 {
+		return nil, fmt.Errorf("codul OTP trebuie să aibă exact 6 cifre")
+	}
+
+	otpRow, err := r.Queries.GetValidEmailOTP(ctx, db.GetValidEmailOTPParams{
+		Email: emailAddr,
+		Code:  code,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("cod invalid sau expirat")
+		}
+		return nil, fmt.Errorf("failed to validate OTP: %w", err)
+	}
+
+	// Mark as used immediately to prevent replay attacks.
+	if err := r.Queries.MarkEmailOTPUsed(ctx, otpRow.ID); err != nil {
+		return nil, fmt.Errorf("failed to consume OTP: %w", err)
+	}
+
+	// Find or create the user.
+	dbUser, err := r.Queries.GetUserByEmail(ctx, emailAddr)
+	isNewUser := false
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("failed to look up user: %w", err)
+		}
+		// First-time login — create the user.
+		isNewUser = true
+		dbUser, err = r.Queries.CreateUser(ctx, db.CreateUserParams{
+			Email:             emailAddr,
+			FullName:          emailPrefix(emailAddr),
+			Role:              gqlUserRoleToDb(role),
+			Status:            db.UserStatusActive,
+			PreferredLanguage: pgtype.Text{String: "ro", Valid: true},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create user: %w", err)
+		}
+	}
+
+	token, err := auth.GenerateToken(
+		uuidToString(dbUser.ID),
+		dbUser.Email,
+		string(dbUser.Role),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	if w := middleware.GetResponseWriter(ctx); w != nil {
+		auth.SetAuthCookie(w, token)
+	}
+
+	return &model.AuthPayload{
+		Token:     token,
+		User:      dbUserToGQL(dbUser),
+		IsNewUser: isNewUser,
+	}, nil
 }

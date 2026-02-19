@@ -36,6 +36,7 @@ import {
   CreditCard,
   Loader2,
   Repeat,
+  Mail,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
@@ -47,6 +48,7 @@ import Select from '@/components/ui/Select';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import AddressAutocomplete, { type ParsedAddress } from '@/components/ui/AddressAutocomplete';
 import AddCardModal from '@/components/payment/AddCardModal';
+import EmailOtpModal from '@/components/auth/EmailOtpModal';
 import {
   AVAILABLE_SERVICES,
   AVAILABLE_EXTRAS,
@@ -315,6 +317,7 @@ export default function BookingPage() {
 
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   // Payment step state
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
@@ -878,7 +881,7 @@ export default function BookingPage() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center gap-4">
+                      <div className="flex flex-col items-center gap-4 w-full">
                         <GoogleLogin
                           onSuccess={handleBookingGoogleSuccess}
                           onError={() =>
@@ -890,6 +893,22 @@ export default function BookingPage() {
                           shape="rectangular"
                           width="320"
                         />
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-3 w-full max-w-[320px]">
+                          <div className="flex-1 h-px bg-gray-200" />
+                          <span className="text-xs text-gray-400">sau</span>
+                          <div className="flex-1 h-px bg-gray-200" />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowOtpModal(true)}
+                          className="w-full max-w-[320px] rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Continuă cu email
+                        </button>
                       </div>
                     )}
 
@@ -898,6 +917,13 @@ export default function BookingPage() {
                         {authError}
                       </div>
                     )}
+
+                    <EmailOtpModal
+                      open={showOtpModal}
+                      onClose={() => setShowOtpModal(false)}
+                      onSuccess={() => {/* auth state updates automatically via authService */}}
+                      role="CLIENT"
+                    />
                   </Card>
                 )}
 

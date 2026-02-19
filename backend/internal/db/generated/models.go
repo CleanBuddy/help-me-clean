@@ -954,6 +954,16 @@ type CompanyWorkSchedule struct {
 	IsWorkDay bool        `json:"is_work_day"`
 }
 
+type EmailOtpCode struct {
+	ID        pgtype.UUID        `json:"id"`
+	Email     string             `json:"email"`
+	Code      string             `json:"code"`
+	Role      string             `json:"role"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type EnabledCity struct {
 	ID        pgtype.UUID        `json:"id"`
 	Name      string             `json:"name"`

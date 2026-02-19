@@ -4,6 +4,8 @@ import {
   SIGN_IN_WITH_GOOGLE,
   LOGOUT,
   REFRESH_TOKEN,
+  REQUEST_EMAIL_OTP,
+  VERIFY_EMAIL_OTP,
 } from '@/graphql/operations';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -161,6 +163,27 @@ class AuthService {
     });
 
     const { token, user } = data.signInWithGoogle as { token: string; user: AuthUser };
+    if (token) this.setToken(token);
+    this.emit({ user, loading: false });
+    return user;
+  }
+
+  async requestEmailOtp(email: string, role: string = 'CLIENT'): Promise<{ success: boolean; devCode?: string }> {
+    if (!this.client) throw new Error('AuthService not initialized');
+    const { data } = await this.client.mutate({
+      mutation: REQUEST_EMAIL_OTP,
+      variables: { email, role },
+    });
+    return data.requestEmailOtp as { success: boolean; devCode?: string };
+  }
+
+  async loginWithEmailOtp(email: string, code: string, role: string = 'CLIENT'): Promise<AuthUser> {
+    if (!this.client) throw new Error('AuthService not initialized');
+    const { data } = await this.client.mutate({
+      mutation: VERIFY_EMAIL_OTP,
+      variables: { email, code, role },
+    });
+    const { token, user } = data.verifyEmailOtp as { token: string; user: AuthUser };
     if (token) this.setToken(token);
     this.emit({ user, loading: false });
     return user;

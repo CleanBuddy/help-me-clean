@@ -28,6 +28,7 @@ import (
 	"helpmeclean-backend/internal/graph"
 	"helpmeclean-backend/internal/graph/resolver"
 	custommiddleware "helpmeclean-backend/internal/middleware"
+	"helpmeclean-backend/internal/service/email"
 	"helpmeclean-backend/internal/service/invoice"
 	"helpmeclean-backend/internal/service/payment"
 	"helpmeclean-backend/internal/storage"
@@ -81,6 +82,7 @@ func NewHandler(ctx context.Context) (http.Handler, func(), error) {
 
 	paymentSvc := payment.NewService(queries)
 	invoiceSvc := invoice.NewService(queries)
+	emailSvc := email.NewService()
 
 	// File storage — always GCS.
 	env := os.Getenv("ENVIRONMENT")
@@ -114,6 +116,7 @@ func NewHandler(ctx context.Context) (http.Handler, func(), error) {
 		Queries:        queries,
 		PaymentService: paymentSvc,
 		InvoiceService: invoiceSvc,
+		EmailService:   emailSvc,
 		Storage:        store,
 		AuthzHelper:    authzHelper,
 	}

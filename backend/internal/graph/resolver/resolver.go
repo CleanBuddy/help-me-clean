@@ -11,6 +11,7 @@ import (
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/middleware"
+	"helpmeclean-backend/internal/service/email"
 	"helpmeclean-backend/internal/service/invoice"
 	"helpmeclean-backend/internal/service/payment"
 	"helpmeclean-backend/internal/storage"
@@ -22,6 +23,7 @@ type Resolver struct {
 	Queries        *db.Queries
 	PaymentService *payment.Service
 	InvoiceService *invoice.Service
+	EmailService   *email.Service
 	Storage        storage.Storage
 	AuthzHelper    *middleware.AuthzHelper
 }

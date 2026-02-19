@@ -754,6 +754,11 @@ type RefundRequest struct {
 	CreatedAt   time.Time    `json:"createdAt"`
 }
 
+type RequestOtpResponse struct {
+	Success bool    `json:"success"`
+	DevCode *string `json:"devCode,omitempty"`
+}
+
 type RevenueByMonth struct {
 	Month        string  `json:"month"`
 	Revenue      float64 `json:"revenue"`

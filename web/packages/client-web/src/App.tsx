@@ -56,6 +56,7 @@ import CompanyPayoutsPage from '@/pages/company/PayoutsPage';
 import CompanyInvoicesPage from '@/pages/company/CompanyInvoicesPage';
 
 // Cleaner pages
+import AcceptInvitePage from '@/pages/cleaner/AcceptInvitePage';
 import CleanerDashboardPage from '@/pages/cleaner/DashboardPage';
 import CleanerOrdersPage from '@/pages/cleaner/OrdersPage';
 import CleanerCalendarPage from '@/pages/cleaner/CalendarPage';
@@ -153,6 +154,7 @@ function AppRoutes() {
       {/* Standalone — no Header/Footer (split-screen layout) */}
       <Route path="/autentificare" element={<LoginPage />} />
       <Route path="/inregistrare-firma" element={<RegisterCompanyPage />} />
+      <Route path="/invitare" element={<AcceptInvitePage />} />
 
       {/* ── Romanian public routes (no prefix) ── */}
       <Route element={<PublicLayout />}>

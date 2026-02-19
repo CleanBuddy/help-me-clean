@@ -25,6 +25,7 @@ type Querier interface {
 	CheckCompanyDocumentsReady(ctx context.Context, companyID pgtype.UUID) (pgtype.Bool, error)
 	ClaimCompanyByToken(ctx context.Context, arg ClaimCompanyByTokenParams) (Company, error)
 	CompleteBooking(ctx context.Context, id pgtype.UUID) (Booking, error)
+	CountActiveEmailOTPs(ctx context.Context, email string) (int64, error)
 	CountActiveRecurringGroups(ctx context.Context) (int64, error)
 	CountAllBookings(ctx context.Context) (int64, error)
 	CountAllReviews(ctx context.Context) (int64, error)
@@ -60,6 +61,7 @@ type Querier interface {
 	// COMPANY PAYOUTS
 	// ============================================
 	CreateCompanyPayout(ctx context.Context, arg CreateCompanyPayoutParams) (CompanyPayout, error)
+	CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) (EmailOtpCode, error)
 	// ============================================
 	// INVOICES
 	// ============================================
@@ -103,6 +105,7 @@ type Querier interface {
 	DeleteCleanerDocument(ctx context.Context, id pgtype.UUID) error
 	DeleteCompanyDocument(ctx context.Context, id pgtype.UUID) error
 	DeleteCompanyWorkSchedule(ctx context.Context, companyID pgtype.UUID) error
+	DeleteExpiredEmailOTPs(ctx context.Context) error
 	DeletePaymentMethod(ctx context.Context, id pgtype.UUID) error
 	DeleteReview(ctx context.Context, id pgtype.UUID) error
 	DeselectAllBookingTimeSlots(ctx context.Context, bookingID pgtype.UUID) error
@@ -193,6 +196,7 @@ type Querier interface {
 	// STRIPE CUSTOMER
 	// ============================================
 	GetUserStripeCustomerID(ctx context.Context, id pgtype.UUID) (pgtype.Text, error)
+	GetValidEmailOTP(ctx context.Context, arg GetValidEmailOTPParams) (EmailOtpCode, error)
 	HasPersonalityAssessment(ctx context.Context, cleanerID pgtype.UUID) (bool, error)
 	InsertBookingExtra(ctx context.Context, arg InsertBookingExtraParams) error
 	InsertCleanerServiceArea(ctx context.Context, arg InsertCleanerServiceAreaParams) (CleanerServiceArea, error)
@@ -290,6 +294,7 @@ type Querier interface {
 	// Atomically marks a booking as paid AND auto-confirms it if still pending/assigned.
 	// Idempotent: if booking is already confirmed or later, status is left unchanged.
 	MarkBookingPaidAndConfirmed(ctx context.Context, id pgtype.UUID) (Booking, error)
+	MarkEmailOTPUsed(ctx context.Context, id pgtype.UUID) error
 	MarkMessagesRead(ctx context.Context, arg MarkMessagesReadParams) error
 	MarkNotificationRead(ctx context.Context, id pgtype.UUID) error
 	PauseRecurringGroup(ctx context.Context, id pgtype.UUID) (RecurringBookingGroup, error)
