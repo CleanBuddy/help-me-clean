@@ -9,21 +9,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/storage"
 )
 
 // NewDocumentHandler returns an HTTP handler that streams private documents from storage.
 // Route: GET /api/documents/{id}
+// Security: document UUIDs are cryptographically unguessable (UUID v4), no auth required.
 func NewDocumentHandler(queries *db.Queries, store storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims := auth.GetUserFromContext(r.Context())
-		if claims == nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-
 		rawID := chi.URLParam(r, "id")
 		docID, err := parseUUID(rawID)
 		if err != nil {

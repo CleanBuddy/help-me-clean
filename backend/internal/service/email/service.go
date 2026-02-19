@@ -37,16 +37,16 @@ func NewService() *Service {
 
 // SendOTP sends a 6-digit OTP code to the given address.
 //
-// Returns (skipped=true, nil) when SMTP is unconfigured in non-production —
-// the caller should expose devCode in the GraphQL response instead.
+// Returns (skipped=true, nil) in non-production environments — the caller will
+// expose devCode in the GraphQL response instead of sending a real email.
 // Returns an error when SMTP is unconfigured in production, or when the send fails.
 func (s *Service) SendOTP(to, code string) (skipped bool, err error) {
-	if !s.configured {
-		if s.isProd {
-			return false, fmt.Errorf("email service not configured: set SMTP_HOST in environment")
-		}
-		// Development / staging — skip send, caller will surface devCode
+	// Development / staging — never send real email; caller will surface devCode.
+	if !s.isProd {
 		return true, nil
+	}
+	if !s.configured {
+		return false, fmt.Errorf("email service not configured: set SMTP_HOST in environment")
 	}
 
 	subject := "Codul tău de autentificare HelpMeClean"
