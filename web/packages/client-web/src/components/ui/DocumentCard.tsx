@@ -50,7 +50,6 @@ export default function DocumentCard({
   id,
   documentTypeLabel,
   fileName,
-  fileUrl,
   status,
   uploadedAt,
   rejectionReason,

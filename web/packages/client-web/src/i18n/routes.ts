@@ -1,4 +1,5 @@
-export type { SupportedLanguage } from './config';
+import type { SupportedLanguage } from './config';
+export type { SupportedLanguage };
 
 /**
  * Central path-mapping table.
