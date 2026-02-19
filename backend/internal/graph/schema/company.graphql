@@ -79,6 +79,7 @@ extend type Query {
   company(id: ID!): Company!
   companyChatRooms: [ChatRoom!]!
   pendingCompanyDocuments: [CompanyDocument!]!
+  getDocumentUrl(documentId: ID!): String!
 }
 
 extend type Mutation {

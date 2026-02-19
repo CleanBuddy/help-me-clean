@@ -3149,3 +3149,9 @@ export const JOIN_WAITLIST = gql`
     }
   }
 `;
+
+export const GET_DOCUMENT_URL = gql`
+  query GetDocumentUrl($documentId: ID!) {
+    getDocumentUrl(documentId: $documentId)
+  }
+`;

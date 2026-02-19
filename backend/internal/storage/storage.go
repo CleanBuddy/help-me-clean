@@ -35,6 +35,9 @@ type Storage interface {
 
 	// GetPublicURL returns the public URL for a file (for public files only)
 	GetPublicURL(path string) string
+
+	// GetReader returns a streaming reader for a private file
+	GetReader(ctx context.Context, path string) (io.ReadCloser, error)
 }
 
 // GCSStorage implements Storage interface using Google Cloud Storage
@@ -144,7 +147,9 @@ func (s *GCSStorage) GetSignedURL(ctx context.Context, path string) (string, err
 		Expires: time.Now().Add(1 * time.Hour),
 	}
 
-	url, err := storage.SignedURL(s.bucketName, path, opts)
+	// Use the bucket handle's SignedURL so the client's own credentials are used
+	// for signing (works with SA key JSON, ADC, and Workload Identity).
+	url, err := s.client.Bucket(s.bucketName).SignedURL(path, opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate signed URL: %w", err)
 	}
@@ -155,6 +160,15 @@ func (s *GCSStorage) GetSignedURL(ctx context.Context, path string) (string, err
 // GetPublicURL returns the public URL for a file in GCS
 func (s *GCSStorage) GetPublicURL(path string) string {
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.bucketName, path)
+}
+
+// GetReader returns a streaming reader for a private GCS object
+func (s *GCSStorage) GetReader(ctx context.Context, path string) (io.ReadCloser, error) {
+	rc, err := s.client.Bucket(s.bucketName).Object(path).NewReader(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open GCS object: %w", err)
+	}
+	return rc, nil
 }
 
 // LocalStorage implements Storage interface using local filesystem (for development)
@@ -214,4 +228,9 @@ func (s *LocalStorage) GetSignedURL(ctx context.Context, path string) (string, e
 // GetPublicURL returns the public URL for a local file
 func (s *LocalStorage) GetPublicURL(path string) string {
 	return s.baseURL + "/" + path
+}
+
+// GetReader returns a streaming reader for a local file
+func (s *LocalStorage) GetReader(ctx context.Context, path string) (io.ReadCloser, error) {
+	return os.Open(filepath.Join(s.basePath, path))
 }

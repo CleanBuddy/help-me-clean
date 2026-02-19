@@ -625,3 +625,26 @@ func (r *queryResolver) PendingCompanyDocuments(ctx context.Context) ([]*model.C
 	}
 	return result, nil
 }
+
+// GetDocumentURL is the resolver for the getDocumentUrl field.
+func (r *queryResolver) GetDocumentURL(ctx context.Context, documentID string) (string, error) {
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil {
+		return "", fmt.Errorf("not authenticated")
+	}
+
+	id := stringToUUID(documentID)
+
+	// Try company document first.
+	doc, err := r.Queries.GetCompanyDocument(ctx, id)
+	if err == nil {
+		return r.Storage.GetSignedURL(ctx, doc.FileUrl)
+	}
+
+	// Fallback to cleaner document.
+	cleanerDoc, err := r.Queries.GetCleanerDocument(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("document not found")
+	}
+	return r.Storage.GetSignedURL(ctx, cleanerDoc.FileUrl)
+}

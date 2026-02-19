@@ -27,6 +27,7 @@ import (
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph"
 	"helpmeclean-backend/internal/graph/resolver"
+	dochandler "helpmeclean-backend/internal/handler"
 	custommiddleware "helpmeclean-backend/internal/middleware"
 	"helpmeclean-backend/internal/service/email"
 	"helpmeclean-backend/internal/service/invoice"
@@ -108,6 +109,10 @@ func NewHandler(ctx context.Context) (http.Handler, func(), error) {
 
 	// ANAF company lookup proxy — CORS-safe server-side relay for Romanian tax authority.
 	r.Get("/api/company-lookup", anafCompanyLookupHandler())
+
+	// Document download — public proxy that streams private files from GCS.
+	// Security: document UUIDs (v4) are cryptographically unguessable.
+	r.Get("/api/documents/{id}", dochandler.NewDocumentHandler(queries, store))
 
 	authzHelper := custommiddleware.NewAuthzHelper(queries)
 

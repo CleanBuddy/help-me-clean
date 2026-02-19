@@ -9,6 +9,10 @@ import {
 import Badge from './Badge';
 import { cn } from '@helpmeclean/shared';
 
+const apiBase =
+  (import.meta.env.VITE_GRAPHQL_ENDPOINT as string | undefined)?.replace('/query', '') ??
+  'http://localhost:8080';
+
 interface DocumentCardProps {
   id: string;
   documentType: string;
@@ -59,6 +63,8 @@ export default function DocumentCard({
   const config = statusConfig[status] ?? statusConfig.PENDING;
   const StatusIcon = config.icon;
 
+  const documentUrl = `${apiBase}/api/documents/${id}`;
+
   return (
     <div className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 bg-white">
       <div className="p-2.5 rounded-xl bg-gray-100 shrink-0">
@@ -82,9 +88,9 @@ export default function DocumentCard({
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         <a
-          href={fileUrl}
+          href={documentUrl}
           target="_blank"
-          rel="noopener noreferrer"
+          rel="noreferrer"
           className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
           title="Previzualizeaza"
         >

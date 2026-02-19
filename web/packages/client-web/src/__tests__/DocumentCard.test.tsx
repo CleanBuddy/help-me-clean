@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DocumentCard from '@/components/ui/DocumentCard';
@@ -16,16 +16,12 @@ const baseProps = {
   documentType: 'ID_CARD',
   documentTypeLabel: 'Carte de identitate',
   fileName: 'buletin.pdf',
-  fileUrl: 'https://storage.example.com/buletin.pdf',
+  fileUrl: 'uploads/companies/123/buletin.pdf',
   status: 'PENDING' as const,
   uploadedAt: '2024-06-15T10:30:00Z',
 };
 
 describe('DocumentCard', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('renders file name and type label', () => {
     render(<DocumentCard {...baseProps} />);
     expect(screen.getByText('buletin.pdf')).toBeInTheDocument();
@@ -54,11 +50,11 @@ describe('DocumentCard', () => {
     expect(screen.getByText('Motiv: Bad quality')).toBeInTheDocument();
   });
 
-  it('renders preview link pointing to fileUrl', () => {
+  it('renders preview link pointing to backend proxy endpoint', () => {
     render(<DocumentCard {...baseProps} />);
     const link = screen.getByTitle('Previzualizeaza');
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', 'https://storage.example.com/buletin.pdf');
+    expect(link.tagName).toBe('A');
+    expect(link).toHaveAttribute('href', 'http://localhost:8080/api/documents/doc-1');
     expect(link).toHaveAttribute('target', '_blank');
   });
 

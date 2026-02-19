@@ -9,16 +9,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/middleware"
+	"os"
+	"strings"
+
+	pgx "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // SignInWithGoogle is the resolver for the signInWithGoogle field.
@@ -180,14 +179,14 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 }
 
 // RequestEmailOtp is the resolver for the requestEmailOtp field.
-func (r *mutationResolver) RequestEmailOtp(ctx context.Context, emailAddr string, role model.UserRole) (*model.RequestOtpResponse, error) {
-	emailAddr = strings.ToLower(strings.TrimSpace(emailAddr))
-	if emailAddr == "" {
+func (r *mutationResolver) RequestEmailOtp(ctx context.Context, email string, role model.UserRole) (*model.RequestOtpResponse, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
 		return nil, fmt.Errorf("email is required")
 	}
 
 	// Rate-limit: max 3 active (unexpired, unused) codes per email per 10-minute window.
-	count, err := r.Queries.CountActiveEmailOTPs(ctx, emailAddr)
+	count, err := r.Queries.CountActiveEmailOTPs(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check rate limit: %w", err)
 	}
@@ -202,14 +201,14 @@ func (r *mutationResolver) RequestEmailOtp(ctx context.Context, emailAddr string
 
 	dbRole := strings.ToLower(string(gqlUserRoleToDb(role)))
 	if _, err := r.Queries.CreateEmailOTP(ctx, db.CreateEmailOTPParams{
-		Email: emailAddr,
+		Email: email,
 		Code:  code,
 		Role:  dbRole,
 	}); err != nil {
 		return nil, fmt.Errorf("failed to save OTP: %w", err)
 	}
 
-	skipped, err := r.EmailService.SendOTP(emailAddr, code)
+	skipped, err := r.EmailService.SendOTP(email, code)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send OTP email: %w", err)
 	}
@@ -228,8 +227,8 @@ func (r *mutationResolver) RequestEmailOtp(ctx context.Context, emailAddr string
 }
 
 // VerifyEmailOtp is the resolver for the verifyEmailOtp field.
-func (r *mutationResolver) VerifyEmailOtp(ctx context.Context, emailAddr string, code string, role model.UserRole) (*model.AuthPayload, error) {
-	emailAddr = strings.ToLower(strings.TrimSpace(emailAddr))
+func (r *mutationResolver) VerifyEmailOtp(ctx context.Context, email string, code string, role model.UserRole) (*model.AuthPayload, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
 	code = strings.TrimSpace(code)
 
 	if len(code) != 6 {
@@ -237,7 +236,7 @@ func (r *mutationResolver) VerifyEmailOtp(ctx context.Context, emailAddr string,
 	}
 
 	otpRow, err := r.Queries.GetValidEmailOTP(ctx, db.GetValidEmailOTPParams{
-		Email: emailAddr,
+		Email: email,
 		Code:  code,
 	})
 	if err != nil {
@@ -253,7 +252,7 @@ func (r *mutationResolver) VerifyEmailOtp(ctx context.Context, emailAddr string,
 	}
 
 	// Find or create the user.
-	dbUser, err := r.Queries.GetUserByEmail(ctx, emailAddr)
+	dbUser, err := r.Queries.GetUserByEmail(ctx, email)
 	isNewUser := false
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
@@ -262,8 +261,8 @@ func (r *mutationResolver) VerifyEmailOtp(ctx context.Context, emailAddr string,
 		// First-time login — create the user.
 		isNewUser = true
 		dbUser, err = r.Queries.CreateUser(ctx, db.CreateUserParams{
-			Email:             emailAddr,
-			FullName:          emailPrefix(emailAddr),
+			Email:             email,
+			FullName:          emailPrefix(email),
 			Role:              gqlUserRoleToDb(role),
 			Status:            db.UserStatusActive,
 			PreferredLanguage: pgtype.Text{String: "ro", Valid: true},

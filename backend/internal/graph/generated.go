@@ -736,6 +736,7 @@ type ComplexityRoot struct {
 		CompanyPerformance           func(childComplexity int, first *int) int
 		CompanyRevenueByDateRange    func(childComplexity int, from string, to string) int
 		EstimatePrice                func(childComplexity int, input model.PriceEstimateInput) int
+		GetDocumentURL               func(childComplexity int, documentID string) int
 		InvoiceAnalytics             func(childComplexity int, from string, to string) int
 		InvoiceDetail                func(childComplexity int, id string) int
 		IsCitySupported              func(childComplexity int, city string) int
@@ -1104,6 +1105,7 @@ type QueryResolver interface {
 	Company(ctx context.Context, id string) (*model.Company, error)
 	CompanyChatRooms(ctx context.Context) ([]*model.ChatRoom, error)
 	PendingCompanyDocuments(ctx context.Context) ([]*model.CompanyDocument, error)
+	GetDocumentURL(ctx context.Context, documentID string) (string, error)
 	MyBillingProfile(ctx context.Context) (*model.ClientBillingProfile, error)
 	MyInvoices(ctx context.Context, first *int, after *string) (*model.InvoiceConnection, error)
 	InvoiceDetail(ctx context.Context, id string) (*model.Invoice, error)
@@ -4847,6 +4849,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.EstimatePrice(childComplexity, args["input"].(model.PriceEstimateInput)), true
+	case "Query.getDocumentUrl":
+		if e.complexity.Query.GetDocumentURL == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDocumentUrl_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDocumentURL(childComplexity, args["documentId"].(string)), true
 	case "Query.invoiceAnalytics":
 		if e.complexity.Query.InvoiceAnalytics == nil {
 			break
@@ -7824,6 +7837,17 @@ func (ec *executionContext) field_Query_estimatePrice_args(ctx context.Context, 
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getDocumentUrl_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "documentId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["documentId"] = arg0
 	return args, nil
 }
 
@@ -29978,6 +30002,47 @@ func (ec *executionContext) fieldContext_Query_pendingCompanyDocuments(_ context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getDocumentUrl(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_getDocumentUrl,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().GetDocumentURL(ctx, fc.Args["documentId"].(string))
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_getDocumentUrl(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDocumentUrl_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_myBillingProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -44503,6 +44568,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_pendingCompanyDocuments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDocumentUrl":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDocumentUrl(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
