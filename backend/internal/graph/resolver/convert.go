@@ -392,7 +392,6 @@ func dbCleanerToGQL(c db.Cleaner) *model.CleanerProfile {
 		Phone:              textPtr(c.Phone),
 		Email:              textPtr(c.Email),
 		Bio:                textPtr(c.Bio),
-		AvatarURL:          textPtr(c.AvatarUrl),
 		Status:             dbCleanerStatusToGQL(c.Status),
 		IsCompanyAdmin:     boolVal(c.IsCompanyAdmin),
 		InviteToken:        textPtr(c.InviteToken),
@@ -651,6 +650,29 @@ func dbPersonalityAssessmentToGQL(a db.PersonalityAssessment) *model.Personality
 		HasConcerns:    a.HasConcerns,
 		FlaggedFacets:  flaggedFacets,
 		CompletedAt:    timestamptzToTime(a.CompletedAt),
+	}
+}
+
+func dbPersonalityInsightsToGQL(i db.PersonalityInsight) *model.PersonalityInsights {
+	strengths := i.Strengths
+	if strengths == nil {
+		strengths = []string{}
+	}
+
+	concerns := i.Concerns
+	if concerns == nil {
+		concerns = []string{}
+	}
+
+	return &model.PersonalityInsights{
+		Summary:           i.Summary,
+		Strengths:         strengths,
+		Concerns:          concerns,
+		TeamFitAnalysis:   i.TeamFitAnalysis,
+		RecommendedAction: i.RecommendedAction,
+		Confidence:        i.Confidence,
+		AiModel:           i.AiModel,
+		GeneratedAt:       timestamptzToTime(i.GeneratedAt),
 	}
 }
 

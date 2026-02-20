@@ -747,18 +747,61 @@ export const MY_CLEANERS = gql`
       fullName
       phone
       email
-      avatarUrl
+      bio
+      user {
+        id
+        avatarUrl
+      }
       status
       isCompanyAdmin
       inviteToken
       ratingAvg
       totalJobsCompleted
+      company {
+        id
+        companyName
+      }
       availability {
         id
         dayOfWeek
         startTime
         endTime
         isAvailable
+      }
+      documents {
+        id
+        documentType
+        fileName
+        fileUrl
+        status
+        uploadedAt
+        reviewedAt
+        rejectionReason
+      }
+      personalityAssessment {
+        id
+        facetScores {
+          facetCode
+          facetName
+          score
+          maxScore
+          isFlagged
+        }
+        integrityAvg
+        workQualityAvg
+        hasConcerns
+        flaggedFacets
+        completedAt
+        insights {
+          summary
+          strengths
+          concerns
+          teamFitAnalysis
+          recommendedAction
+          confidence
+          aiModel
+          generatedAt
+        }
       }
       createdAt
     }
@@ -1048,6 +1091,10 @@ export const COMPANY = gql`
         fullName
         email
         phone
+        user {
+          id
+          avatarUrl
+        }
         status
         documents {
           id
@@ -1073,6 +1120,16 @@ export const COMPANY = gql`
           hasConcerns
           flaggedFacets
           completedAt
+          insights {
+            summary
+            strengths
+            concerns
+            teamFitAnalysis
+            recommendedAction
+            confidence
+            aiModel
+            generatedAt
+          }
         }
       }
     }
@@ -1428,6 +1485,75 @@ export const GET_USER = gql`
       status
       preferredLanguage
       createdAt
+    }
+  }
+`;
+
+export const GET_USER_WITH_CLEANER = gql`
+  query GetUserWithCleaner($id: ID!) {
+    user(id: $id) {
+      id
+      fullName
+      email
+      phone
+      avatarUrl
+      role
+      status
+      preferredLanguage
+      createdAt
+
+      # Cleaner data (null if not CLEANER role)
+      cleanerProfile {
+        id
+        userId
+        fullName
+        phone
+        email
+        bio
+        status
+        isCompanyAdmin
+        ratingAvg
+        totalJobsCompleted
+        company {
+          id
+          companyName
+        }
+        documents {
+          id
+          documentType
+          fileName
+          fileUrl
+          status
+          uploadedAt
+          reviewedAt
+          rejectionReason
+        }
+        personalityAssessment {
+          id
+          facetScores {
+            facetCode
+            facetName
+            score
+            maxScore
+            isFlagged
+          }
+          integrityAvg
+          workQualityAvg
+          hasConcerns
+          flaggedFacets
+          completedAt
+          insights {
+            summary
+            strengths
+            concerns
+            teamFitAnalysis
+            recommendedAction
+            confidence
+            aiModel
+            generatedAt
+          }
+        }
+      }
     }
   }
 `;
@@ -1821,11 +1947,15 @@ export const MY_CLEANER_PROFILE = gql`
   query MyCleanerProfile {
     myCleanerProfile {
       id
+      userId
       fullName
       phone
       email
       bio
-      avatarUrl
+      user {
+        id
+        avatarUrl
+      }
       status
       ratingAvg
       totalJobsCompleted
@@ -3069,6 +3199,21 @@ export const SUBMIT_PERSONALITY_ASSESSMENT = gql`
   }
 `;
 
+export const GENERATE_PERSONALITY_INSIGHTS = gql`
+  mutation GeneratePersonalityInsights($cleanerId: ID!) {
+    generatePersonalityInsights(cleanerId: $cleanerId) {
+      summary
+      strengths
+      concerns
+      teamFitAnalysis
+      recommendedAction
+      confidence
+      aiModel
+      generatedAt
+    }
+  }
+`;
+
 // ========================================
 // Avatar/Logo Upload Mutations
 // ========================================
@@ -3098,7 +3243,10 @@ export const UPLOAD_CLEANER_AVATAR = gql`
   mutation UploadCleanerAvatar($cleanerId: ID!, $file: Upload!) {
     uploadCleanerAvatar(cleanerId: $cleanerId, file: $file) {
       id
-      avatarUrl
+      user {
+        id
+        avatarUrl
+      }
       fullName
     }
   }

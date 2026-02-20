@@ -141,9 +141,17 @@ export default function ProfilePage() {
           {/* User Info */}
           <Card className="mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary shrink-0">
-                {getInitials(user?.fullName ?? profile?.fullName ?? '??')}
-              </div>
+              {profile?.user?.avatarUrl ? (
+                <img
+                  src={profile.user.avatarUrl}
+                  alt={user?.fullName ?? profile?.fullName ?? 'Profile'}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary shrink-0">
+                  {getInitials(user?.fullName ?? profile?.fullName ?? '??')}
+                </div>
+              )}
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-gray-900">
                   {user?.fullName ?? profile?.fullName ?? '--'}
@@ -171,7 +179,7 @@ export default function ProfilePage() {
               </p>
               <div className="flex items-center gap-8">
                 <AvatarUpload
-                  currentUrl={profile.avatarUrl}
+                  currentUrl={profile.user?.avatarUrl}
                   onUpload={handleAvatarUpload}
                   loading={uploadingAvatar}
                   size="xl"

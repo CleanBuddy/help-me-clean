@@ -15,7 +15,7 @@ import { authService, type AuthUser, type AuthState } from '@/services/AuthServi
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  loginWithGoogle: (idToken: string) => Promise<AuthUser>;
+  loginWithGoogle: (idToken: string, role?: string) => Promise<AuthUser>;
   requestEmailOtp: (email: string, role?: string) => Promise<{ success: boolean; devCode?: string }>;
   loginWithEmailOtp: (email: string, code: string, role?: string) => Promise<AuthUser>;
   logout: () => void;
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [client]);
 
   const loginWithGoogle = useCallback(
-    (idToken: string) => authService.loginWithGoogle(idToken),
+    (idToken: string, role?: string) => authService.loginWithGoogle(idToken, role),
     [],
   );
   const requestEmailOtp = useCallback(

@@ -41,7 +41,9 @@ type Config struct {
 
 type ResolverRoot interface {
 	Mutation() MutationResolver
+	PersonalityAssessment() PersonalityAssessmentResolver
 	Query() QueryResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -212,7 +214,6 @@ type ComplexityRoot struct {
 
 	CleanerProfile struct {
 		Availability          func(childComplexity int) int
-		AvatarURL             func(childComplexity int) int
 		Bio                   func(childComplexity int) int
 		Company               func(childComplexity int) int
 		CreatedAt             func(childComplexity int) int
@@ -487,6 +488,7 @@ type ComplexityRoot struct {
 		GenerateBookingInvoice        func(childComplexity int, bookingID string) int
 		GenerateCommissionInvoice     func(childComplexity int, payoutID string) int
 		GenerateCreditNote            func(childComplexity int, invoiceID string, amount int, reason string) int
+		GeneratePersonalityInsights   func(childComplexity int, cleanerID string) int
 		InitiateConnectOnboarding     func(childComplexity int) int
 		InviteCleaner                 func(childComplexity int, input model.InviteCleanerInput) int
 		InviteSelfAsCleaner           func(childComplexity int) int
@@ -502,6 +504,7 @@ type ComplexityRoot struct {
 		ReactivateUser                func(childComplexity int, id string) int
 		RefreshConnectOnboarding      func(childComplexity int) int
 		RefreshToken                  func(childComplexity int) int
+		RegeneratePersonalityInsights func(childComplexity int, cleanerID string) int
 		RegisterDeviceToken           func(childComplexity int, token string) int
 		RejectCompany                 func(childComplexity int, id string, reason string) int
 		RequestEmailOtp               func(childComplexity int, email string, role model.UserRole) int
@@ -630,6 +633,7 @@ type ComplexityRoot struct {
 		FlaggedFacets  func(childComplexity int) int
 		HasConcerns    func(childComplexity int) int
 		ID             func(childComplexity int) int
+		Insights       func(childComplexity int) int
 		IntegrityAvg   func(childComplexity int) int
 		WorkQualityAvg func(childComplexity int) int
 	}
@@ -640,6 +644,17 @@ type ComplexityRoot struct {
 		IsFlagged func(childComplexity int) int
 		MaxScore  func(childComplexity int) int
 		Score     func(childComplexity int) int
+	}
+
+	PersonalityInsights struct {
+		AiModel           func(childComplexity int) int
+		Concerns          func(childComplexity int) int
+		Confidence        func(childComplexity int) int
+		GeneratedAt       func(childComplexity int) int
+		RecommendedAction func(childComplexity int) int
+		Strengths         func(childComplexity int) int
+		Summary           func(childComplexity int) int
+		TeamFitAnalysis   func(childComplexity int) int
 	}
 
 	PersonalityQuestion struct {
@@ -925,6 +940,7 @@ type ComplexityRoot struct {
 
 	User struct {
 		AvatarURL         func(childComplexity int) int
+		CleanerProfile    func(childComplexity int) int
 		CreatedAt         func(childComplexity int) int
 		Email             func(childComplexity int) int
 		FullName          func(childComplexity int) int
@@ -1039,6 +1055,8 @@ type MutationResolver interface {
 	AdminIssueRefund(ctx context.Context, bookingID string, amount int, reason string) (*model.RefundRequest, error)
 	MarkBookingPaid(ctx context.Context, id string) (*model.Booking, error)
 	SubmitPersonalityAssessment(ctx context.Context, answers []*model.PersonalityAnswerInput) (*model.PersonalityAssessment, error)
+	GeneratePersonalityInsights(ctx context.Context, cleanerID string) (*model.PersonalityInsights, error)
+	RegeneratePersonalityInsights(ctx context.Context, cleanerID string) (*model.PersonalityInsights, error)
 	CancelRecurringGroup(ctx context.Context, id string, reason *string) (*model.RecurringBookingGroup, error)
 	PauseRecurringGroup(ctx context.Context, id string) (*model.RecurringBookingGroup, error)
 	ResumeRecurringGroup(ctx context.Context, id string) (*model.RecurringBookingGroup, error)
@@ -1053,6 +1071,9 @@ type MutationResolver interface {
 	UpdateUserRole(ctx context.Context, userID string, role model.UserRole) (*model.User, error)
 	AdminUpdateUserProfile(ctx context.Context, userID string, fullName string, phone *string) (*model.User, error)
 	JoinWaitlist(ctx context.Context, input model.JoinWaitlistInput) (*model.WaitlistLead, error)
+}
+type PersonalityAssessmentResolver interface {
+	Insights(ctx context.Context, obj *model.PersonalityAssessment) (*model.PersonalityInsights, error)
 }
 type QueryResolver interface {
 	PlatformStats(ctx context.Context, dateFrom *string, dateTo *string) (*model.PlatformStats, error)
@@ -1149,6 +1170,9 @@ type QueryResolver interface {
 	PlatformMode(ctx context.Context) (string, error)
 	WaitlistLeads(ctx context.Context, leadType *model.WaitlistLeadType, limit *int, offset *int) ([]*model.WaitlistLead, error)
 	WaitlistStats(ctx context.Context) (*model.WaitlistStats, error)
+}
+type UserResolver interface {
+	CleanerProfile(ctx context.Context, obj *model.User) (*model.CleanerProfile, error)
 }
 
 type executableSchema struct {
@@ -1864,12 +1888,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CleanerProfile.Availability(childComplexity), true
-	case "CleanerProfile.avatarUrl":
-		if e.complexity.CleanerProfile.AvatarURL == nil {
-			break
-		}
-
-		return e.complexity.CleanerProfile.AvatarURL(childComplexity), true
 	case "CleanerProfile.bio":
 		if e.complexity.CleanerProfile.Bio == nil {
 			break
@@ -3281,6 +3299,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.GenerateCreditNote(childComplexity, args["invoiceId"].(string), args["amount"].(int), args["reason"].(string)), true
+	case "Mutation.generatePersonalityInsights":
+		if e.complexity.Mutation.GeneratePersonalityInsights == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_generatePersonalityInsights_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GeneratePersonalityInsights(childComplexity, args["cleanerId"].(string)), true
 	case "Mutation.initiateConnectOnboarding":
 		if e.complexity.Mutation.InitiateConnectOnboarding == nil {
 			break
@@ -3416,6 +3445,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RefreshToken(childComplexity), true
+	case "Mutation.regeneratePersonalityInsights":
+		if e.complexity.Mutation.RegeneratePersonalityInsights == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_regeneratePersonalityInsights_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RegeneratePersonalityInsights(childComplexity, args["cleanerId"].(string)), true
 	case "Mutation.registerDeviceToken":
 		if e.complexity.Mutation.RegisterDeviceToken == nil {
 			break
@@ -4224,6 +4264,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PersonalityAssessment.ID(childComplexity), true
+	case "PersonalityAssessment.insights":
+		if e.complexity.PersonalityAssessment.Insights == nil {
+			break
+		}
+
+		return e.complexity.PersonalityAssessment.Insights(childComplexity), true
 	case "PersonalityAssessment.integrityAvg":
 		if e.complexity.PersonalityAssessment.IntegrityAvg == nil {
 			break
@@ -4267,6 +4313,55 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PersonalityFacetScore.Score(childComplexity), true
+
+	case "PersonalityInsights.aiModel":
+		if e.complexity.PersonalityInsights.AiModel == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.AiModel(childComplexity), true
+	case "PersonalityInsights.concerns":
+		if e.complexity.PersonalityInsights.Concerns == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.Concerns(childComplexity), true
+	case "PersonalityInsights.confidence":
+		if e.complexity.PersonalityInsights.Confidence == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.Confidence(childComplexity), true
+	case "PersonalityInsights.generatedAt":
+		if e.complexity.PersonalityInsights.GeneratedAt == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.GeneratedAt(childComplexity), true
+	case "PersonalityInsights.recommendedAction":
+		if e.complexity.PersonalityInsights.RecommendedAction == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.RecommendedAction(childComplexity), true
+	case "PersonalityInsights.strengths":
+		if e.complexity.PersonalityInsights.Strengths == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.Strengths(childComplexity), true
+	case "PersonalityInsights.summary":
+		if e.complexity.PersonalityInsights.Summary == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.Summary(childComplexity), true
+	case "PersonalityInsights.teamFitAnalysis":
+		if e.complexity.PersonalityInsights.TeamFitAnalysis == nil {
+			break
+		}
+
+		return e.complexity.PersonalityInsights.TeamFitAnalysis(childComplexity), true
 
 	case "PersonalityQuestion.facetCode":
 		if e.complexity.PersonalityQuestion.FacetCode == nil {
@@ -5895,6 +5990,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.User.AvatarURL(childComplexity), true
+	case "User.cleanerProfile":
+		if e.complexity.User.CleanerProfile == nil {
+			break
+		}
+
+		return e.complexity.User.CleanerProfile(childComplexity), true
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
 			break
@@ -6673,6 +6774,17 @@ func (ec *executionContext) field_Mutation_generateCreditNote_args(ctx context.C
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_generatePersonalityInsights_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_inviteCleaner_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6774,6 +6886,17 @@ func (ec *executionContext) field_Mutation_reactivateUser_args(ctx context.Conte
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_regeneratePersonalityInsights_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "cleanerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["cleanerId"] = arg0
 	return args, nil
 }
 
@@ -8862,6 +8985,8 @@ func (ec *executionContext) fieldContext_AuthPayload_user(_ context.Context, fie
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -9143,6 +9268,8 @@ func (ec *executionContext) fieldContext_Booking_client(_ context.Context, field
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -9263,8 +9390,6 @@ func (ec *executionContext) fieldContext_Booking_cleaner(_ context.Context, fiel
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -10780,6 +10905,8 @@ func (ec *executionContext) fieldContext_ChatMessage_sender(_ context.Context, f
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -11023,6 +11150,8 @@ func (ec *executionContext) fieldContext_ChatParticipant_user(_ context.Context,
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -12225,6 +12354,8 @@ func (ec *executionContext) fieldContext_CleanerProfile_user(_ context.Context, 
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -12242,9 +12373,9 @@ func (ec *executionContext) _CleanerProfile_company(ctx context.Context, field g
 			return obj.Company, nil
 		},
 		nil,
-		ec.marshalNCompany2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCompany,
+		ec.marshalOCompany2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCompany,
 		true,
-		true,
+		false,
 	)
 }
 
@@ -12409,35 +12540,6 @@ func (ec *executionContext) _CleanerProfile_bio(ctx context.Context, field graph
 }
 
 func (ec *executionContext) fieldContext_CleanerProfile_bio(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CleanerProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CleanerProfile_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *model.CleanerProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_CleanerProfile_avatarUrl,
-		func(ctx context.Context) (any, error) {
-			return obj.AvatarURL, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_CleanerProfile_avatarUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CleanerProfile",
 		Field:      field,
@@ -12682,6 +12784,8 @@ func (ec *executionContext) fieldContext_CleanerProfile_personalityAssessment(_ 
 				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
 			case "completedAt":
 				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			case "insights":
+				return ec.fieldContext_PersonalityAssessment_insights(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
 		},
@@ -12944,8 +13048,6 @@ func (ec *executionContext) fieldContext_CleanerSuggestion_cleaner(_ context.Con
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -14175,8 +14277,6 @@ func (ec *executionContext) fieldContext_Company_cleaners(_ context.Context, fie
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -14244,6 +14344,8 @@ func (ec *executionContext) fieldContext_Company_admin(_ context.Context, field 
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -17847,6 +17949,8 @@ func (ec *executionContext) fieldContext_Mutation_suspendUser(ctx context.Contex
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -17908,6 +18012,8 @@ func (ec *executionContext) fieldContext_Mutation_reactivateUser(ctx context.Con
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -19478,8 +19584,6 @@ func (ec *executionContext) fieldContext_Mutation_inviteCleaner(ctx context.Cont
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -19556,8 +19660,6 @@ func (ec *executionContext) fieldContext_Mutation_inviteSelfAsCleaner(_ context.
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -19624,8 +19726,6 @@ func (ec *executionContext) fieldContext_Mutation_updateCleanerStatus(ctx contex
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -19703,8 +19803,6 @@ func (ec *executionContext) fieldContext_Mutation_acceptInvitation(ctx context.C
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -19888,8 +19986,6 @@ func (ec *executionContext) fieldContext_Mutation_updateCleanerProfile(ctx conte
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -19967,8 +20063,6 @@ func (ec *executionContext) fieldContext_Mutation_uploadCleanerAvatar(ctx contex
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -20311,8 +20405,6 @@ func (ec *executionContext) fieldContext_Mutation_activateCleaner(ctx context.Co
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -22902,6 +22994,8 @@ func (ec *executionContext) fieldContext_Mutation_submitPersonalityAssessment(ct
 				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
 			case "completedAt":
 				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			case "insights":
+				return ec.fieldContext_PersonalityAssessment_insights(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
 		},
@@ -22914,6 +23008,124 @@ func (ec *executionContext) fieldContext_Mutation_submitPersonalityAssessment(ct
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_submitPersonalityAssessment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_generatePersonalityInsights(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_generatePersonalityInsights,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GeneratePersonalityInsights(ctx, fc.Args["cleanerId"].(string))
+		},
+		nil,
+		ec.marshalNPersonalityInsights2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityInsights,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_generatePersonalityInsights(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "summary":
+				return ec.fieldContext_PersonalityInsights_summary(ctx, field)
+			case "strengths":
+				return ec.fieldContext_PersonalityInsights_strengths(ctx, field)
+			case "concerns":
+				return ec.fieldContext_PersonalityInsights_concerns(ctx, field)
+			case "teamFitAnalysis":
+				return ec.fieldContext_PersonalityInsights_teamFitAnalysis(ctx, field)
+			case "recommendedAction":
+				return ec.fieldContext_PersonalityInsights_recommendedAction(ctx, field)
+			case "confidence":
+				return ec.fieldContext_PersonalityInsights_confidence(ctx, field)
+			case "aiModel":
+				return ec.fieldContext_PersonalityInsights_aiModel(ctx, field)
+			case "generatedAt":
+				return ec.fieldContext_PersonalityInsights_generatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityInsights", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_generatePersonalityInsights_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_regeneratePersonalityInsights(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_regeneratePersonalityInsights,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RegeneratePersonalityInsights(ctx, fc.Args["cleanerId"].(string))
+		},
+		nil,
+		ec.marshalNPersonalityInsights2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityInsights,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_regeneratePersonalityInsights(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "summary":
+				return ec.fieldContext_PersonalityInsights_summary(ctx, field)
+			case "strengths":
+				return ec.fieldContext_PersonalityInsights_strengths(ctx, field)
+			case "concerns":
+				return ec.fieldContext_PersonalityInsights_concerns(ctx, field)
+			case "teamFitAnalysis":
+				return ec.fieldContext_PersonalityInsights_teamFitAnalysis(ctx, field)
+			case "recommendedAction":
+				return ec.fieldContext_PersonalityInsights_recommendedAction(ctx, field)
+			case "confidence":
+				return ec.fieldContext_PersonalityInsights_confidence(ctx, field)
+			case "aiModel":
+				return ec.fieldContext_PersonalityInsights_aiModel(ctx, field)
+			case "generatedAt":
+				return ec.fieldContext_PersonalityInsights_generatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityInsights", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_regeneratePersonalityInsights_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -23622,6 +23834,8 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -23683,6 +23897,8 @@ func (ec *executionContext) fieldContext_Mutation_uploadAvatar(ctx context.Conte
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -23744,6 +23960,8 @@ func (ec *executionContext) fieldContext_Mutation_updateUserRole(ctx context.Con
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -23805,6 +24023,8 @@ func (ec *executionContext) fieldContext_Mutation_adminUpdateUserProfile(ctx con
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -25838,6 +26058,53 @@ func (ec *executionContext) fieldContext_PersonalityAssessment_completedAt(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _PersonalityAssessment_insights(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityAssessment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityAssessment_insights,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.PersonalityAssessment().Insights(ctx, obj)
+		},
+		nil,
+		ec.marshalOPersonalityInsights2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityInsights,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityAssessment_insights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityAssessment",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "summary":
+				return ec.fieldContext_PersonalityInsights_summary(ctx, field)
+			case "strengths":
+				return ec.fieldContext_PersonalityInsights_strengths(ctx, field)
+			case "concerns":
+				return ec.fieldContext_PersonalityInsights_concerns(ctx, field)
+			case "teamFitAnalysis":
+				return ec.fieldContext_PersonalityInsights_teamFitAnalysis(ctx, field)
+			case "recommendedAction":
+				return ec.fieldContext_PersonalityInsights_recommendedAction(ctx, field)
+			case "confidence":
+				return ec.fieldContext_PersonalityInsights_confidence(ctx, field)
+			case "aiModel":
+				return ec.fieldContext_PersonalityInsights_aiModel(ctx, field)
+			case "generatedAt":
+				return ec.fieldContext_PersonalityInsights_generatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PersonalityInsights", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PersonalityFacetScore_facetCode(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityFacetScore) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -25978,6 +26245,238 @@ func (ec *executionContext) fieldContext_PersonalityFacetScore_isFlagged(_ conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_summary(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_summary,
+		func(ctx context.Context) (any, error) {
+			return obj.Summary, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_summary(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_strengths(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_strengths,
+		func(ctx context.Context) (any, error) {
+			return obj.Strengths, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_strengths(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_concerns(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_concerns,
+		func(ctx context.Context) (any, error) {
+			return obj.Concerns, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_concerns(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_teamFitAnalysis(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_teamFitAnalysis,
+		func(ctx context.Context) (any, error) {
+			return obj.TeamFitAnalysis, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_teamFitAnalysis(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_recommendedAction(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_recommendedAction,
+		func(ctx context.Context) (any, error) {
+			return obj.RecommendedAction, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_recommendedAction(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_confidence(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_confidence,
+		func(ctx context.Context) (any, error) {
+			return obj.Confidence, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_confidence(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_aiModel(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_aiModel,
+		func(ctx context.Context) (any, error) {
+			return obj.AiModel, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_aiModel(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PersonalityInsights_generatedAt(ctx context.Context, field graphql.CollectedField, obj *model.PersonalityInsights) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PersonalityInsights_generatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.GeneratedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PersonalityInsights_generatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PersonalityInsights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
 		},
 	}
 	return fc, nil
@@ -27439,8 +27938,6 @@ func (ec *executionContext) fieldContext_Query_allCleaners(_ context.Context, fi
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -27553,6 +28050,8 @@ func (ec *executionContext) fieldContext_Query_allUsers(_ context.Context, field
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -28781,8 +29280,6 @@ func (ec *executionContext) fieldContext_Query_myCleaners(_ context.Context, fie
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -28848,8 +29345,6 @@ func (ec *executionContext) fieldContext_Query_myCleanerProfile(_ context.Contex
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -31492,6 +31987,8 @@ func (ec *executionContext) fieldContext_Query_myPersonalityAssessment(_ context
 				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
 			case "completedAt":
 				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			case "insights":
+				return ec.fieldContext_PersonalityAssessment_insights(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
 		},
@@ -31540,6 +32037,8 @@ func (ec *executionContext) fieldContext_Query_cleanerPersonalityAssessment(ctx 
 				return ec.fieldContext_PersonalityAssessment_flaggedFacets(ctx, field)
 			case "completedAt":
 				return ec.fieldContext_PersonalityAssessment_completedAt(ctx, field)
+			case "insights":
+				return ec.fieldContext_PersonalityAssessment_insights(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PersonalityAssessment", field.Name)
 		},
@@ -32092,6 +32591,8 @@ func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graph
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -32189,6 +32690,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -32513,6 +33016,8 @@ func (ec *executionContext) fieldContext_RecurringBookingGroup_client(_ context.
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -32633,8 +33138,6 @@ func (ec *executionContext) fieldContext_RecurringBookingGroup_preferredCleaner(
 				return ec.fieldContext_CleanerProfile_email(ctx, field)
 			case "bio":
 				return ec.fieldContext_CleanerProfile_bio(ctx, field)
-			case "avatarUrl":
-				return ec.fieldContext_CleanerProfile_avatarUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_CleanerProfile_status(ctx, field)
 			case "isCompanyAdmin":
@@ -33640,6 +34143,8 @@ func (ec *executionContext) fieldContext_RefundRequest_requestedBy(_ context.Con
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -33689,6 +34194,8 @@ func (ec *executionContext) fieldContext_RefundRequest_approvedBy(_ context.Cont
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -34187,6 +34694,8 @@ func (ec *executionContext) fieldContext_Review_reviewer(_ context.Context, fiel
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -35747,6 +36256,71 @@ func (ec *executionContext) fieldContext_User_createdAt(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _User_cleanerProfile(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_cleanerProfile,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.User().CleanerProfile(ctx, obj)
+		},
+		nil,
+		ec.marshalOCleanerProfile2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐCleanerProfile,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_cleanerProfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CleanerProfile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_CleanerProfile_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_CleanerProfile_user(ctx, field)
+			case "company":
+				return ec.fieldContext_CleanerProfile_company(ctx, field)
+			case "fullName":
+				return ec.fieldContext_CleanerProfile_fullName(ctx, field)
+			case "phone":
+				return ec.fieldContext_CleanerProfile_phone(ctx, field)
+			case "email":
+				return ec.fieldContext_CleanerProfile_email(ctx, field)
+			case "bio":
+				return ec.fieldContext_CleanerProfile_bio(ctx, field)
+			case "status":
+				return ec.fieldContext_CleanerProfile_status(ctx, field)
+			case "isCompanyAdmin":
+				return ec.fieldContext_CleanerProfile_isCompanyAdmin(ctx, field)
+			case "inviteToken":
+				return ec.fieldContext_CleanerProfile_inviteToken(ctx, field)
+			case "ratingAvg":
+				return ec.fieldContext_CleanerProfile_ratingAvg(ctx, field)
+			case "totalJobsCompleted":
+				return ec.fieldContext_CleanerProfile_totalJobsCompleted(ctx, field)
+			case "documents":
+				return ec.fieldContext_CleanerProfile_documents(ctx, field)
+			case "personalityAssessment":
+				return ec.fieldContext_CleanerProfile_personalityAssessment(ctx, field)
+			case "availability":
+				return ec.fieldContext_CleanerProfile_availability(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_CleanerProfile_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CleanerProfile", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _UserConnection_users(ctx context.Context, field graphql.CollectedField, obj *model.UserConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -35789,6 +36363,8 @@ func (ec *executionContext) fieldContext_UserConnection_users(_ context.Context,
 				return ec.fieldContext_User_preferredLanguage(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
+			case "cleanerProfile":
+				return ec.fieldContext_User_cleanerProfile(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -40199,9 +40775,6 @@ func (ec *executionContext) _CleanerProfile(ctx context.Context, sel ast.Selecti
 			out.Values[i] = ec._CleanerProfile_user(ctx, field, obj)
 		case "company":
 			out.Values[i] = ec._CleanerProfile_company(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "fullName":
 			out.Values[i] = ec._CleanerProfile_fullName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -40213,8 +40786,6 @@ func (ec *executionContext) _CleanerProfile(ctx context.Context, sel ast.Selecti
 			out.Values[i] = ec._CleanerProfile_email(ctx, field, obj)
 		case "bio":
 			out.Values[i] = ec._CleanerProfile_bio(ctx, field, obj)
-		case "avatarUrl":
-			out.Values[i] = ec._CleanerProfile_avatarUrl(ctx, field, obj)
 		case "status":
 			out.Values[i] = ec._CleanerProfile_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -42285,6 +42856,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "generatePersonalityInsights":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_generatePersonalityInsights(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "regeneratePersonalityInsights":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_regeneratePersonalityInsights(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "cancelRecurringGroup":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_cancelRecurringGroup(ctx, field)
@@ -42946,43 +43531,76 @@ func (ec *executionContext) _PersonalityAssessment(ctx context.Context, sel ast.
 		case "id":
 			out.Values[i] = ec._PersonalityAssessment_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "cleanerId":
 			out.Values[i] = ec._PersonalityAssessment_cleanerId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "facetScores":
 			out.Values[i] = ec._PersonalityAssessment_facetScores(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "integrityAvg":
 			out.Values[i] = ec._PersonalityAssessment_integrityAvg(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "workQualityAvg":
 			out.Values[i] = ec._PersonalityAssessment_workQualityAvg(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "hasConcerns":
 			out.Values[i] = ec._PersonalityAssessment_hasConcerns(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "flaggedFacets":
 			out.Values[i] = ec._PersonalityAssessment_flaggedFacets(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "completedAt":
 			out.Values[i] = ec._PersonalityAssessment_completedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "insights":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._PersonalityAssessment_insights(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -43039,6 +43657,80 @@ func (ec *executionContext) _PersonalityFacetScore(ctx context.Context, sel ast.
 			}
 		case "isFlagged":
 			out.Values[i] = ec._PersonalityFacetScore_isFlagged(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var personalityInsightsImplementors = []string{"PersonalityInsights"}
+
+func (ec *executionContext) _PersonalityInsights(ctx context.Context, sel ast.SelectionSet, obj *model.PersonalityInsights) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, personalityInsightsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PersonalityInsights")
+		case "summary":
+			out.Values[i] = ec._PersonalityInsights_summary(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "strengths":
+			out.Values[i] = ec._PersonalityInsights_strengths(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "concerns":
+			out.Values[i] = ec._PersonalityInsights_concerns(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "teamFitAnalysis":
+			out.Values[i] = ec._PersonalityInsights_teamFitAnalysis(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "recommendedAction":
+			out.Values[i] = ec._PersonalityInsights_recommendedAction(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "confidence":
+			out.Values[i] = ec._PersonalityInsights_confidence(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "aiModel":
+			out.Values[i] = ec._PersonalityInsights_aiModel(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "generatedAt":
+			out.Values[i] = ec._PersonalityInsights_generatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -46382,17 +47074,17 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "email":
 			out.Values[i] = ec._User_email(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "fullName":
 			out.Values[i] = ec._User_fullName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "phone":
 			out.Values[i] = ec._User_phone(ctx, field, obj)
@@ -46401,23 +47093,56 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "role":
 			out.Values[i] = ec._User_role(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "status":
 			out.Values[i] = ec._User_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "preferredLanguage":
 			out.Values[i] = ec._User_preferredLanguage(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "createdAt":
 			out.Values[i] = ec._User_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "cleanerProfile":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_cleanerProfile(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -49322,6 +50047,20 @@ func (ec *executionContext) marshalNPersonalityFacetScore2ᚖhelpmecleanᚑbacke
 	return ec._PersonalityFacetScore(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPersonalityInsights2helpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityInsights(ctx context.Context, sel ast.SelectionSet, v model.PersonalityInsights) graphql.Marshaler {
+	return ec._PersonalityInsights(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPersonalityInsights2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityInsights(ctx context.Context, sel ast.SelectionSet, v *model.PersonalityInsights) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PersonalityInsights(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPersonalityQuestion2ᚕᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityQuestionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PersonalityQuestion) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -50905,6 +51644,13 @@ func (ec *executionContext) marshalOPersonalityAssessment2ᚖhelpmecleanᚑbacke
 		return graphql.Null
 	}
 	return ec._PersonalityAssessment(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOPersonalityInsights2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐPersonalityInsights(ctx context.Context, sel ast.SelectionSet, v *model.PersonalityInsights) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PersonalityInsights(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalORecurrenceInput2ᚖhelpmecleanᚑbackendᚋinternalᚋgraphᚋmodelᚐRecurrenceInput(ctx context.Context, v any) (*model.RecurrenceInput, error) {

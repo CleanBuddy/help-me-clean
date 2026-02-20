@@ -14,6 +14,7 @@ import (
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/storage"
+	"log"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -536,14 +537,14 @@ func (r *queryResolver) Company(ctx context.Context, id string) (*model.Company,
 	result := dbCompanyToGQL(company)
 	r.populateCompanyDocuments(ctx, result, company.ID)
 
-	// Populate cleaners with their documents for admin view.
+	// Populate cleaners with User/Company/Documents/PersonalityAssessment relationships.
 	if cleaners, err := r.Queries.ListCleanersByCompany(ctx, company.ID); err == nil {
 		for _, c := range cleaners {
-			profile := dbCleanerToGQL(c)
-			if docs, err := r.Queries.ListCleanerDocuments(ctx, c.ID); err == nil {
-				for _, d := range docs {
-					profile.Documents = append(profile.Documents, dbCleanerDocToGQL(d))
-				}
+			// Load full cleaner profile with all relationships
+			profile, err := r.cleanerWithCompany(ctx, c)
+			if err != nil {
+				log.Printf("Failed to load cleaner %s for company: %v", uuidToString(c.ID), err)
+				continue // Skip broken cleaners, don't fail entire query
 			}
 			result.Cleaners = append(result.Cleaners, profile)
 		}

@@ -10,13 +10,24 @@ import { ROUTE_MAP } from '@/i18n/routes';
 import Button from '@/components/ui/Button';
 import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 
-function UserAvatar({ name }: { name: string }) {
+function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
   const initials = name
     .split(' ')
     .map((n) => n[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+      />
+    );
+  }
+
   return (
     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
       {initials || '?'}
@@ -102,7 +113,7 @@ export default function Header() {
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="flex items-center gap-2 text-gray-700 hover:text-primary font-medium transition cursor-pointer"
                   >
-                    <UserAvatar name={user!.fullName || ''} />
+                    <UserAvatar name={user!.fullName || ''} avatarUrl={user?.avatarUrl} />
                     <span className="max-w-[140px] truncate text-sm">{user!.fullName || t('nav.myAccount')}</span>
                     <ChevronDown className={cn('h-4 w-4 transition-transform', dropdownOpen && 'rotate-180')} />
                   </button>
@@ -208,7 +219,7 @@ export default function Header() {
               <>
                 {/* All authenticated roles — unified mobile nav */}
                 <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-gray-100">
-                  <UserAvatar name={user!.fullName || ''} />
+                  <UserAvatar name={user!.fullName || ''} avatarUrl={user?.avatarUrl} />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{user!.fullName}</p>
                     <p className="text-xs text-gray-500 truncate">{user!.email}</p>

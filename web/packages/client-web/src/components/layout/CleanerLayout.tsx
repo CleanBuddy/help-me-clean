@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import DashboardLayout from './DashboardLayout';
+import CleanerStatusGate from '@/components/cleaner/CleanerStatusGate';
 
 const navItems = [
   { to: '/worker', icon: LayoutDashboard, label: 'Dashboard' },
@@ -24,6 +25,7 @@ export default function CleanerLayout() {
       logoIconColor="text-accent"
       subtitle="Worker Dashboard"
       homeRoute="/worker"
+      wrapper={(children) => <CleanerStatusGate>{children}</CleanerStatusGate>}
     />
   );
 }

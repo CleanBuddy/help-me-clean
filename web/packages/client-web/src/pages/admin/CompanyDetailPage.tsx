@@ -46,9 +46,10 @@ import {
   REVIEW_COMPANY_DOCUMENT,
   REVIEW_CLEANER_DOCUMENT,
   ACTIVATE_CLEANER,
+  GENERATE_PERSONALITY_INSIGHTS,
 } from '@/graphql/operations';
 
-type DetailTab = 'detalii' | 'financiar' | 'comenzi' | 'documente';
+type DetailTab = 'detalii' | 'financiar' | 'comenzi' | 'documente' | 'echipa';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   PENDING_APPROVAL: 'warning',
@@ -146,6 +147,7 @@ interface CleanerWithDocs {
   fullName: string;
   email: string;
   phone: string;
+  user: { id: string; avatarUrl: string | null } | null;
   status: string;
   documents: CompanyDocument[];
   personalityAssessment?: PersonalityAssessment | null;
@@ -231,7 +233,7 @@ export default function CompanyDetailPage() {
   }>({ open: false, docId: '', docType: 'company' });
   const [docRejectReason, setDocRejectReason] = useState('');
 
-  const { data, loading } = useQuery(COMPANY, { variables: { id } });
+  const { data, loading, refetch } = useQuery(COMPANY, { variables: { id } });
 
   const { data: financialData, loading: financialLoading } = useQuery(COMPANY_FINANCIAL_SUMMARY, {
     variables: { companyId: id },
@@ -273,6 +275,13 @@ export default function CompanyDetailPage() {
 
   const [activateCleaner, { loading: activatingCleaner }] = useMutation(ACTIVATE_CLEANER, {
     refetchQueries: [{ query: COMPANY, variables: { id } }],
+  });
+
+  const [generateInsights, { loading: generatingInsights }] = useMutation(GENERATE_PERSONALITY_INSIGHTS, {
+    refetchQueries: [
+      { query: COMPANY, variables: { id } }
+    ],
+    awaitRefetchQueries: true,
   });
 
   const company = data?.company;
@@ -329,11 +338,16 @@ export default function CompanyDetailPage() {
 
   const handleSaveEdit = async () => {
     if (!editingField || !editValue.trim()) return;
+    // Send all required fields, with current values for unchanged fields
     await updateProfile({
       variables: {
         input: {
           id,
-          [editingField]: editValue.trim(),
+          companyName: editingField === 'companyName' ? editValue.trim() : company.companyName,
+          cui: company.cui,
+          address: editingField === 'address' ? editValue.trim() : company.address,
+          contactPhone: editingField === 'contactPhone' ? editValue.trim() : company.contactPhone,
+          contactEmail: editingField === 'contactEmail' ? editValue.trim() : company.contactEmail,
         },
       },
     });
@@ -380,6 +394,10 @@ export default function CompanyDetailPage() {
     await activateCleaner({ variables: { id: cleanerId } });
   };
 
+  const handleGenerateInsights = async (cleanerId: string) => {
+    await generateInsights({ variables: { cleanerId } });
+  };
+
   const companyDocuments: CompanyDocument[] = company?.documents ?? [];
   const companyCleaner: CleanerWithDocs[] = company?.cleaners ?? [];
 
@@ -391,6 +409,7 @@ export default function CompanyDetailPage() {
     { key: 'financiar', label: 'Financiar' },
     { key: 'comenzi', label: 'Comenzi' },
     { key: 'documente', label: 'Documente' },
+    { key: 'echipa', label: 'Echipa' },
   ];
 
   const financial = financialData?.companyFinancialSummary;
@@ -879,10 +898,6 @@ export default function CompanyDetailPage() {
         <div className="space-y-8">
           {/* Section A - Company Documents */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold text-gray-900">Documente companie</h3>
-            </div>
             {companyDocuments.length === 0 ? (
               <p className="text-sm text-gray-400">Niciun document incarcat.</p>
             ) : (
@@ -906,103 +921,120 @@ export default function CompanyDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
 
-          {/* Section B - Team & Documents */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold text-gray-900">Echipa si documente</h3>
-            </div>
-            {companyCleaner.length === 0 ? (
-              <p className="text-sm text-gray-400">Niciun angajat inregistrat.</p>
-            ) : (
-              <div className="space-y-4">
-                {companyCleaner.map((cleaner) => {
-                  const allDocsApproved =
-                    cleaner.documents.length > 0 &&
-                    cleaner.documents.every((d) => d.status === 'APPROVED');
-                  const hasPersonalityAssessment = !!cleaner.personalityAssessment;
-                  const canActivate =
-                    cleaner.status === 'PENDING_REVIEW' && allDocsApproved && hasPersonalityAssessment;
+      {/* Echipa Tab */}
+      {activeTab === 'echipa' && (
+        <div>
+          {companyCleaner.length === 0 ? (
+            <p className="text-sm text-gray-400">Niciun angajat inregistrat.</p>
+          ) : (
+            <div className="space-y-4">
+              {companyCleaner.map((cleaner) => {
+                const allDocsApproved =
+                  cleaner.documents.length > 0 &&
+                  cleaner.documents.every((d) => d.status === 'APPROVED');
+                const hasPersonalityAssessment = !!cleaner.personalityAssessment;
+                const canActivate =
+                  cleaner.status === 'PENDING_REVIEW' && allDocsApproved && hasPersonalityAssessment;
 
-                  return (
-                    <Card key={cleaner.id}>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-xl bg-primary/10">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-semibold text-gray-900">
-                                {cleaner.fullName}
-                              </h4>
-                              <Badge
-                                variant={
-                                  cleanerStatusVariant[cleaner.status] ?? 'default'
-                                }
-                              >
-                                {cleanerStatusLabel[cleaner.status] ?? cleaner.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-gray-500">{cleaner.email}</p>
-                          </div>
-                        </div>
-                        {canActivate && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleActivateCleaner(cleaner.id)}
-                            loading={activatingCleaner}
-                          >
-                            <ShieldCheck className="h-4 w-4 mr-1.5" />
-                            Activeaza
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Personality Assessment */}
-                      <div className="mb-4">
-                        <h5 className="text-sm font-semibold text-gray-700 mb-2">Test de personalitate</h5>
-                        <PersonalityScoreCard assessment={cleaner.personalityAssessment as any} compact />
-                      </div>
-
-                      {/* Documents */}
-                      <div>
-                        <h5 className="text-sm font-semibold text-gray-700 mb-2">Documente</h5>
-                        {cleaner.documents.length === 0 ? (
-                          <p className="text-sm text-gray-400">
-                            Niciun document incarcat.
-                          </p>
+                return (
+                  <Card key={cleaner.id}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {cleaner.user?.avatarUrl ? (
+                          <img
+                            src={cleaner.user.avatarUrl}
+                            alt={cleaner.fullName}
+                            className="w-14 h-14 rounded-xl object-cover border-2 border-gray-200 shrink-0"
+                          />
                         ) : (
-                          <div className="space-y-3">
-                            {cleaner.documents.map((doc) => (
-                              <DocumentCard
-                                key={doc.id}
-                                id={doc.id}
-                                documentType={doc.documentType}
-                                documentTypeLabel={
-                                  cleanerDocTypeLabel[doc.documentType] ?? doc.documentType
-                                }
-                                fileName={doc.fileName}
-                                fileUrl={doc.fileUrl}
-                                status={doc.status}
-                                uploadedAt={doc.uploadedAt}
-                                rejectionReason={doc.rejectionReason}
-                                onApprove={handleApproveCleanerDoc}
-                                onReject={handleRejectCleanerDoc}
-                                reviewLoading={reviewingCleanerDoc}
-                              />
-                            ))}
+                          <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <Users className="h-6 w-6 text-primary" />
                           </div>
                         )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900">
+                              {cleaner.fullName}
+                            </h4>
+                            <Badge
+                              variant={
+                                cleanerStatusVariant[cleaner.status] ?? 'default'
+                              }
+                            >
+                              {cleanerStatusLabel[cleaner.status] ?? cleaner.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">{cleaner.email}</p>
+                          {!cleaner.user?.avatarUrl && cleaner.status === 'PENDING_REVIEW' && (
+                            <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
+                              <AlertCircle className="h-3 w-3" />
+                              Lipsă fotografie profil
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                      {canActivate && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleActivateCleaner(cleaner.id)}
+                          loading={activatingCleaner}
+                        >
+                          <ShieldCheck className="h-4 w-4 mr-1.5" />
+                          Activeaza
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Personality Assessment */}
+                    <div className="mb-4">
+                      <h5 className="text-sm font-semibold text-gray-700 mb-2">Test de personalitate</h5>
+                      <PersonalityScoreCard
+                        assessment={cleaner.personalityAssessment as any}
+                        compact={false}
+                        onGenerateInsights={() => handleGenerateInsights(cleaner.id)}
+                        generatingInsights={generatingInsights}
+                      />
+                    </div>
+
+                    {/* Documents */}
+                    <div>
+                      <h5 className="text-sm font-semibold text-gray-700 mb-2">Documente</h5>
+                      {cleaner.documents.length === 0 ? (
+                        <p className="text-sm text-gray-400">
+                          Niciun document incarcat.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {cleaner.documents.map((doc) => (
+                            <DocumentCard
+                              key={doc.id}
+                              id={doc.id}
+                              documentType={doc.documentType}
+                              documentTypeLabel={
+                                cleanerDocTypeLabel[doc.documentType] ?? doc.documentType
+                              }
+                              fileName={doc.fileName}
+                              fileUrl={doc.fileUrl}
+                              status={doc.status}
+                              uploadedAt={doc.uploadedAt}
+                              rejectionReason={doc.rejectionReason}
+                              onApprove={handleApproveCleanerDoc}
+                              onReject={handleRejectCleanerDoc}
+                              reviewLoading={reviewingCleanerDoc}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

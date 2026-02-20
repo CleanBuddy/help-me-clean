@@ -12,6 +12,17 @@ type PersonalityFacetScore {
   isFlagged: Boolean!
 }
 
+type PersonalityInsights {
+  summary: String!
+  strengths: [String!]!
+  concerns: [String!]!
+  teamFitAnalysis: String!
+  recommendedAction: String!
+  confidence: String!
+  aiModel: String!
+  generatedAt: DateTime!
+}
+
 type PersonalityAssessment {
   id: ID!
   cleanerId: ID!
@@ -21,6 +32,7 @@ type PersonalityAssessment {
   hasConcerns: Boolean!
   flaggedFacets: [String!]!
   completedAt: DateTime!
+  insights: PersonalityInsights
 }
 
 input PersonalityAnswerInput {
@@ -36,4 +48,6 @@ extend type Query {
 
 extend type Mutation {
   submitPersonalityAssessment(answers: [PersonalityAnswerInput!]!): PersonalityAssessment!
+  generatePersonalityInsights(cleanerId: ID!): PersonalityInsights!
+  regeneratePersonalityInsights(cleanerId: ID!): PersonalityInsights!
 }

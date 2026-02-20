@@ -48,5 +48,6 @@ LEFT JOIN bookings b ON b.cleaner_id = c.id
 WHERE c.id = $1
 GROUP BY c.id, c.full_name, c.rating_avg;
 
--- name: UpdateCleanerAvatar :one
-UPDATE cleaners SET avatar_url = $2, updated_at = NOW() WHERE id = $1 RETURNING *;
+-- DEPRECATED: Avatar now stored in users table (see users.sql UpdateUserAvatar)
+-- -- name: UpdateCleanerAvatar :one
+-- UPDATE cleaners SET avatar_url = $2, updated_at = NOW() WHERE id = $1 RETURNING *;

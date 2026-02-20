@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import {
   Users, UserPlus, Mail, Phone, Star, Copy, Check,
-  ChevronDown, ChevronUp, Briefcase, TrendingUp, Calendar, DollarSign,
-  MapPin, CheckCircle,
+  Briefcase, TrendingUp, Calendar, DollarSign, ChevronDown,
+  MapPin, CheckCircle, FileText, Upload as UploadIcon, AlertCircle, User, Brain,
 } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
 import Card from '@/components/ui/Card';
@@ -11,9 +11,13 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import FileUpload from '@/components/ui/FileUpload';
+import PersonalityScoreCard from '@/components/PersonalityScoreCard';
+import DocumentCard from '@/components/ui/DocumentCard';
 import {
   MY_CLEANERS, INVITE_CLEANER, UPDATE_CLEANER_STATUS, CLEANER_PERFORMANCE,
   MY_COMPANY_SERVICE_AREAS, CLEANER_SERVICE_AREAS, UPDATE_CLEANER_SERVICE_AREAS,
+  UPLOAD_CLEANER_DOCUMENT, UPLOAD_CLEANER_AVATAR,
 } from '@/graphql/operations';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -25,11 +29,54 @@ interface AvailabilitySlot {
   id: string; dayOfWeek: number; startTime: string; endTime: string; isAvailable: boolean;
 }
 
+interface CleanerDocument {
+  id: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  uploadedAt: string;
+  reviewedAt?: string | null;
+  rejectionReason: string | null;
+}
+
+interface PersonalityInsights {
+  summary: string;
+  strengths: string[];
+  concerns: string[];
+  teamFitAnalysis: string;
+  recommendedAction: string;
+  confidence: string;
+  aiModel: string;
+  generatedAt: string;
+}
+
+interface PersonalityAssessment {
+  id: string;
+  facetScores: Array<{
+    facetCode: string;
+    facetName: string;
+    score: number;
+    maxScore: number;
+    isFlagged: boolean;
+  }>;
+  integrityAvg: number;
+  workQualityAvg: number;
+  hasConcerns: boolean;
+  flaggedFacets: string[];
+  completedAt: string;
+  insights?: PersonalityInsights | null;
+}
+
 interface Cleaner {
-  id: string; userId: string; fullName: string; phone: string; email: string;
-  avatarUrl: string | null; status: CleanerStatus; isCompanyAdmin: boolean;
+  id: string; userId: string; fullName: string; phone: string; email: string; bio?: string | null;
+  user: { id: string; avatarUrl: string | null } | null;
+  status: CleanerStatus; isCompanyAdmin: boolean;
   inviteToken: string | null; ratingAvg: number | null; totalJobsCompleted: number;
   availability: AvailabilitySlot[]; createdAt: string;
+  documents: CleanerDocument[];
+  personalityAssessment?: PersonalityAssessment | null;
+  company?: { id: string; companyName: string } | null;
 }
 
 interface CleanerPerformance {
@@ -58,40 +105,310 @@ const dayNames: Record<number, string> = {
 };
 const fmtCurrency = (n: number) => `${n.toFixed(0)} RON`;
 
-// ─── StatusButtons ──────────────────────────────────────────────────────────
+const DOC_TYPES: Record<string, { label: string; description: string }> = {
+  cazier_judiciar: { label: 'Cazier Judiciar', description: 'PDF, max 10MB' },
+  contract_munca: { label: 'Contract Muncă', description: 'PDF, max 10MB' },
+};
 
-const STATUS_CFG: Array<{ value: MutableStatus; label: string; idle: string; active: string }> = [
-  { value: 'ACTIVE', label: 'Activ', idle: 'text-emerald-600 border-gray-200 hover:bg-emerald-50', active: 'bg-emerald-500 text-white border-emerald-500' },
-  { value: 'INACTIVE', label: 'Inactiv', idle: 'text-gray-600 border-gray-200 hover:bg-gray-50', active: 'bg-gray-500 text-white border-gray-500' },
-  { value: 'SUSPENDED', label: 'Suspendat', idle: 'text-red-600 border-gray-200 hover:bg-red-50', active: 'bg-red-500 text-white border-red-500' },
-];
+const docStatusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger'> = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'danger',
+};
 
-function StatusButtons({ current, onChange }: { current: CleanerStatus; onChange: (s: MutableStatus) => void }) {
+const cleanerDocTypeLabel: Record<string, string> = {
+  cazier_judiciar: 'Cazier Judiciar',
+  contract_munca: 'Contract de Munca',
+};
+
+// ─── DocumentUploadSection ──────────────────────────────────────────────────
+
+function DocumentUploadSection({
+  cleaner,
+  onUploadDocument,
+  onUploadAvatar,
+  refetch,
+}: {
+  cleaner: Cleaner;
+  onUploadDocument: (cleanerId: string, documentType: string, file: File) => Promise<void>;
+  onUploadAvatar: (cleanerId: string, file: File) => Promise<void>;
+  refetch: () => void;
+}) {
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [docTypeModal, setDocTypeModal] = useState<File | null>(null);
+
+  const handleDocumentUpload = async (file: File) => {
+    setDocTypeModal(file);
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    setUploadingAvatar(true);
+    try {
+      await onUploadAvatar(cleaner.id, file);
+      refetch();
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleDocTypeSelect = async (type: string) => {
+    if (!docTypeModal) return;
+    setUploadingDoc(type);
+    try {
+      await onUploadDocument(cleaner.id, type, docTypeModal);
+      refetch();
+      setDocTypeModal(null);
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  const requiredDocs = ['cazier_judiciar', 'contract_munca'];
+  const uploadedDocTypes = new Set(cleaner.documents?.map((d) => d.documentType) ?? []);
+  const missingDocs = requiredDocs.filter((t) => !uploadedDocTypes.has(t));
+
   return (
-    <div className="flex gap-1.5">
-      {STATUS_CFG.map((s) => (
-        <button key={s.value} type="button"
-          onClick={() => { if (s.value !== current) onChange(s.value); }}
-          className={cn('flex-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer',
-            current === s.value ? s.active : s.idle)}>
-          {s.label}
-        </button>
-      ))}
+    <div className="pt-4 mt-4 border-t border-gray-100 space-y-3">
+      <div className="flex items-center gap-2 mb-2">
+        <FileText className="h-4 w-4 text-primary" />
+        <h4 className="text-sm font-semibold text-gray-700">Documente & Profil</h4>
+      </div>
+
+      {/* Profile Image */}
+      <div>
+        <label className="text-xs text-gray-500 mb-1.5 block">Fotografie profil</label>
+        {cleaner.user?.avatarUrl ? (
+          <div className="flex items-center gap-2">
+            <img
+              src={cleaner.user.avatarUrl}
+              alt={cleaner.fullName}
+              className="w-16 h-16 rounded-xl object-cover border-2 border-gray-200"
+            />
+            <div className="flex-1">
+              <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Încărcată
+              </p>
+              <FileUpload
+                accept="image/jpeg,image/png,image/webp"
+                maxSizeMB={10}
+                onUpload={handleAvatarUpload}
+                loading={uploadingAvatar}
+                className="mt-1"
+              >
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  disabled={uploadingAvatar}
+                >
+                  Schimbă
+                </button>
+              </FileUpload>
+            </div>
+          </div>
+        ) : (
+          <FileUpload
+            accept="image/jpeg,image/png,image/webp"
+            maxSizeMB={10}
+            onUpload={handleAvatarUpload}
+            loading={uploadingAvatar}
+          >
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-sm text-gray-600"
+              disabled={uploadingAvatar}
+            >
+              <User className="h-4 w-4" />
+              {uploadingAvatar ? 'Se încarcă...' : 'Încarcă fotografie'}
+            </button>
+          </FileUpload>
+        )}
+      </div>
+
+      {/* Documents */}
+      <div>
+        <label className="text-xs text-gray-500 mb-1.5 block">Documente obligatorii</label>
+        <div className="space-y-2">
+          {cleaner.documents?.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm"
+            >
+              <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-700 truncate">
+                  {DOC_TYPES[doc.documentType]?.label || doc.documentType}
+                </p>
+                <p className="text-xs text-gray-500 truncate">{doc.fileName}</p>
+                {doc.status === 'REJECTED' && doc.rejectionReason && (
+                  <p className="text-xs text-red-600 flex items-center gap-1 mt-0.5">
+                    <AlertCircle className="h-3 w-3" />
+                    {doc.rejectionReason}
+                  </p>
+                )}
+              </div>
+              <Badge variant={docStatusVariant[doc.status]} className="shrink-0">
+                {doc.status === 'PENDING' ? 'Pending' : doc.status === 'APPROVED' ? 'Aprobat' : 'Respins'}
+              </Badge>
+            </div>
+          ))}
+        </div>
+
+        {missingDocs.length > 0 && (
+          <FileUpload
+            accept=".pdf"
+            maxSizeMB={10}
+            onUpload={handleDocumentUpload}
+            loading={uploadingDoc !== null}
+            className="mt-2"
+          >
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-sm text-gray-600"
+              disabled={uploadingDoc !== null}
+            >
+              <UploadIcon className="h-4 w-4" />
+              {uploadingDoc ? 'Se încarcă...' : `Încarcă document (${missingDocs.length} lipsă)`}
+            </button>
+          </FileUpload>
+        )}
+
+        {cleaner.documents?.length === 0 && (
+          <p className="text-xs text-gray-400 mt-2">Niciun document încărcat încă</p>
+        )}
+      </div>
+
+      {/* Document Type Selection Modal */}
+      <Modal
+        open={docTypeModal !== null}
+        onClose={() => setDocTypeModal(null)}
+        title="Selectează tipul de document"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">
+            Alege tipul documentului pe care îl încarci:
+          </p>
+          <div className="space-y-2">
+            {missingDocs.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => handleDocTypeSelect(type)}
+                disabled={uploadingDoc !== null}
+                className="w-full flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-left"
+              >
+                <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">{DOC_TYPES[type].label}</p>
+                  <p className="text-xs text-gray-500">{DOC_TYPES[type].description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+          <Button variant="ghost" onClick={() => setDocTypeModal(null)} className="w-full">
+            Anulează
+          </Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ─── StatusBadge ────────────────────────────────────────────────────────────
+
+function StatusBadge({
+  currentStatus,
+  onChange,
+  disabled = false,
+}: {
+  currentStatus: CleanerStatus;
+  onChange: (newStatus: MutableStatus) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Only show ACTIVE, INACTIVE, SUSPENDED in dropdown
+  const mutableStatuses: MutableStatus[] = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [open]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+        className={cn(
+          'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all',
+          disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:ring-2 ring-offset-1',
+          statusBadgeVariant[currentStatus] === 'success' && 'bg-emerald-100 text-emerald-700 hover:ring-emerald-300',
+          statusBadgeVariant[currentStatus] === 'danger' && 'bg-red-100 text-red-700 hover:ring-red-300',
+          statusBadgeVariant[currentStatus] === 'default' && 'bg-gray-100 text-gray-700 hover:ring-gray-300',
+          statusBadgeVariant[currentStatus] === 'info' && 'bg-blue-100 text-blue-700 hover:ring-blue-300',
+          statusBadgeVariant[currentStatus] === 'warning' && 'bg-amber-100 text-amber-700 hover:ring-amber-300',
+        )}
+      >
+        {statusLabel[currentStatus]}
+        {!disabled && <ChevronDown className="h-3 w-3" />}
+      </button>
+
+      {open && !disabled && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
+          {mutableStatuses.map((status) => (
+            <button
+              type="button"
+              key={status}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(status);
+                setOpen(false);
+              }}
+              className={cn(
+                'w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors',
+                currentStatus === status && 'bg-gray-100 font-medium',
+              )}
+            >
+              <span
+                className={cn(
+                  status === 'ACTIVE' && 'text-emerald-700',
+                  status === 'INACTIVE' && 'text-gray-700',
+                  status === 'SUSPENDED' && 'text-red-700',
+                )}
+              >
+                {statusLabel[status]}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── PerformancePanel ───────────────────────────────────────────────────────
 
-function PerformancePanel({ cleanerId, availability }: { cleanerId: string; availability: AvailabilitySlot[] }) {
+function PerformancePanel({ cleaner }: { cleaner: Cleaner }) {
   const [fetchPerf, { data, loading }] = useLazyQuery<{ cleanerPerformance: CleanerPerformance }>(
-    CLEANER_PERFORMANCE, { variables: { cleanerId } },
+    CLEANER_PERFORMANCE, { variables: { cleanerId: cleaner.id } },
   );
   const [fetched, setFetched] = useState(false);
   if (!fetched) { setFetched(true); fetchPerf(); }
 
   const perf = data?.cleanerPerformance;
-  const slots = availability.filter((s) => s.isAvailable).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+  const slots = (cleaner.availability ?? []).filter((s) => s.isAvailable).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
 
   const stats = perf ? [
     { bg: 'bg-blue-50', icon: Briefcase, iconCls: 'text-blue-600', label: 'Total joburi', value: perf.totalCompletedJobs, valCls: 'text-blue-900' },
@@ -246,11 +563,19 @@ function AreaManagementModal({
         {/* Worker info header */}
         {cleaner && (
           <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-            <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-base font-semibold text-primary">
-                {cleaner.fullName?.charAt(0)?.toUpperCase()}
-              </span>
-            </div>
+            {cleaner.user?.avatarUrl ? (
+              <img
+                src={cleaner.user.avatarUrl}
+                alt={cleaner.fullName}
+                className="h-11 w-11 rounded-full object-cover border border-gray-200 shrink-0"
+              />
+            ) : (
+              <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-base font-semibold text-primary">
+                  {cleaner.fullName?.charAt(0)?.toUpperCase()}
+                </span>
+              </div>
+            )}
             <div className="min-w-0">
               <p className="font-semibold text-gray-900 truncate">{cleaner.fullName}</p>
               <div className="flex items-center gap-2 mt-0.5">
@@ -406,6 +731,83 @@ function AreaManagementModal({
   );
 }
 
+// ─── ProfileModal ───────────────────────────────────────────────────────────
+
+function ProfileModal({
+  cleaner,
+  open,
+  onClose,
+}: {
+  cleaner: Cleaner | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!cleaner) return null;
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Profil - ${cleaner.fullName}`}>
+      <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+        {/* Personality Assessment Section */}
+        {cleaner.personalityAssessment ? (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Brain className="h-4 w-4 text-primary" />
+              Test de personalitate
+            </h4>
+            <PersonalityScoreCard
+              assessment={cleaner.personalityAssessment}
+              compact={false}
+            />
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Brain className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">
+              Test de personalitate nu a fost completat încă.
+            </p>
+          </div>
+        )}
+
+        {/* Documents Section */}
+        <div className="pt-6 border-t border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Documente obligatorii
+          </h4>
+          {cleaner.documents && cleaner.documents.length > 0 ? (
+            <div className="space-y-3">
+              {cleaner.documents.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  id={doc.id}
+                  documentType={doc.documentType}
+                  documentTypeLabel={
+                    cleanerDocTypeLabel[doc.documentType] ?? doc.documentType
+                  }
+                  fileName={doc.fileName}
+                  fileUrl={doc.fileUrl}
+                  status={doc.status}
+                  uploadedAt={doc.uploadedAt}
+                  rejectionReason={doc.rejectionReason}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">Niciun document incarcat.</p>
+          )}
+        </div>
+
+        {/* Close button */}
+        <div className="flex justify-end pt-4 border-t border-gray-200">
+          <Button variant="ghost" onClick={onClose}>
+            Inchide
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function TeamPage() {
@@ -416,14 +818,15 @@ export default function TeamPage() {
   const [inviteToken, setInviteToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [copiedId, setCopiedId] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statusModal, setStatusModal] = useState<{ cleaner: Cleaner; newStatus: MutableStatus } | null>(null);
-  const [deactivateModal, setDeactivateModal] = useState<Cleaner | null>(null);
   const [areasCleaner, setAreasCleaner] = useState<Cleaner | null>(null);
+  const [profileCleaner, setProfileCleaner] = useState<Cleaner | null>(null);
 
   const { data, loading, refetch } = useQuery(MY_CLEANERS);
   const [inviteCleaner, { loading: inviting }] = useMutation(INVITE_CLEANER);
   const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_CLEANER_STATUS);
+  const [uploadDocument] = useMutation(UPLOAD_CLEANER_DOCUMENT);
+  const [uploadAvatar] = useMutation(UPLOAD_CLEANER_AVATAR);
   const cleaners: Cleaner[] = data?.myCleaners ?? [];
 
   const handleCopyToken = useCallback(async (token: string, id?: string) => {
@@ -461,12 +864,26 @@ export default function TeamPage() {
     } catch { /* handled by Apollo */ }
   };
 
-  const handleDeactivate = async () => {
-    if (!deactivateModal) return;
+  const handleUploadDocument = async (cleanerId: string, documentType: string, file: File) => {
     try {
-      await updateStatus({ variables: { id: deactivateModal.id, status: 'INACTIVE' } });
-      setDeactivateModal(null); refetch();
-    } catch { /* handled by Apollo */ }
+      await uploadDocument({
+        variables: { cleanerId, documentType, file },
+      });
+    } catch (error) {
+      console.error('Failed to upload document:', error);
+      throw error;
+    }
+  };
+
+  const handleUploadAvatar = async (cleanerId: string, file: File) => {
+    try {
+      await uploadAvatar({
+        variables: { cleanerId, file },
+      });
+    } catch (error) {
+      console.error('Failed to upload avatar:', error);
+      throw error;
+    }
   };
 
   return (
@@ -475,7 +892,7 @@ export default function TeamPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Echipa mea</h1>
-          <p className="text-gray-500 mt-1">Gestioneaza cleanerii firmei tale.</p>
+          <p className="text-gray-500 mt-1">Gestioneaza angajatii firmei tale.</p>
         </div>
         <Button onClick={() => setShowInvite(true)}>
           <UserPlus className="h-4 w-4" />
@@ -510,22 +927,31 @@ export default function TeamPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cleaners.map((c) => {
-            const expanded = expandedId === c.id;
             const canChange = c.status === 'ACTIVE' || c.status === 'INACTIVE' || c.status === 'SUSPENDED';
             return (
               <Card key={c.id}>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-lg font-semibold text-primary">
-                        {c.fullName?.charAt(0)?.toUpperCase()}
-                      </span>
-                    </div>
+                    {c.user?.avatarUrl ? (
+                      <img
+                        src={c.user.avatarUrl}
+                        alt={c.fullName}
+                        className="h-12 w-12 rounded-full object-cover border border-gray-200 shrink-0"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-lg font-semibold text-primary">
+                          {c.fullName?.charAt(0)?.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <p className="font-semibold text-gray-900">{c.fullName}</p>
-                      <Badge variant={statusBadgeVariant[c.status || 'PENDING']}>
-                        {statusLabel[c.status || 'PENDING'] || c.status}
-                      </Badge>
+                      <StatusBadge
+                        currentStatus={c.status}
+                        onChange={(newStatus) => setStatusModal({ cleaner: c, newStatus })}
+                        disabled={!canChange}
+                      />
                     </div>
                   </div>
                   {c.isCompanyAdmin && <Badge variant="info">Admin</Badge>}
@@ -569,33 +995,29 @@ export default function TeamPage() {
                     <span className="text-gray-500">{c.totalJobsCompleted ?? 0} joburi</span>
                   </div>
 
-                  {canChange && (
-                    <div className="pt-3">
-                      <p className="text-xs text-gray-400 mb-1.5">Schimba status</p>
-                      <StatusButtons current={c.status} onChange={(ns) => setStatusModal({ cleaner: c, newStatus: ns })} />
-                    </div>
+                  {c.status === 'PENDING' && (
+                    <DocumentUploadSection
+                      cleaner={c}
+                      onUploadDocument={handleUploadDocument}
+                      onUploadAvatar={handleUploadAvatar}
+                      refetch={refetch}
+                    />
                   )}
 
                   <div className="flex items-center gap-2 pt-3">
-                    <button type="button" onClick={() => setExpandedId(expanded ? null : c.id)}
-                      className="flex items-center gap-1 text-xs font-medium text-primary hover:text-blue-700 transition-colors cursor-pointer">
-                      {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      Detalii
-                    </button>
                     <button type="button" onClick={() => setAreasCleaner(c)}
                       className="flex items-center gap-1 text-xs font-medium text-primary hover:text-blue-700 transition-colors cursor-pointer">
                       <MapPin className="h-3.5 w-3.5" />
                       Zone
                     </button>
-                    {c.status === 'ACTIVE' && (
-                      <button type="button" onClick={() => setDeactivateModal(c)}
-                        className="ml-auto text-xs font-medium text-red-500 hover:text-red-700 transition-colors cursor-pointer">
-                        Dezactiveaza
-                      </button>
-                    )}
+                    <button type="button" onClick={() => setProfileCleaner(c)}
+                      className="flex items-center gap-1 text-xs font-medium text-primary hover:text-blue-700 transition-colors cursor-pointer">
+                      <Brain className="h-3.5 w-3.5" />
+                      Profil
+                    </button>
                   </div>
 
-                  {expanded && <PerformancePanel cleanerId={c.id} availability={c.availability ?? []} />}
+                  <PerformancePanel cleaner={c} />
                 </div>
               </Card>
             );
@@ -610,6 +1032,13 @@ export default function TeamPage() {
         onClose={() => setAreasCleaner(null)}
       />
 
+      {/* Profile Modal */}
+      <ProfileModal
+        cleaner={profileCleaner}
+        open={profileCleaner !== null}
+        onClose={() => setProfileCleaner(null)}
+      />
+
       {/* Status Change Modal */}
       <Modal open={statusModal !== null} onClose={() => setStatusModal(null)} title="Schimba status">
         <div className="space-y-4">
@@ -621,21 +1050,6 @@ export default function TeamPage() {
           <div className="flex gap-3 pt-2">
             <Button variant="ghost" onClick={() => setStatusModal(null)} className="flex-1">Anuleaza</Button>
             <Button onClick={handleStatusChange} loading={updatingStatus} className="flex-1">Confirma</Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Deactivate Modal */}
-      <Modal open={deactivateModal !== null} onClose={() => setDeactivateModal(null)} title="Dezactiveaza cleaner">
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Esti sigur ca vrei sa dezactivezi pe{' '}
-            <span className="font-semibold text-gray-900">{deactivateModal?.fullName}</span>?
-            Acesta nu va mai putea primi joburi noi.
-          </p>
-          <div className="flex gap-3 pt-2">
-            <Button variant="ghost" onClick={() => setDeactivateModal(null)} className="flex-1">Anuleaza</Button>
-            <Button variant="danger" onClick={handleDeactivate} loading={updatingStatus} className="flex-1">Dezactiveaza</Button>
           </div>
         </div>
       </Modal>

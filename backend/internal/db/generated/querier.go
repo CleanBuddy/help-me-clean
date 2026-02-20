@@ -83,6 +83,8 @@ type Querier interface {
 	CreatePayoutLineItem(ctx context.Context, arg CreatePayoutLineItemParams) (PayoutLineItem, error)
 	CreatePersonalityAnswer(ctx context.Context, arg CreatePersonalityAnswerParams) error
 	CreatePersonalityAssessment(ctx context.Context, arg CreatePersonalityAssessmentParams) (PersonalityAssessment, error)
+	// Create a new personality insight (cached AI analysis)
+	CreatePersonalityInsight(ctx context.Context, arg CreatePersonalityInsightParams) (PersonalityInsight, error)
 	CreatePlatformEvent(ctx context.Context, arg CreatePlatformEventParams) error
 	CreateRecurringGroup(ctx context.Context, arg CreateRecurringGroupParams) (RecurringBookingGroup, error)
 	// ============================================
@@ -107,6 +109,8 @@ type Querier interface {
 	DeleteCompanyWorkSchedule(ctx context.Context, companyID pgtype.UUID) error
 	DeleteExpiredEmailOTPs(ctx context.Context) error
 	DeletePaymentMethod(ctx context.Context, id pgtype.UUID) error
+	// Delete personality insight (for regeneration)
+	DeletePersonalityInsight(ctx context.Context, assessmentID pgtype.UUID) error
 	DeleteReview(ctx context.Context, id pgtype.UUID) error
 	DeselectAllBookingTimeSlots(ctx context.Context, bookingID pgtype.UUID) error
 	FindChatRoomByExactParticipants(ctx context.Context, arg FindChatRoomByExactParticipantsParams) (ChatRoom, error)
@@ -165,6 +169,8 @@ type Querier interface {
 	GetPayoutByID(ctx context.Context, id pgtype.UUID) (CompanyPayout, error)
 	GetPersonalityAnswersByAssessmentID(ctx context.Context, assessmentID pgtype.UUID) ([]PersonalityAssessmentAnswer, error)
 	GetPersonalityAssessmentByCleanerID(ctx context.Context, cleanerID pgtype.UUID) (PersonalityAssessment, error)
+	// Get personality insight by assessment ID
+	GetPersonalityInsightByAssessmentID(ctx context.Context, assessmentID pgtype.UUID) (PersonalityInsight, error)
 	// GetPlatformLegalEntity returns the single platform legal entity configuration.
 	GetPlatformLegalEntity(ctx context.Context) (PlatformLegalEntity, error)
 	// ============================================
@@ -330,7 +336,6 @@ type Querier interface {
 	UpdateBookingSchedule(ctx context.Context, arg UpdateBookingScheduleParams) (Booking, error)
 	UpdateBookingStatus(ctx context.Context, arg UpdateBookingStatusParams) (Booking, error)
 	UpdateCityActive(ctx context.Context, arg UpdateCityActiveParams) (EnabledCity, error)
-	UpdateCleanerAvatar(ctx context.Context, arg UpdateCleanerAvatarParams) (Cleaner, error)
 	UpdateCleanerDocumentStatus(ctx context.Context, arg UpdateCleanerDocumentStatusParams) (CleanerDocument, error)
 	UpdateCleanerOwnProfile(ctx context.Context, arg UpdateCleanerOwnProfileParams) (Cleaner, error)
 	UpdateCleanerStatus(ctx context.Context, arg UpdateCleanerStatusParams) (Cleaner, error)

@@ -10,12 +10,11 @@ type CleanerProfile {
   id: ID!
   userId: ID
   user: User
-  company: Company!
+  company: Company
   fullName: String!
   phone: String
   email: String
   bio: String
-  avatarUrl: String
   status: CleanerStatus!
   isCompanyAdmin: Boolean!
   inviteToken: String

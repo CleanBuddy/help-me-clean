@@ -234,10 +234,15 @@ func (r *Resolver) enrichRecurringGroup(ctx context.Context, g db.RecurringBooki
 		}
 	}
 
-	// Preferred cleaner.
+	// Preferred cleaner with full profile (User/Company/Documents/PersonalityAssessment).
 	if g.PreferredCleanerID.Valid {
 		if cleaner, err := r.Queries.GetCleanerByID(ctx, g.PreferredCleanerID); err == nil {
-			gql.PreferredCleaner = dbCleanerToGQL(cleaner)
+			if profile, err := r.cleanerWithCompany(ctx, cleaner); err == nil {
+				gql.PreferredCleaner = profile
+			} else {
+				log.Printf("Failed to load preferred cleaner: %v", err)
+				gql.PreferredCleaner = dbCleanerToGQL(cleaner) // Fallback to basic if error
+			}
 		}
 	}
 

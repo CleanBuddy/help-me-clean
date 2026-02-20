@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
+	"helpmeclean-backend/internal/graph"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/personality"
+	personalityService "helpmeclean-backend/internal/service/personality"
 )
 
 // SubmitPersonalityAssessment is the resolver for the submitPersonalityAssessment field.
@@ -106,6 +108,134 @@ func (r *mutationResolver) SubmitPersonalityAssessment(ctx context.Context, answ
 	return dbPersonalityAssessmentToGQL(assessment), nil
 }
 
+// GeneratePersonalityInsights is the resolver for the generatePersonalityInsights field.
+func (r *mutationResolver) GeneratePersonalityInsights(ctx context.Context, cleanerID string) (*model.PersonalityInsights, error) {
+	// Auth check: GLOBAL_ADMIN only
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil || claims.Role != "global_admin" {
+		return nil, fmt.Errorf("unauthorized: global admin access required")
+	}
+
+	// Get assessment for this cleaner
+	assessment, err := r.Queries.GetPersonalityAssessmentByCleanerID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("personality assessment not found for cleaner: %w", err)
+	}
+
+	// Check if insights already cached
+	existingInsight, err := r.Queries.GetPersonalityInsightByAssessmentID(ctx, assessment.ID)
+	if err == nil {
+		// Already generated - return cached
+		return dbPersonalityInsightsToGQL(existingInsight), nil
+	}
+
+	// Generate new insights via AI service
+	aiSvc := personalityService.NewService()
+	insights, err := aiSvc.GenerateInsights(ctx, personalityService.InsightRequest{
+		FacetScores: map[string]int{
+			"A1": int(assessment.TrustScore),
+			"A2": int(assessment.MoralityScore),
+			"A3": int(assessment.AltruismScore),
+			"C2": int(assessment.OrderlinessScore),
+			"C3": int(assessment.DutifulnessScore),
+			"C5": int(assessment.SelfDisciplineScore),
+			"C6": int(assessment.CautiousnessScore),
+		},
+		IntegrityAvg:   numericToFloat(assessment.IntegrityAvg),
+		WorkQualityAvg: numericToFloat(assessment.WorkQualityAvg),
+		FlaggedFacets:  assessment.FlaggedFacets,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate AI insights: %w", err)
+	}
+
+	// Cache in database
+	cached, err := r.Queries.CreatePersonalityInsight(ctx, db.CreatePersonalityInsightParams{
+		AssessmentID:      assessment.ID,
+		Summary:           insights.Summary,
+		Strengths:         insights.Strengths,
+		Concerns:          insights.Concerns,
+		TeamFitAnalysis:   insights.TeamFitAnalysis,
+		RecommendedAction: insights.RecommendedAction,
+		Confidence:        insights.Confidence,
+		AiModel:           "gemini-2.5-flash-lite",
+		AiProvider:        "google",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to cache insights: %w", err)
+	}
+
+	return dbPersonalityInsightsToGQL(cached), nil
+}
+
+// RegeneratePersonalityInsights is the resolver for the regeneratePersonalityInsights field.
+func (r *mutationResolver) RegeneratePersonalityInsights(ctx context.Context, cleanerID string) (*model.PersonalityInsights, error) {
+	// Auth check: GLOBAL_ADMIN only
+	claims := auth.GetUserFromContext(ctx)
+	if claims == nil || claims.Role != "global_admin" {
+		return nil, fmt.Errorf("unauthorized: global admin access required")
+	}
+
+	// Get assessment for this cleaner
+	assessment, err := r.Queries.GetPersonalityAssessmentByCleanerID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("personality assessment not found for cleaner: %w", err)
+	}
+
+	// Delete existing insights (if any)
+	_ = r.Queries.DeletePersonalityInsight(ctx, assessment.ID)
+
+	// Generate new insights via AI service
+	aiSvc := personalityService.NewService()
+	insights, err := aiSvc.GenerateInsights(ctx, personalityService.InsightRequest{
+		FacetScores: map[string]int{
+			"A1": int(assessment.TrustScore),
+			"A2": int(assessment.MoralityScore),
+			"A3": int(assessment.AltruismScore),
+			"C2": int(assessment.OrderlinessScore),
+			"C3": int(assessment.DutifulnessScore),
+			"C5": int(assessment.SelfDisciplineScore),
+			"C6": int(assessment.CautiousnessScore),
+		},
+		IntegrityAvg:   numericToFloat(assessment.IntegrityAvg),
+		WorkQualityAvg: numericToFloat(assessment.WorkQualityAvg),
+		FlaggedFacets:  assessment.FlaggedFacets,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate AI insights: %w", err)
+	}
+
+	// Cache in database
+	cached, err := r.Queries.CreatePersonalityInsight(ctx, db.CreatePersonalityInsightParams{
+		AssessmentID:      assessment.ID,
+		Summary:           insights.Summary,
+		Strengths:         insights.Strengths,
+		Concerns:          insights.Concerns,
+		TeamFitAnalysis:   insights.TeamFitAnalysis,
+		RecommendedAction: insights.RecommendedAction,
+		Confidence:        insights.Confidence,
+		AiModel:           "gemini-2.5-flash-lite",
+		AiProvider:        "google",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to cache insights: %w", err)
+	}
+
+	return dbPersonalityInsightsToGQL(cached), nil
+}
+
+// Insights is the resolver for the insights field.
+func (r *personalityAssessmentResolver) Insights(ctx context.Context, obj *model.PersonalityAssessment) (*model.PersonalityInsights, error) {
+	// Try to get cached insights
+	assessmentUUID := stringToUUID(obj.ID)
+	insight, err := r.Queries.GetPersonalityInsightByAssessmentID(ctx, assessmentUUID)
+	if err != nil {
+		return nil, nil // No insights generated yet - return nil (optional field)
+	}
+
+	return dbPersonalityInsightsToGQL(insight), nil
+}
+
 // PersonalityQuestions is the resolver for the personalityQuestions field.
 func (r *queryResolver) PersonalityQuestions(ctx context.Context) ([]*model.PersonalityQuestion, error) {
 	questions := make([]*model.PersonalityQuestion, len(personality.Questions))
@@ -153,3 +283,10 @@ func (r *queryResolver) CleanerPersonalityAssessment(ctx context.Context, cleane
 
 	return dbPersonalityAssessmentToGQL(assessment), nil
 }
+
+// PersonalityAssessment returns graph.PersonalityAssessmentResolver implementation.
+func (r *Resolver) PersonalityAssessment() graph.PersonalityAssessmentResolver {
+	return &personalityAssessmentResolver{r}
+}
+
+type personalityAssessmentResolver struct{ *Resolver }

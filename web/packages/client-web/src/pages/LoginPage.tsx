@@ -115,15 +115,23 @@ export default function LoginPage() {
             </span>
           </Link>
           <div className="hidden lg:block" />
-          <p className="text-sm text-gray-500">
-            {t('form.isCompany')}{' '}
-            <Link
-              to={ROUTE_MAP.registerFirm.ro}
-              className="text-primary font-semibold hover:underline"
-            >
-              {t('form.register')}
-            </Link>
-          </p>
+          <div className="flex flex-col items-end gap-1">
+            <p className="text-sm text-gray-500">
+              {t('form.isCompany')}{' '}
+              <Link
+                to={ROUTE_MAP.registerFirm.ro}
+                className="text-primary font-semibold hover:underline"
+              >
+                {t('form.register')}
+              </Link>
+            </p>
+            <p className="text-sm text-gray-500">
+              Ești curățitor?{' '}
+              <Link to="/invitare" className="text-primary font-semibold hover:underline">
+                Acceptă invitația →
+              </Link>
+            </p>
+          </div>
         </div>
 
         {/* Form — vertically centered */}

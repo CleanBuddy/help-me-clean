@@ -113,8 +113,6 @@ export default function DashboardPage() {
     [earningsRaw],
   );
 
-  const needsPersonalityTest = profile?.status === 'PENDING_REVIEW' && !profile?.personalityAssessment;
-
   if (statsLoading || profileLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -129,32 +127,6 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 mt-1">Bine ai venit!</p>
       </div>
-
-      {/* Personality Test CTA Banner */}
-      {needsPersonalityTest && (
-        <div className="mb-8">
-          <div className="p-6 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-white/10 rounded-xl shrink-0">
-                <FileText className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2">Completează testul de personalitate</h3>
-                <p className="text-blue-50 mb-4">
-                  Pentru a fi activat ca și curățător, trebuie să completezi un scurt test de personalitate
-                  (28 de întrebări, ~5-6 minute). Acest test ne ajută să oferim servicii de calitate clienților noștri.
-                </p>
-                <Link to="/worker/test-personalitate">
-                  <Button variant="secondary" className="gap-2">
-                    Începe testul
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

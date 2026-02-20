@@ -780,7 +780,6 @@ type Cleaner struct {
 	FullName           string             `json:"full_name"`
 	Phone              pgtype.Text        `json:"phone"`
 	Email              pgtype.Text        `json:"email"`
-	AvatarUrl          pgtype.Text        `json:"avatar_url"`
 	Status             CleanerStatus      `json:"status"`
 	IsCompanyAdmin     pgtype.Bool        `json:"is_company_admin"`
 	InviteToken        pgtype.Text        `json:"invite_token"`
@@ -1103,6 +1102,20 @@ type PersonalityAssessmentAnswer struct {
 	IsReverseKeyed bool        `json:"is_reverse_keyed"`
 	RawResponse    int32       `json:"raw_response"`
 	ScoredValue    int32       `json:"scored_value"`
+}
+
+type PersonalityInsight struct {
+	ID                pgtype.UUID        `json:"id"`
+	AssessmentID      pgtype.UUID        `json:"assessment_id"`
+	Summary           string             `json:"summary"`
+	Strengths         []string           `json:"strengths"`
+	Concerns          []string           `json:"concerns"`
+	TeamFitAnalysis   string             `json:"team_fit_analysis"`
+	RecommendedAction string             `json:"recommended_action"`
+	Confidence        string             `json:"confidence"`
+	AiModel           string             `json:"ai_model"`
+	AiProvider        string             `json:"ai_provider"`
+	GeneratedAt       pgtype.Timestamptz `json:"generated_at"`
 }
 
 type PlatformEvent struct {

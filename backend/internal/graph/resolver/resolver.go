@@ -28,7 +28,7 @@ type Resolver struct {
 	AuthzHelper    *middleware.AuthzHelper
 }
 
-// cleanerWithCompany loads a cleaner's company and documents, returns the full CleanerProfile.
+// cleanerWithCompany loads a cleaner's company, user, documents, and assessment, returns the full CleanerProfile.
 func (r *Resolver) cleanerWithCompany(ctx context.Context, c db.Cleaner) (*model.CleanerProfile, error) {
 	profile := dbCleanerToGQL(c)
 	company, err := r.Queries.GetCompanyByID(ctx, c.CompanyID)
@@ -36,6 +36,13 @@ func (r *Resolver) cleanerWithCompany(ctx context.Context, c db.Cleaner) (*model
 		return nil, fmt.Errorf("failed to load company: %w", err)
 	}
 	profile.Company = dbCompanyToGQL(company)
+
+	// Load user (for avatar and other user-level attributes).
+	if c.UserID.Valid {
+		if user, err := r.Queries.GetUserByID(ctx, c.UserID); err == nil {
+			profile.User = dbUserToGQL(user)
+		}
+	}
 
 	// Load cleaner documents.
 	if docs, err := r.Queries.ListCleanerDocuments(ctx, c.ID); err == nil {

@@ -318,10 +318,10 @@ func (r *queryResolver) AllCleaners(ctx context.Context) ([]*model.CleanerProfil
 
 	result := make([]*model.CleanerProfile, len(cleaners))
 	for i, c := range cleaners {
-		profile := dbCleanerToGQL(c)
-		company, err := r.Queries.GetCompanyByID(ctx, c.CompanyID)
-		if err == nil {
-			profile.Company = dbCompanyToGQL(company)
+		// Load full cleaner profile with User/Company/Documents/PersonalityAssessment relationships
+		profile, err := r.cleanerWithCompany(ctx, c)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load cleaner %s: %w", uuidToString(c.ID), err)
 		}
 		result[i] = profile
 	}

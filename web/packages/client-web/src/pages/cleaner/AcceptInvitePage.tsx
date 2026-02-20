@@ -20,7 +20,7 @@ export default function AcceptInvitePage() {
   const [searchParams] = useSearchParams();
   const urlToken = searchParams.get('token') ?? '';
 
-  const { isAuthenticated, loginWithGoogle } = useAuth();
+  const { isAuthenticated, loginWithGoogle, refreshToken } = useAuth();
   const [acceptInvitation, { loading: accepting }] = useMutation(ACCEPT_INVITATION);
 
   const [token, setToken] = useState(urlToken);
@@ -48,6 +48,8 @@ export default function AcceptInvitePage() {
       const { data } = await acceptInvitation({ variables: { token: token.trim() } });
       setCompanyName(data?.acceptInvitation?.company?.companyName ?? '');
       setStep('done');
+      // Refresh JWT so it carries the CLEANER role before entering /worker.
+      await refreshToken();
       setTimeout(() => navigate('/worker'), 2000);
     } catch {
       setError('Codul de invitație nu este valid sau a expirat.');
@@ -58,7 +60,7 @@ export default function AcceptInvitePage() {
     if (!response.credential) { setError('Autentificarea Google a eșuat.'); return; }
     setError('');
     try {
-      await loginWithGoogle(response.credential);
+      await loginWithGoogle(response.credential, 'CLEANER');
       // Effect above advances to 'invite' step once isAuthenticated updates.
     } catch {
       setError('Autentificarea a eșuat. Încearcă din nou.');
@@ -70,9 +72,11 @@ export default function AcceptInvitePage() {
     // We also check the token in case it was pre-filled from the URL.
     if (authService.getToken() && urlToken) {
       acceptInvitation({ variables: { token: urlToken } })
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           setCompanyName(data?.acceptInvitation?.company?.companyName ?? '');
           setStep('done');
+          // Refresh JWT so it carries the CLEANER role before entering /worker.
+          await refreshToken();
           setTimeout(() => navigate('/worker'), 2000);
         })
         .catch(() => {

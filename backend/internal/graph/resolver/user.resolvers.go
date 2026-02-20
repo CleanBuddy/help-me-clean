@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"helpmeclean-backend/internal/auth"
 	db "helpmeclean-backend/internal/db/generated"
+	"helpmeclean-backend/internal/graph"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/storage"
 	"strings"
@@ -235,3 +236,26 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 
 	return dbUserToGQL(dbUser), nil
 }
+
+// CleanerProfile is the resolver for the cleanerProfile field.
+func (r *userResolver) CleanerProfile(ctx context.Context, obj *model.User) (*model.CleanerProfile, error) {
+	// Only return cleaner data if user role is CLEANER
+	if obj.Role != model.UserRoleCleaner {
+		return nil, nil
+	}
+
+	// Fetch cleaner profile by user ID
+	cleaner, err := r.Queries.GetCleanerByUserID(ctx, stringToUUID(obj.ID))
+	if err != nil {
+		// No cleaner profile found - return nil (not an error)
+		return nil, nil
+	}
+
+	// Use cleanerWithCompany helper to load all nested data (company, documents, personality)
+	return r.Resolver.cleanerWithCompany(ctx, cleaner)
+}
+
+// User returns graph.UserResolver implementation.
+func (r *Resolver) User() graph.UserResolver { return &userResolver{r} }
+
+type userResolver struct{ *Resolver }

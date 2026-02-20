@@ -31,3 +31,11 @@ models:
   JSON:
     model:
       - github.com/99designs/gqlgen/graphql.Map
+  PersonalityAssessment:
+    fields:
+      insights:
+        resolver: true
+  User:
+    fields:
+      cleanerProfile:
+        resolver: true

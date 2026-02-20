@@ -154,12 +154,12 @@ class AuthService {
 
   // ── Public auth operations ───────────────────────────────────────────────────
 
-  async loginWithGoogle(idToken: string): Promise<AuthUser> {
+  async loginWithGoogle(idToken: string, role: string = 'CLIENT'): Promise<AuthUser> {
     if (!this.client) throw new Error('AuthService not initialized');
 
     const { data } = await this.client.mutate({
       mutation: SIGN_IN_WITH_GOOGLE,
-      variables: { idToken, role: 'CLIENT' },
+      variables: { idToken, role },
     });
 
     const { token, user } = data.signInWithGoogle as { token: string; user: AuthUser };

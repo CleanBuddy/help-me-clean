@@ -12,7 +12,7 @@ import (
 )
 
 const activateCleanerStatus = `-- name: ActivateCleanerStatus :one
-UPDATE cleaners SET status = 'active', updated_at = NOW() WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
+UPDATE cleaners SET status = 'active', updated_at = NOW() WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
 `
 
 func (q *Queries) ActivateCleanerStatus(ctx context.Context, id pgtype.UUID) (Cleaner, error) {
@@ -25,7 +25,6 @@ func (q *Queries) ActivateCleanerStatus(ctx context.Context, id pgtype.UUID) (Cl
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,
@@ -42,7 +41,7 @@ func (q *Queries) ActivateCleanerStatus(ctx context.Context, id pgtype.UUID) (Cl
 const createCleaner = `-- name: CreateCleaner :one
 INSERT INTO cleaners (company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
+RETURNING id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
 `
 
 type CreateCleanerParams struct {
@@ -75,7 +74,6 @@ func (q *Queries) CreateCleaner(ctx context.Context, arg CreateCleanerParams) (C
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,
@@ -90,7 +88,7 @@ func (q *Queries) CreateCleaner(ctx context.Context, arg CreateCleanerParams) (C
 }
 
 const getCleanerByID = `-- name: GetCleanerByID :one
-SELECT id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE id = $1
+SELECT id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE id = $1
 `
 
 func (q *Queries) GetCleanerByID(ctx context.Context, id pgtype.UUID) (Cleaner, error) {
@@ -103,7 +101,6 @@ func (q *Queries) GetCleanerByID(ctx context.Context, id pgtype.UUID) (Cleaner, 
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,
@@ -118,7 +115,7 @@ func (q *Queries) GetCleanerByID(ctx context.Context, id pgtype.UUID) (Cleaner, 
 }
 
 const getCleanerByInviteToken = `-- name: GetCleanerByInviteToken :one
-SELECT id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE invite_token = $1
+SELECT id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE invite_token = $1
 `
 
 func (q *Queries) GetCleanerByInviteToken(ctx context.Context, inviteToken pgtype.Text) (Cleaner, error) {
@@ -131,7 +128,6 @@ func (q *Queries) GetCleanerByInviteToken(ctx context.Context, inviteToken pgtyp
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,
@@ -146,7 +142,7 @@ func (q *Queries) GetCleanerByInviteToken(ctx context.Context, inviteToken pgtyp
 }
 
 const getCleanerByUserID = `-- name: GetCleanerByUserID :one
-SELECT id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE user_id = $1
+SELECT id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE user_id = $1
 `
 
 func (q *Queries) GetCleanerByUserID(ctx context.Context, userID pgtype.UUID) (Cleaner, error) {
@@ -159,7 +155,6 @@ func (q *Queries) GetCleanerByUserID(ctx context.Context, userID pgtype.UUID) (C
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,
@@ -214,7 +209,7 @@ func (q *Queries) GetCleanerPerformanceStats(ctx context.Context, id pgtype.UUID
 }
 
 const linkCleanerToUser = `-- name: LinkCleanerToUser :one
-UPDATE cleaners SET user_id = $2, status = 'pending_review', updated_at = NOW() WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
+UPDATE cleaners SET user_id = $2, status = 'pending_review', updated_at = NOW() WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
 `
 
 type LinkCleanerToUserParams struct {
@@ -232,7 +227,6 @@ func (q *Queries) LinkCleanerToUser(ctx context.Context, arg LinkCleanerToUserPa
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,
@@ -247,7 +241,7 @@ func (q *Queries) LinkCleanerToUser(ctx context.Context, arg LinkCleanerToUserPa
 }
 
 const listAllActiveCleaners = `-- name: ListAllActiveCleaners :many
-SELECT id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE status = 'active' ORDER BY full_name ASC
+SELECT id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE status = 'active' ORDER BY full_name ASC
 `
 
 func (q *Queries) ListAllActiveCleaners(ctx context.Context) ([]Cleaner, error) {
@@ -266,7 +260,6 @@ func (q *Queries) ListAllActiveCleaners(ctx context.Context) ([]Cleaner, error) 
 			&i.FullName,
 			&i.Phone,
 			&i.Email,
-			&i.AvatarUrl,
 			&i.Status,
 			&i.IsCompanyAdmin,
 			&i.InviteToken,
@@ -288,7 +281,7 @@ func (q *Queries) ListAllActiveCleaners(ctx context.Context) ([]Cleaner, error) 
 }
 
 const listCleanersByCompany = `-- name: ListCleanersByCompany :many
-SELECT id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE company_id = $1 ORDER BY created_at DESC
+SELECT id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio FROM cleaners WHERE company_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) ListCleanersByCompany(ctx context.Context, companyID pgtype.UUID) ([]Cleaner, error) {
@@ -307,7 +300,6 @@ func (q *Queries) ListCleanersByCompany(ctx context.Context, companyID pgtype.UU
 			&i.FullName,
 			&i.Phone,
 			&i.Email,
-			&i.AvatarUrl,
 			&i.Status,
 			&i.IsCompanyAdmin,
 			&i.InviteToken,
@@ -328,45 +320,12 @@ func (q *Queries) ListCleanersByCompany(ctx context.Context, companyID pgtype.UU
 	return items, nil
 }
 
-const updateCleanerAvatar = `-- name: UpdateCleanerAvatar :one
-UPDATE cleaners SET avatar_url = $2, updated_at = NOW() WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
-`
-
-type UpdateCleanerAvatarParams struct {
-	ID        pgtype.UUID `json:"id"`
-	AvatarUrl pgtype.Text `json:"avatar_url"`
-}
-
-func (q *Queries) UpdateCleanerAvatar(ctx context.Context, arg UpdateCleanerAvatarParams) (Cleaner, error) {
-	row := q.db.QueryRow(ctx, updateCleanerAvatar, arg.ID, arg.AvatarUrl)
-	var i Cleaner
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.CompanyID,
-		&i.FullName,
-		&i.Phone,
-		&i.Email,
-		&i.AvatarUrl,
-		&i.Status,
-		&i.IsCompanyAdmin,
-		&i.InviteToken,
-		&i.InviteExpiresAt,
-		&i.RatingAvg,
-		&i.TotalJobsCompleted,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Bio,
-	)
-	return i, err
-}
-
 const updateCleanerOwnProfile = `-- name: UpdateCleanerOwnProfile :one
 UPDATE cleaners SET
     phone = $2::text,
     bio = $3::text,
     updated_at = NOW()
-WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
+WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
 `
 
 type UpdateCleanerOwnProfileParams struct {
@@ -385,7 +344,6 @@ func (q *Queries) UpdateCleanerOwnProfile(ctx context.Context, arg UpdateCleaner
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,
@@ -400,7 +358,7 @@ func (q *Queries) UpdateCleanerOwnProfile(ctx context.Context, arg UpdateCleaner
 }
 
 const updateCleanerStatus = `-- name: UpdateCleanerStatus :one
-UPDATE cleaners SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, avatar_url, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
+UPDATE cleaners SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id, user_id, company_id, full_name, phone, email, status, is_company_admin, invite_token, invite_expires_at, rating_avg, total_jobs_completed, created_at, updated_at, bio
 `
 
 type UpdateCleanerStatusParams struct {
@@ -418,7 +376,6 @@ func (q *Queries) UpdateCleanerStatus(ctx context.Context, arg UpdateCleanerStat
 		&i.FullName,
 		&i.Phone,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.Status,
 		&i.IsCompanyAdmin,
 		&i.InviteToken,

@@ -11,6 +11,9 @@ import {
   Check,
   X,
   User,
+  Building2,
+  Star,
+  ClipboardList,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -18,13 +21,16 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Modal from '@/components/ui/Modal';
+import PersonalityScoreCard from '@/components/PersonalityScoreCard';
+import DocumentCard from '@/components/ui/DocumentCard';
 import {
-  GET_USER,
+  GET_USER_WITH_CLEANER,
   UPDATE_USER_ROLE,
   ADMIN_UPDATE_USER_PROFILE,
   SUSPEND_USER,
   REACTIVATE_USER,
   SEARCH_USERS,
+  GENERATE_PERSONALITY_INSIGHTS,
 } from '@/graphql/operations';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -65,7 +71,80 @@ const roleOptions = [
   { value: 'GLOBAL_ADMIN', label: 'Admin Global' },
 ];
 
+const cleanerStatusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
+  ACTIVE: 'success',
+  PENDING_REVIEW: 'warning',
+  INACTIVE: 'default',
+  INVITED: 'info',
+};
+
+const cleanerStatusLabel: Record<string, string> = {
+  ACTIVE: 'Activ',
+  PENDING_REVIEW: 'In asteptare',
+  INACTIVE: 'Inactiv',
+  INVITED: 'Invitat',
+};
+
+const cleanerDocTypeLabel: Record<string, string> = {
+  cazier_judiciar: 'Cazier Judiciar',
+  contract_munca: 'Contract de Munca',
+};
+
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+interface CleanerDocument {
+  id: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  status: string;
+  uploadedAt: string;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
+}
+
+interface PersonalityInsights {
+  summary: string;
+  strengths: string[];
+  concerns: string[];
+  teamFitAnalysis: string;
+  recommendedAction: string;
+  confidence: string;
+  aiModel: string;
+  generatedAt: string;
+}
+
+interface PersonalityAssessment {
+  id: string;
+  facetScores: Array<{
+    facetCode: string;
+    facetName: string;
+    score: number;
+    maxScore: number;
+    isFlagged: boolean;
+  }>;
+  integrityAvg: number;
+  workQualityAvg: number;
+  hasConcerns: boolean;
+  flaggedFacets: string[];
+  completedAt: string;
+  insights?: PersonalityInsights | null;
+}
+
+interface CleanerProfile {
+  id: string;
+  fullName: string;
+  bio?: string | null;
+  status: string;
+  ratingAvg: number;
+  totalJobsCompleted: number;
+  company?: {
+    id: string;
+    companyName: string;
+  } | null;
+  documents: CleanerDocument[];
+  personalityAssessment?: PersonalityAssessment | null;
+}
 
 interface UserData {
   id: string;
@@ -77,6 +156,7 @@ interface UserData {
   status: string;
   preferredLanguage: string;
   createdAt: string;
+  cleanerProfile?: CleanerProfile | null;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -104,7 +184,7 @@ export default function UserDetailPage() {
   const [suspendReason, setSuspendReason] = useState('');
 
   // Queries
-  const { data, loading } = useQuery(GET_USER, {
+  const { data, loading } = useQuery(GET_USER_WITH_CLEANER, {
     variables: { id },
     onCompleted: (result) => {
       const u = result?.user as UserData | undefined;
@@ -117,7 +197,7 @@ export default function UserDetailPage() {
   });
 
   const refetchQueries = [
-    { query: GET_USER, variables: { id } },
+    { query: GET_USER_WITH_CLEANER, variables: { id } },
     { query: SEARCH_USERS },
   ];
 
@@ -139,6 +219,11 @@ export default function UserDetailPage() {
 
   const [reactivateUser, { loading: reactivating }] = useMutation(
     REACTIVATE_USER,
+    { refetchQueries },
+  );
+
+  const [generateInsights, { loading: generatingInsights }] = useMutation(
+    GENERATE_PERSONALITY_INSIGHTS,
     { refetchQueries },
   );
 
@@ -198,6 +283,10 @@ export default function UserDetailPage() {
   const handleReactivate = async () => {
     if (!user) return;
     await reactivateUser({ variables: { id: user.id } });
+  };
+
+  const handleGenerateInsights = async (cleanerId: string) => {
+    await generateInsights({ variables: { cleanerId } });
   };
 
   // Loading skeleton
@@ -409,6 +498,106 @@ export default function UserDetailPage() {
               </div>
             </div>
           </Card>
+
+          {/* Cleaner Profile Section - Only for CLEANER role */}
+          {user.role === 'CLEANER' && user.cleanerProfile && (
+            <div className="space-y-6">
+              {/* Company Affiliation Card */}
+              {user.cleanerProfile.company && (
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Informatii curator
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Building2 className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-400">Companie</p>
+                        <p className="text-sm text-gray-900">
+                          {user.cleanerProfile.company.companyName}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Star className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-400">Rating</p>
+                        <p className="text-sm text-gray-900">
+                          {user.cleanerProfile.ratingAvg
+                            ? Number(user.cleanerProfile.ratingAvg).toFixed(1)
+                            : '--'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <ClipboardList className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-400">Lucrari finalizate</p>
+                        <p className="text-sm text-gray-900">
+                          {user.cleanerProfile.totalJobsCompleted}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <Badge
+                        variant={
+                          cleanerStatusVariant[user.cleanerProfile.status] ?? 'default'
+                        }
+                      >
+                        {cleanerStatusLabel[user.cleanerProfile.status] ??
+                          user.cleanerProfile.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Personality Assessment Card */}
+              {user.cleanerProfile.personalityAssessment && (
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Test de personalitate
+                  </h3>
+                  <PersonalityScoreCard
+                    assessment={user.cleanerProfile.personalityAssessment}
+                    compact={false}
+                    onGenerateInsights={() =>
+                      handleGenerateInsights(user.cleanerProfile!.id)
+                    }
+                    generatingInsights={generatingInsights}
+                  />
+                </Card>
+              )}
+
+              {/* Documents Card */}
+              <Card>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Documente obligatorii
+                </h3>
+                {user.cleanerProfile.documents.length === 0 ? (
+                  <p className="text-sm text-gray-400">Niciun document incarcat.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {user.cleanerProfile.documents.map((doc) => (
+                      <DocumentCard
+                        key={doc.id}
+                        id={doc.id}
+                        documentType={doc.documentType}
+                        documentTypeLabel={
+                          cleanerDocTypeLabel[doc.documentType] ?? doc.documentType
+                        }
+                        fileName={doc.fileName}
+                        fileUrl={doc.fileUrl}
+                        status={doc.status}
+                        uploadedAt={doc.uploadedAt}
+                        rejectionReason={doc.rejectionReason}
+                      />
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
         </div>
 
         {/* Right Column - Role & Status */}

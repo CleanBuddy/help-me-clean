@@ -157,6 +157,17 @@ func (r *mutationResolver) AcceptInvitation(ctx context.Context, token string) (
 		return nil, fmt.Errorf("failed to accept invitation: %w", err)
 	}
 
+	// Upgrade the user's role to CLEANER regardless of what role they signed up with.
+	// This handles the case where someone signed in as CLIENT before accepting an invitation.
+	_, err = r.Queries.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   stringToUUID(claims.UserID),
+		Role: db.UserRoleCleaner,
+	})
+	if err != nil {
+		// Non-fatal — the cleaner profile is linked; log but don't fail.
+		fmt.Printf("warning: failed to upgrade user role to cleaner after invitation: %v\n", err)
+	}
+
 	return r.cleanerWithCompany(ctx, cleaner)
 }
 
@@ -348,8 +359,8 @@ func (r *mutationResolver) UploadCleanerAvatar(ctx context.Context, cleanerID st
 		return nil, fmt.Errorf("fisierul depaseste limita de 10MB")
 	}
 
-	// Build GCS path: uploads/cleaners/{cleanerId}/avatars
-	path := fmt.Sprintf("uploads/cleaners/%s/avatars", cleanerID)
+	// Build GCS path: uploads/users/{userId}/avatars (avatar belongs to user, not cleaner)
+	path := fmt.Sprintf("uploads/users/%s/avatars", uuidToString(cleaner.UserID))
 
 	// Upload to GCS with public access
 	avatarURL, err := r.Storage.Upload(ctx, path, file.Filename, file.File, storage.StorageTypePublic)
@@ -357,13 +368,19 @@ func (r *mutationResolver) UploadCleanerAvatar(ctx context.Context, cleanerID st
 		return nil, fmt.Errorf("eroare la incarcarea imaginii: %w", err)
 	}
 
-	// Update cleaner avatar
-	updated, err := r.Queries.UpdateCleanerAvatar(ctx, db.UpdateCleanerAvatarParams{
-		ID:        stringToUUID(cleanerID),
+	// Update USER's avatar (not cleaner's) - avatar is a user-level attribute
+	_, err = r.Queries.UpdateUserAvatar(ctx, db.UpdateUserAvatarParams{
+		ID:        stringToUUID(uuidToString(cleaner.UserID)),
 		AvatarUrl: stringToText(&avatarURL),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update avatar: %w", err)
+	}
+
+	// Refetch cleaner to return updated profile
+	updated, err := r.Queries.GetCleanerByID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to refetch cleaner: %w", err)
 	}
 
 	return r.cleanerWithCompany(ctx, updated)
@@ -459,6 +476,28 @@ func (r *mutationResolver) UploadCleanerDocument(ctx context.Context, cleanerID 
 	claims := auth.GetUserFromContext(ctx)
 	if claims == nil {
 		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Get the cleaner record
+	cleaner, err := r.Queries.GetCleanerByID(ctx, stringToUUID(cleanerID))
+	if err != nil {
+		return nil, fmt.Errorf("cleaner not found: %w", err)
+	}
+
+	// Authorization: Either the cleaner's own user OR the company admin OR global admin
+	isOwnCleaner := cleaner.UserID.Valid && uuidToString(cleaner.UserID) == claims.UserID
+
+	var isCompanyAdmin bool
+	if !isOwnCleaner {
+		// Check if user is company admin for this cleaner's company
+		company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
+		if err == nil && uuidToString(company.ID) == uuidToString(cleaner.CompanyID) {
+			isCompanyAdmin = true
+		}
+	}
+
+	if !isOwnCleaner && !isCompanyAdmin && claims.Role != "global_admin" {
+		return nil, fmt.Errorf("not authorized to upload documents for this cleaner")
 	}
 
 	path := fmt.Sprintf("uploads/cleaners/%s/documents", cleanerID)
@@ -565,11 +604,13 @@ func (r *queryResolver) MyCleaners(ctx context.Context) ([]*model.CleanerProfile
 		return nil, fmt.Errorf("failed to list cleaners: %w", err)
 	}
 
-	companyGQL := dbCompanyToGQL(company)
 	result := make([]*model.CleanerProfile, len(cleaners))
 	for i, c := range cleaners {
-		profile := dbCleanerToGQL(c)
-		profile.Company = companyGQL
+		// Load full cleaner profile with User/Company/Documents/PersonalityAssessment relationships
+		profile, err := r.cleanerWithCompany(ctx, c)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load cleaner %s: %w", uuidToString(c.ID), err)
+		}
 
 		// Load availability for each cleaner.
 		avails, err := r.Queries.ListCleanerAvailability(ctx, c.ID)

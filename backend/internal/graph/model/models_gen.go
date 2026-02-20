@@ -219,12 +219,11 @@ type CleanerProfile struct {
 	ID                    string                 `json:"id"`
 	UserID                *string                `json:"userId,omitempty"`
 	User                  *User                  `json:"user,omitempty"`
-	Company               *Company               `json:"company"`
+	Company               *Company               `json:"company,omitempty"`
 	FullName              string                 `json:"fullName"`
 	Phone                 *string                `json:"phone,omitempty"`
 	Email                 *string                `json:"email,omitempty"`
 	Bio                   *string                `json:"bio,omitempty"`
-	AvatarURL             *string                `json:"avatarUrl,omitempty"`
 	Status                CleanerStatus          `json:"status"`
 	IsCompanyAdmin        bool                   `json:"isCompanyAdmin"`
 	InviteToken           *string                `json:"inviteToken,omitempty"`
@@ -628,6 +627,7 @@ type PersonalityAssessment struct {
 	HasConcerns    bool                     `json:"hasConcerns"`
 	FlaggedFacets  []string                 `json:"flaggedFacets"`
 	CompletedAt    time.Time                `json:"completedAt"`
+	Insights       *PersonalityInsights     `json:"insights,omitempty"`
 }
 
 type PersonalityFacetScore struct {
@@ -636,6 +636,17 @@ type PersonalityFacetScore struct {
 	Score     int    `json:"score"`
 	MaxScore  int    `json:"maxScore"`
 	IsFlagged bool   `json:"isFlagged"`
+}
+
+type PersonalityInsights struct {
+	Summary           string    `json:"summary"`
+	Strengths         []string  `json:"strengths"`
+	Concerns          []string  `json:"concerns"`
+	TeamFitAnalysis   string    `json:"teamFitAnalysis"`
+	RecommendedAction string    `json:"recommendedAction"`
+	Confidence        string    `json:"confidence"`
+	AiModel           string    `json:"aiModel"`
+	GeneratedAt       time.Time `json:"generatedAt"`
 }
 
 type PersonalityQuestion struct {
@@ -911,15 +922,16 @@ type UploadResult struct {
 }
 
 type User struct {
-	ID                string     `json:"id"`
-	Email             string     `json:"email"`
-	FullName          string     `json:"fullName"`
-	Phone             *string    `json:"phone,omitempty"`
-	AvatarURL         *string    `json:"avatarUrl,omitempty"`
-	Role              UserRole   `json:"role"`
-	Status            UserStatus `json:"status"`
-	PreferredLanguage string     `json:"preferredLanguage"`
-	CreatedAt         time.Time  `json:"createdAt"`
+	ID                string          `json:"id"`
+	Email             string          `json:"email"`
+	FullName          string          `json:"fullName"`
+	Phone             *string         `json:"phone,omitempty"`
+	AvatarURL         *string         `json:"avatarUrl,omitempty"`
+	Role              UserRole        `json:"role"`
+	Status            UserStatus      `json:"status"`
+	PreferredLanguage string          `json:"preferredLanguage"`
+	CreatedAt         time.Time       `json:"createdAt"`
+	CleanerProfile    *CleanerProfile `json:"cleanerProfile,omitempty"`
 }
 
 type UserConnection struct {
