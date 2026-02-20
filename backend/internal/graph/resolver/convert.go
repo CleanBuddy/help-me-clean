@@ -379,18 +379,16 @@ func dbCompanyToGQL(c db.Company) *model.Company {
 	}
 }
 
-func dbCleanerToGQL(c db.Cleaner) *model.CleanerProfile {
+func dbCleanerToGQL(c db.Cleaner, u *db.User) *model.CleanerProfile {
 	var userID *string
 	if c.UserID.Valid {
 		s := uuidToString(c.UserID)
 		userID = &s
 	}
-	return &model.CleanerProfile{
+
+	profile := &model.CleanerProfile{
 		ID:                 uuidToString(c.ID),
 		UserID:             userID,
-		FullName:           c.FullName,
-		Phone:              textPtr(c.Phone),
-		Email:              textPtr(c.Email),
 		Bio:                textPtr(c.Bio),
 		Status:             dbCleanerStatusToGQL(c.Status),
 		IsCompanyAdmin:     boolVal(c.IsCompanyAdmin),
@@ -399,6 +397,15 @@ func dbCleanerToGQL(c db.Cleaner) *model.CleanerProfile {
 		TotalJobsCompleted: int4Val(c.TotalJobsCompleted),
 		CreatedAt:          timestamptzToTime(c.CreatedAt),
 	}
+
+	// Populate from user (source of truth)
+	if u != nil {
+		profile.FullName = u.FullName
+		profile.Email = &u.Email
+		profile.Phone = textPtr(u.Phone)
+	}
+
+	return profile
 }
 
 func dbAddressToGQL(a db.ClientAddress) *model.Address {

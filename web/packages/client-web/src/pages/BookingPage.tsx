@@ -146,7 +146,10 @@ interface CleanerSuggestion {
   cleaner: {
     id: string;
     fullName: string;
-    avatarUrl: string | null;
+    user: {
+      id: string;
+      avatarUrl: string | null;
+    };
     ratingAvg: number;
     totalJobsCompleted: number;
   };
@@ -2227,6 +2230,13 @@ function StepAddress({
                   const areaId = cityMatch?.areas?.[0]?.id ?? '';
                   updateForm({
                     useSavedAddress: addr.id,
+                    streetAddress: addr.streetAddress,
+                    city: addr.city,
+                    county: addr.county,
+                    floor: addr.floor || '',
+                    apartment: addr.apartment || '',
+                    latitude: addr.coordinates?.latitude ?? null,
+                    longitude: addr.coordinates?.longitude ?? null,
                     selectedCityId: cityMatch?.id ?? '',
                     selectedAreaId: areaId,
                   });
@@ -2460,6 +2470,95 @@ function StepAddress({
   );
 }
 
+// ---- AI Matching Loader Component ------------------------------------------
+
+function AIMatchingLoader() {
+  const [stage, setStage] = useState(0);
+
+  const stages = [
+    { icon: Sparkles, text: 'Analizăm cererea ta...', color: 'text-gray-600' },
+    { icon: MapPin, text: 'Căutăm curățători disponibili în zona ta...', color: 'text-gray-600' },
+    { icon: Calendar, text: 'Calculăm programele optime...', color: 'text-gray-600' },
+    { icon: Star, text: 'Clasificăm cele mai bune potriviri...', color: 'text-gray-600' },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStage((prev) => (prev < stages.length - 1 ? prev + 1 : prev));
+    }, 800); // Progress every 800ms
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Card className="py-10 px-6">
+      <div className="flex flex-col items-center space-y-6">
+        {/* Animated icon container */}
+        <div className="relative w-24 h-24">
+          {/* Background ring */}
+          <div className="absolute inset-0 rounded-full border-4 border-gray-200 animate-pulse" />
+
+          {/* Icon transitions */}
+          {stages.map((s, idx) => {
+            const Icon = s.icon;
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  'absolute inset-0 flex items-center justify-center transition-all duration-500',
+                  idx === stage
+                    ? 'opacity-100 scale-100'
+                    : idx < stage
+                    ? 'opacity-0 scale-75'
+                    : 'opacity-0 scale-125',
+                )}
+              >
+                <Icon className={cn('h-12 w-12', s.color)} />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full max-w-md">
+          <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+            <div
+              className="h-full bg-gray-900 transition-all duration-700 ease-out"
+              style={{ width: `${((stage + 1) / stages.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Title and stage text */}
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Căutăm echipa perfectă pentru tine
+          </h3>
+          <p
+            className={cn(
+              'text-sm font-medium transition-colors duration-300',
+              stages[stage].color,
+            )}
+          >
+            {stages[stage].text}
+          </p>
+        </div>
+
+        {/* Animated dots */}
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // ---- Step 4: Cleaner Suggestions --------------------------------------------
 
 function StepCleaner({
@@ -2476,7 +2575,12 @@ function StepCleaner({
   const duration = estimatedHours ?? minHours ?? 2;
   const firstSlot = form.timeSlots[0];
 
-  const { data: suggestionsData, loading: suggestionsLoading } = useQuery<{
+  // State for minimum loading delay (ensures AIMatchingLoader shows for 2.5s)
+  const [showLoader, setShowLoader] = useState(false);
+  const [_minimumLoadingComplete, setMinimumLoadingComplete] = useState(false);
+  const loadingStartTimeRef = useRef<number | null>(null);
+
+  const { data: suggestionsData, loading: suggestionsLoading, refetch } = useQuery<{
     suggestCleaners: CleanerSuggestion[];
   }>(SUGGEST_CLEANERS, {
     variables: {
@@ -2500,6 +2604,64 @@ function StepCleaner({
   const suggestions: CleanerSuggestion[] =
     suggestionsData?.suggestCleaners ?? [];
   const topSuggestions = suggestions.slice(0, 5);
+
+  // Force refetch when critical dependencies change
+  useEffect(() => {
+    if (
+      !suggestionsLoading &&
+      form.selectedCityId &&
+      form.selectedAreaId &&
+      firstSlot?.date &&
+      firstSlot?.startTime
+    ) {
+      refetch();
+    }
+  }, [
+    form.timeSlots,
+    form.selectedCityId,
+    form.selectedAreaId,
+    refetch,
+  ]);
+
+  // Enforce minimum loading time of 2500ms for smooth animation
+  useEffect(() => {
+    if (suggestionsLoading) {
+      // Start loading
+      setShowLoader(true);
+      setMinimumLoadingComplete(false);
+      loadingStartTimeRef.current = Date.now();
+
+      // Set minimum display time
+      const minLoadingTimer = setTimeout(() => {
+        setMinimumLoadingComplete(true);
+      }, 2500);
+
+      return () => clearTimeout(minLoadingTimer);
+    } else {
+      // Data arrived, but check if minimum time has elapsed
+      if (loadingStartTimeRef.current !== null) {
+        const elapsed = Date.now() - loadingStartTimeRef.current;
+        const remaining = Math.max(0, 2500 - elapsed);
+
+        if (remaining > 0) {
+          // Wait for remaining time before hiding loader
+          const hideTimer = setTimeout(() => {
+            setShowLoader(false);
+            setMinimumLoadingComplete(true);
+          }, remaining);
+
+          return () => clearTimeout(hideTimer);
+        } else {
+          // Minimum time already elapsed
+          setShowLoader(false);
+          setMinimumLoadingComplete(true);
+        }
+      } else {
+        setShowLoader(false);
+        setMinimumLoadingComplete(true);
+      }
+    }
+  }, [suggestionsLoading]);
 
   const getAvailabilityBadge = useCallback((status: string) => {
     switch (status.toLowerCase()) {
@@ -2560,12 +2722,12 @@ function StepCleaner({
         </div>
       )}
 
-      {suggestionsLoading ? (
-        <LoadingSpinner text="Se caută curățători disponibili..." />
+      {showLoader ? (
+        <AIMatchingLoader />
       ) : topSuggestions.length > 0 ? (
-        <div className="space-y-3">
-          {topSuggestions.map((suggestion) => {
-            const { cleaner, company, availabilityStatus, availableFrom, availableTo, suggestedStartTime, suggestedEndTime, matchScore } = suggestion;
+        <div className="flex gap-4 overflow-x-auto p-1">
+          {topSuggestions.slice(0, 2).map((suggestion) => {
+            const { cleaner, availabilityStatus, availableFrom, availableTo, suggestedStartTime, suggestedEndTime } = suggestion;
             const isSelected = form.preferredCleanerId === cleaner.id;
             const badge = getAvailabilityBadge(availabilityStatus);
             const initial = cleaner.fullName.charAt(0).toUpperCase();
@@ -2574,113 +2736,97 @@ function StepCleaner({
               <Card
                 key={cleaner.id}
                 className={cn(
-                  'transition-all',
+                  'transition-all cursor-pointer shrink-0 w-64 relative',
                   isSelected
                     ? 'ring-2 ring-blue-600 border-blue-600 shadow-md shadow-blue-600/10'
                     : 'hover:shadow-md hover:border-gray-300',
                 )}
+                onClick={() =>
+                  updateForm({
+                    preferredCleanerId: isSelected ? '' : cleaner.id,
+                    suggestedStartTime: isSelected ? '' : (suggestedStartTime ?? ''),
+                  })
+                }
               >
-                <div className="flex items-start gap-4">
-                  {/* Avatar initial */}
-                  <div
-                    className={cn(
-                      'w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0',
-                      getInitialColor(cleaner.fullName),
-                    )}
-                  >
-                    {initial}
-                  </div>
+                <div className="flex flex-col items-center">
+                  {/* Selected indicator - top right */}
+                  {isSelected && (
+                    <div className="absolute top-3 right-3">
+                      <CheckCircle2 className="h-6 w-6 text-blue-600" />
+                    </div>
+                  )}
+
+                  {/* Avatar or initial */}
+                  {cleaner.user?.avatarUrl ? (
+                    <img
+                      src={cleaner.user.avatarUrl}
+                      alt={cleaner.fullName}
+                      className="w-24 h-24 rounded-xl object-cover shrink-0"
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        'w-24 h-24 rounded-xl flex items-center justify-center text-white font-bold text-3xl shrink-0',
+                        getInitialColor(cleaner.fullName),
+                      )}
+                    >
+                      {initial}
+                    </div>
+                  )}
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-gray-900">
-                        {cleaner.fullName}
-                      </h3>
-                      <span
-                        className={cn(
-                          'text-xs font-medium px-2 py-0.5 rounded-full border',
-                          badge.className,
-                        )}
-                      >
-                        {badge.label}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      {company.companyName}
-                    </p>
+                  <div className="w-full mt-4 text-center">
+                    <h3 className="font-semibold text-gray-900 text-base mb-2">
+                      {cleaner.fullName}
+                    </h3>
+
+                    <span
+                      className={cn(
+                        'inline-block text-xs font-medium px-2 py-0.5 rounded-full border mb-3',
+                        badge.className,
+                      )}
+                    >
+                      {badge.label}
+                    </span>
 
                     {/* Availability time window */}
                     {availableFrom && availableTo && (
                       <p className={cn(
-                        'text-xs mt-1 flex items-center gap-1',
+                        'text-xs mt-2 flex items-center justify-center gap-1',
                         availabilityStatus === 'available' ? 'text-emerald-600' :
                         availabilityStatus === 'partial' ? 'text-amber-600' :
                         'text-red-500',
                       )}>
                         <Clock className="h-3 w-3 shrink-0" />
-                        {availabilityStatus === 'unavailable' || availabilityStatus === 'busy' ? (
-                          <>Indisponibil in intervalul selectat</>
-                        ) : availabilityStatus === 'partial' ? (
-                          <>Disponibil {availableFrom} - {availableTo} &mdash; nu acopera complet intervalul</>
-                        ) : (
-                          <>Disponibil {availableFrom} - {availableTo}</>
-                        )}
+                        <span className="text-center">
+                          {availabilityStatus === 'unavailable' || availabilityStatus === 'busy' ? (
+                            <>Indisponibil</>
+                          ) : availabilityStatus === 'partial' ? (
+                            <>{availableFrom} - {availableTo}</>
+                          ) : (
+                            <>{availableFrom} - {availableTo}</>
+                          )}
+                        </span>
                       </p>
                     )}
 
                     {/* System-decided optimal time */}
                     {suggestedStartTime && suggestedEndTime && availabilityStatus !== 'unavailable' && (
-                      <p className="text-xs mt-1 flex items-center gap-1 text-blue-600 font-medium">
+                      <p className="text-xs mt-2 flex items-center justify-center gap-1 text-blue-600 font-medium">
                         <Clock className="h-3 w-3 shrink-0" />
-                        Programat: {suggestedStartTime} - {suggestedEndTime}
+                        <span>{suggestedStartTime} - {suggestedEndTime}</span>
                       </p>
                     )}
 
-                    <div className="flex items-center gap-4 mt-2 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                        <span className="font-medium text-gray-900">
-                          {cleaner.ratingAvg > 0
-                            ? cleaner.ratingAvg.toFixed(1)
-                            : '5.0'}
-                        </span>
-                      </div>
-                      <span className="text-gray-500">
-                        {cleaner.totalJobsCompleted} lucrari
+                    <div className="flex items-center justify-center gap-1 mt-3 text-sm">
+                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                      <span className="font-medium text-gray-900">
+                        {cleaner.ratingAvg > 0
+                          ? cleaner.ratingAvg.toFixed(1)
+                          : '5.0'}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-blue-600 font-medium">
-                          Potrivire: {Math.round(matchScore)}%
-                        </span>
-                        <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-blue-500"
-                            style={{ width: `${Math.min(100, Math.round(matchScore))}%` }}
-                          />
-                        </div>
-                      </div>
                     </div>
                   </div>
-
-                  {/* Select button */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateForm({
-                        preferredCleanerId: isSelected ? '' : cleaner.id,
-                        suggestedStartTime: isSelected ? '' : (suggestedStartTime ?? ''),
-                      })
-                    }
-                    className={cn(
-                      'shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all border cursor-pointer',
-                      isSelected
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-blue-600 border-blue-600 hover:bg-blue-50',
-                    )}
-                  >
-                    {isSelected ? 'Selectat' : 'Selecteaza'}
-                  </button>
                 </div>
               </Card>
             );

@@ -1,7 +1,8 @@
 -- name: FindMatchingCleaners :many
-SELECT DISTINCT c.id, c.full_name, c.rating_avg, c.total_jobs_completed,
+SELECT DISTINCT c.id, u.full_name, c.rating_avg, c.total_jobs_completed,
        co.company_name, co.id AS company_id
 FROM cleaners c
+JOIN users u ON c.user_id = u.id
 JOIN companies co ON c.company_id = co.id
 JOIN company_service_areas csa ON csa.company_id = co.id AND csa.city_area_id = $1
 JOIN cleaner_service_areas cla ON cla.cleaner_id = c.id AND cla.city_area_id = $1

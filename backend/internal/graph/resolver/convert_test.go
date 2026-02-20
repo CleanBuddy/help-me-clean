@@ -1431,10 +1431,7 @@ func TestDbCleanerToGQL(t *testing.T) {
 
 		dbCleaner := db.Cleaner{
 			ID:                 makeUUID(0xE1),
-			FullName:           "Maria Popescu",
-			Phone:              makeText("+40700000000"),
-			Email:              makeText("maria@clean.com"),
-			AvatarUrl:          makeText("https://example.com/maria.jpg"),
+			UserID:             makeUUID(0xE2),
 			Status:             db.CleanerStatusActive,
 			IsCompanyAdmin:     pgtype.Bool{Bool: true, Valid: true},
 			RatingAvg:          makeNumeric("4.90"),
@@ -1442,7 +1439,15 @@ func TestDbCleanerToGQL(t *testing.T) {
 			CreatedAt:          makeTimestamptz(now),
 		}
 
-		result := dbCleanerToGQL(dbCleaner)
+		dbUser := db.User{
+			ID:        makeUUID(0xE2),
+			FullName:  "Maria Popescu",
+			Email:     "maria@clean.com",
+			Phone:     makeText("+40700000000"),
+			AvatarUrl: makeText("https://example.com/maria.jpg"),
+		}
+
+		result := dbCleanerToGQL(dbCleaner, &dbUser)
 
 		if result == nil {
 			t.Fatal("expected non-nil result")
@@ -1461,9 +1466,6 @@ func TestDbCleanerToGQL(t *testing.T) {
 		if result.Email == nil || *result.Email != "maria@clean.com" {
 			t.Errorf("expected Email 'maria@clean.com', got %v", result.Email)
 		}
-		if result.AvatarURL == nil || *result.AvatarURL != "https://example.com/maria.jpg" {
-			t.Errorf("expected AvatarURL, got %v", result.AvatarURL)
-		}
 		if result.Status != model.CleanerStatusActive {
 			t.Errorf("expected Status ACTIVE, got %q", result.Status)
 		}
@@ -1481,10 +1483,7 @@ func TestDbCleanerToGQL(t *testing.T) {
 	t.Run("cleaner with nil optional fields", func(t *testing.T) {
 		dbCleaner := db.Cleaner{
 			ID:                 makeUUID(0xE2),
-			FullName:           "Minimal Cleaner",
-			Phone:              pgtype.Text{Valid: false},
-			Email:              pgtype.Text{Valid: false},
-			AvatarUrl:          pgtype.Text{Valid: false},
+			UserID:             makeUUID(0xE3),
 			Status:             db.CleanerStatusInvited,
 			IsCompanyAdmin:     pgtype.Bool{Valid: false},
 			RatingAvg:          pgtype.Numeric{Valid: false},
@@ -1492,16 +1491,21 @@ func TestDbCleanerToGQL(t *testing.T) {
 			CreatedAt:          pgtype.Timestamptz{Valid: false},
 		}
 
-		result := dbCleanerToGQL(dbCleaner)
+		dbUser := db.User{
+			ID:        makeUUID(0xE3),
+			FullName:  "Minimal Cleaner",
+			Email:     "minimal@clean.com",
+			Phone:     pgtype.Text{Valid: false},
+			AvatarUrl: pgtype.Text{Valid: false},
+		}
+
+		result := dbCleanerToGQL(dbCleaner, &dbUser)
 
 		if result.Phone != nil {
 			t.Errorf("expected nil Phone, got %v", result.Phone)
 		}
-		if result.Email != nil {
-			t.Errorf("expected nil Email, got %v", result.Email)
-		}
-		if result.AvatarURL != nil {
-			t.Errorf("expected nil AvatarURL, got %v", result.AvatarURL)
+		if result.Email == nil || *result.Email != "minimal@clean.com" {
+			t.Errorf("expected Email 'minimal@clean.com', got %v", result.Email)
 		}
 		if result.IsCompanyAdmin != false {
 			t.Error("expected IsCompanyAdmin false for invalid")

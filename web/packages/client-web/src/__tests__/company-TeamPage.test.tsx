@@ -99,10 +99,14 @@ describe('TeamPage', () => {
     expect(screen.getByText('4.5')).toBeInTheDocument();
   });
 
-  it('shows status change buttons for active cleaners', () => {
+  it('shows status change buttons for active cleaners', async () => {
+    const user = userEvent.setup();
     mockQueries({ cleaners: [defaultCleaner] });
     renderPage();
-    expect(screen.getByText('Schimba status')).toBeInTheDocument();
+    // Click the status badge to open dropdown
+    const statusBadge = screen.getByText('Activ');
+    await user.click(statusBadge);
+    // Now the dropdown should show other status options
     expect(screen.getByText('Inactiv')).toBeInTheDocument();
     expect(screen.getByText('Suspendat')).toBeInTheDocument();
   });
@@ -110,7 +114,8 @@ describe('TeamPage', () => {
   it('shows deactivate button for active cleaner', () => {
     mockQueries({ cleaners: [defaultCleaner] });
     renderPage();
-    expect(screen.getByText('Dezactiveaza')).toBeInTheDocument();
+    // StatusBadge now handles status changes, no separate "Dezactiveaza" button
+    expect(screen.getByText('Activ')).toBeInTheDocument();
   });
 
   it('shows invite modal when button clicked', async () => {
@@ -146,6 +151,8 @@ describe('TeamPage', () => {
   it('shows details toggle button for cleaner', () => {
     mockQueries({ cleaners: [defaultCleaner] });
     renderPage();
-    expect(screen.getByText('Detalii')).toBeInTheDocument();
+    // UI now has "Zone" and "Profil" buttons instead of "Detalii"
+    expect(screen.getByText('Zone')).toBeInTheDocument();
+    expect(screen.getByText('Profil')).toBeInTheDocument();
   });
 });

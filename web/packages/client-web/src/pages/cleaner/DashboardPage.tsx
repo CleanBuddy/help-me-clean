@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { Link } from 'react-router-dom';
-import { Star, Briefcase, TrendingUp, MessageSquare, Clock, MapPin, Calendar, FileText, ArrowRight } from 'lucide-react';
+import { Star, Briefcase, TrendingUp, MessageSquare, Clock, MapPin, Calendar } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import Button from '@/components/ui/Button';
 import { cn } from '@helpmeclean/shared';
 import {
   MY_CLEANER_STATS, TODAYS_JOBS, CLEANER_EARNINGS_BY_DATE_RANGE, MY_CLEANER_REVIEWS, MY_CLEANER_PROFILE,
@@ -92,7 +91,7 @@ export default function DashboardPage() {
     return { from: toYYYYMMDD(ago), to: toYYYYMMDD(now) };
   }, []);
 
-  const { data: profileData, loading: profileLoading } = useQuery(MY_CLEANER_PROFILE);
+  const { loading: profileLoading } = useQuery(MY_CLEANER_PROFILE);
   const { data: statsData, loading: statsLoading } = useQuery(MY_CLEANER_STATS);
   const { data: jobsData, loading: jobsLoading } = useQuery(TODAYS_JOBS);
   const { data: earningsData, loading: earningsLoading } = useQuery(CLEANER_EARNINGS_BY_DATE_RANGE, {
@@ -102,7 +101,6 @@ export default function DashboardPage() {
     variables: { limit: 5, offset: 0 },
   });
 
-  const profile = profileData?.myCleanerProfile;
   const stats = statsData?.myCleanerStats;
   const jobs: Job[] = jobsData?.todaysJobs ?? [];
   const earningsRaw: EarningPoint[] = earningsData?.cleanerEarningsByDateRange ?? [];

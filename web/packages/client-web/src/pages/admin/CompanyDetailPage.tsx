@@ -18,7 +18,6 @@ import {
   Wallet,
   Hash,
   Clock,
-  FileText,
   Users,
   ShieldCheck,
   AlertCircle,
@@ -233,7 +232,7 @@ export default function CompanyDetailPage() {
   }>({ open: false, docId: '', docType: 'company' });
   const [docRejectReason, setDocRejectReason] = useState('');
 
-  const { data, loading, refetch } = useQuery(COMPANY, { variables: { id } });
+  const { data, loading } = useQuery(COMPANY, { variables: { id } });
 
   const { data: financialData, loading: financialLoading } = useQuery(COMPANY_FINANCIAL_SUMMARY, {
     variables: { companyId: id },

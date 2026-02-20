@@ -777,9 +777,6 @@ type Cleaner struct {
 	ID                 pgtype.UUID        `json:"id"`
 	UserID             pgtype.UUID        `json:"user_id"`
 	CompanyID          pgtype.UUID        `json:"company_id"`
-	FullName           string             `json:"full_name"`
-	Phone              pgtype.Text        `json:"phone"`
-	Email              pgtype.Text        `json:"email"`
 	Status             CleanerStatus      `json:"status"`
 	IsCompanyAdmin     pgtype.Bool        `json:"is_company_admin"`
 	InviteToken        pgtype.Text        `json:"invite_token"`

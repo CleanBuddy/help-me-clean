@@ -317,11 +317,17 @@ func (r *queryResolver) AllCleaners(ctx context.Context) ([]*model.CleanerProfil
 	}
 
 	result := make([]*model.CleanerProfile, len(cleaners))
-	for i, c := range cleaners {
-		// Load full cleaner profile with User/Company/Documents/PersonalityAssessment relationships
-		profile, err := r.cleanerWithCompany(ctx, c)
+	for i, cleanerRow := range cleaners {
+		// Load full cleaner record
+		cleaner, err := r.Queries.GetCleanerByID(ctx, cleanerRow.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load cleaner %s: %w", uuidToString(c.ID), err)
+			return nil, fmt.Errorf("failed to load cleaner %s: %w", uuidToString(cleanerRow.ID), err)
+		}
+
+		// Load full cleaner profile with User/Company/Documents/PersonalityAssessment relationships
+		profile, err := r.cleanerWithCompany(ctx, cleaner)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load cleaner profile %s: %w", uuidToString(cleaner.ID), err)
 		}
 		result[i] = profile
 	}

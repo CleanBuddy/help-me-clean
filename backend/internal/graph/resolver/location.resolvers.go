@@ -12,6 +12,7 @@ import (
 	db "helpmeclean-backend/internal/db/generated"
 	"helpmeclean-backend/internal/graph/model"
 	"helpmeclean-backend/internal/service/matching"
+	"log"
 	"strings"
 	"time"
 
@@ -389,6 +390,9 @@ func (r *queryResolver) SuggestCleaners(ctx context.Context, cityID string, area
 		return nil, fmt.Errorf("failed to find matching cleaners: %w", err)
 	}
 	if len(candidates) == 0 {
+		// Log for debugging to help operators understand why no results
+		log.Printf("[MATCHMAKING] No matching cleaners found for areaID=%s, date=%s. Check: 1) Active cleaners exist, 2) Companies approved, 3) Service areas configured, 4) Availability set",
+			areaID, reqDate.Format("2006-01-02"))
 		return []*model.CleanerSuggestion{}, nil
 	}
 

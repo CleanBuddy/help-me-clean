@@ -124,6 +124,6 @@ input AvailabilitySlotInput {
 }
 
 input UpdateCleanerProfileInput {
-  phone: String
   bio: String
+  # Note: phone removed - use updateProfile mutation on User instead
 }

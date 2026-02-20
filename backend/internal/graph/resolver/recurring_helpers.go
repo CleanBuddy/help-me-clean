@@ -241,7 +241,10 @@ func (r *Resolver) enrichRecurringGroup(ctx context.Context, g db.RecurringBooki
 				gql.PreferredCleaner = profile
 			} else {
 				log.Printf("Failed to load preferred cleaner: %v", err)
-				gql.PreferredCleaner = dbCleanerToGQL(cleaner) // Fallback to basic if error
+				// Fallback: load user separately and create basic profile
+				if user, userErr := r.Queries.GetUserByID(ctx, cleaner.UserID); userErr == nil {
+					gql.PreferredCleaner = dbCleanerToGQL(cleaner, &user)
+				}
 			}
 		}
 	}

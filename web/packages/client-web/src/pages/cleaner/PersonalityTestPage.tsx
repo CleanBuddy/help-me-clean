@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CheckCircle, ClipboardList, Info } from 'lucide-react';
+import { ChevronLeft, CheckCircle, ClipboardList, Info } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -10,6 +10,7 @@ import {
   PERSONALITY_QUESTIONS,
   MY_PERSONALITY_ASSESSMENT,
   SUBMIT_PERSONALITY_ASSESSMENT,
+  MY_CLEANER_PROFILE,
 } from '@/graphql/operations';
 
 const LIKERT_OPTIONS = [
@@ -30,7 +31,13 @@ export default function PersonalityTestPage() {
   const navigate = useNavigate();
   const { data: questionsData, loading: questionsLoading } = useQuery(PERSONALITY_QUESTIONS);
   const { data: assessmentData, loading: assessmentLoading } = useQuery(MY_PERSONALITY_ASSESSMENT);
-  const [submitAssessment, { loading: submitting }] = useMutation(SUBMIT_PERSONALITY_ASSESSMENT);
+  const [submitAssessment, { loading: submitting }] = useMutation(
+    SUBMIT_PERSONALITY_ASSESSMENT,
+    {
+      refetchQueries: [{ query: MY_CLEANER_PROFILE }],
+      awaitRefetchQueries: true, // Wait for refetch before mutation resolves
+    },
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -45,12 +52,15 @@ export default function PersonalityTestPage() {
 
   const handleAnswer = (response: number) => {
     if (!currentQuestion) return;
-    setAnswers({ ...answers, [currentQuestion.number]: response });
-  };
 
-  const handleNext = () => {
+    // Save the answer
+    setAnswers({ ...answers, [currentQuestion.number]: response });
+
+    // Auto-advance to next question (except on last question)
     if (currentIndex < questions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+      setTimeout(() => {
+        setCurrentIndex(currentIndex + 1);
+      }, 400); // 400ms delay for visual feedback
     }
   };
 
@@ -214,18 +224,10 @@ export default function PersonalityTestPage() {
           {allAnswered ? 'Toate răspunsurile completate' : `${questions.length - Object.keys(answers).length} răspunsuri rămase`}
         </div>
 
-        {isLastQuestion && allAnswered ? (
+        {isLastQuestion && allAnswered && (
           <Button onClick={handleSubmit} loading={submitting}>
             Trimite
             <CheckCircle className="h-4 w-4 ml-1" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handleNext}
-            disabled={!answers[currentQuestion.number]}
-          >
-            Următoarea
-            <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         )}
       </div>

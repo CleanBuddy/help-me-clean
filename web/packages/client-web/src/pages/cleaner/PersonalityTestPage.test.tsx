@@ -112,7 +112,7 @@ describe('PersonalityTestPage', () => {
     expect(screen.getByText('Întrebarea 1 din 3')).toBeInTheDocument();
   });
 
-  it('handles answer selection and navigation', async () => {
+  it('auto-advances to next question when option selected', async () => {
     const user = userEvent.setup();
     setupMocks();
     renderPage();
@@ -126,8 +126,8 @@ describe('PersonalityTestPage', () => {
     expect(option3).toBeInTheDocument();
     await user.click(option3!);
 
-    // Navigate to next question
-    await user.click(screen.getByText('Următoarea'));
+    // Wait for auto-advance (400ms delay + buffer)
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     expect(screen.getByText('Test question 2')).toBeInTheDocument();
     expect(screen.getByText('Întrebarea 2 din 3')).toBeInTheDocument();
@@ -144,7 +144,9 @@ describe('PersonalityTestPage', () => {
 
     const option3 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Nici acord, nici dezacord');
     await user.click(option3!);
-    await user.click(screen.getByText('Următoarea'));
+
+    // Wait for auto-advance
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     expect(screen.getByText('Test question 2')).toBeInTheDocument();
 
@@ -167,16 +169,12 @@ describe('PersonalityTestPage', () => {
     const option3 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Nici acord, nici dezacord');
     await user.click(option3!);
 
-    // Navigate to second question
-    await user.click(screen.getByText('Următoarea'));
+    // Wait for auto-advance to second question
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Submit button should not be visible - not on last question or not all answered
     const submitButton = screen.queryByText('Trimite');
-    if (submitButton) {
-      expect(submitButton).toBeDisabled();
-    } else {
-      expect(screen.getByText('Următoarea')).toBeInTheDocument();
-    }
+    expect(submitButton).not.toBeInTheDocument();
   });
 
   it('submits answers and redirects on success', async () => {
@@ -190,16 +188,17 @@ describe('PersonalityTestPage', () => {
     // Question 1 - select option 3 (Nici acord, nici dezacord)
     const option3_q1 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Nici acord, nici dezacord');
     await user.click(option3_q1!);
-    await user.click(screen.getByText('Următoarea'));
+    await new Promise(resolve => setTimeout(resolve, 500)); // Auto-advance
 
     // Question 2 - select option 4 (Acord)
     const option4_q2 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Acord');
     await user.click(option4_q2!);
-    await user.click(screen.getByText('Următoarea'));
+    await new Promise(resolve => setTimeout(resolve, 500)); // Auto-advance
 
-    // Question 3 - select option 5 (Acord total)
+    // Question 3 (last question) - select option 5 (Acord total)
     const option5_q3 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Acord total');
     await user.click(option5_q3!);
+    // No auto-advance on last question - Submit button should appear
 
     // Submit
     const submitButton = screen.getByText('Trimite');
@@ -244,5 +243,39 @@ describe('PersonalityTestPage', () => {
 
     // Progress should be 33% (1 out of 3 questions)
     expect(screen.getByText(/33% completat/i)).toBeInTheDocument();
+  });
+
+  it('does not auto-advance on last question', async () => {
+    const user = userEvent.setup();
+    setupMocks();
+    renderPage();
+
+    // Start test and answer first two questions
+    await user.click(screen.getByText(/Începe testul/i));
+
+    // Q1
+    const option1 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Nici acord, nici dezacord');
+    await user.click(option1!);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Q2
+    const option2 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Acord');
+    await user.click(option2!);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Q3 (last question)
+    expect(screen.getByText('Test question 3')).toBeInTheDocument();
+    expect(screen.getByText('Întrebarea 3 din 3')).toBeInTheDocument();
+
+    const option3 = screen.getAllByRole('button').find((btn) => btn.textContent === 'Acord total');
+    await user.click(option3!);
+
+    // Wait to ensure no auto-advance happens
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Should still show question 3, with Submit button visible
+    expect(screen.getByText('Test question 3')).toBeInTheDocument();
+    expect(screen.getByText('Întrebarea 3 din 3')).toBeInTheDocument();
+    expect(screen.getByText('Trimite')).toBeInTheDocument();
   });
 });

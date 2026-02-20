@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
 import CleanerLayout from '@/components/layout/CleanerLayout';
 import { useAuth } from '@/context/AuthContext';
+import { MY_CLEANER_PROFILE } from '@/graphql/operations';
 
 vi.mock('@helpmeclean/shared', () => ({
   cn: (...args: unknown[]) =>
@@ -16,6 +18,14 @@ vi.mock('@helpmeclean/shared', () => ({
 vi.mock('@/context/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
+
+vi.mock('@apollo/client', async () => {
+  const actual = await vi.importActual('@apollo/client');
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+  };
+});
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -42,9 +52,31 @@ describe('CleanerLayout sidebar', () => {
     refetchUser: vi.fn(),
   };
 
+  const mockCleanerProfile = {
+    id: '1',
+    userId: '1',
+    status: 'ACTIVE',
+    fullName: 'Ana Curatenie',
+    email: 'ana.cleaner@test.dev',
+    bio: null,
+    ratingAvg: 0,
+    totalJobsCompleted: 0,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuth).mockReturnValue(defaultAuth);
+
+    // Mock useQuery for MY_CLEANER_PROFILE
+    vi.mocked(useQuery).mockImplementation((query: unknown) => {
+      if (query === MY_CLEANER_PROFILE) {
+        return {
+          data: { myCleanerProfile: mockCleanerProfile },
+          loading: false,
+        } as unknown as ReturnType<typeof useQuery>;
+      }
+      return { data: null, loading: false } as unknown as ReturnType<typeof useQuery>;
+    });
   });
 
   const renderLayout = () =>

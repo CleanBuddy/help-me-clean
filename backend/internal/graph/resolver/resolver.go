@@ -30,28 +30,33 @@ type Resolver struct {
 
 // cleanerWithCompany loads a cleaner's company, user, documents, and assessment, returns the full CleanerProfile.
 func (r *Resolver) cleanerWithCompany(ctx context.Context, c db.Cleaner) (*model.CleanerProfile, error) {
-	profile := dbCleanerToGQL(c)
+	// Load user (REQUIRED - user_id is now NOT NULL after migration)
+	user, err := r.Queries.GetUserByID(ctx, c.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load user for cleaner: %w", err)
+	}
+
+	// Convert cleaner with user data
+	profile := dbCleanerToGQL(c, &user)
+
+	// Attach user to profile
+	profile.User = dbUserToGQL(user)
+
+	// Load company
 	company, err := r.Queries.GetCompanyByID(ctx, c.CompanyID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load company: %w", err)
 	}
 	profile.Company = dbCompanyToGQL(company)
 
-	// Load user (for avatar and other user-level attributes).
-	if c.UserID.Valid {
-		if user, err := r.Queries.GetUserByID(ctx, c.UserID); err == nil {
-			profile.User = dbUserToGQL(user)
-		}
-	}
-
-	// Load cleaner documents.
+	// Load cleaner documents
 	if docs, err := r.Queries.ListCleanerDocuments(ctx, c.ID); err == nil {
 		for _, d := range docs {
 			profile.Documents = append(profile.Documents, dbCleanerDocToGQL(d))
 		}
 	}
 
-	// Load personality assessment if exists.
+	// Load personality assessment if exists
 	if assessment, err := r.Queries.GetPersonalityAssessmentByCleanerID(ctx, c.ID); err == nil {
 		profile.PersonalityAssessment = dbPersonalityAssessmentToGQL(assessment)
 	}

@@ -28,29 +28,39 @@ func (r *mutationResolver) InviteCleaner(ctx context.Context, input model.Invite
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	// Get the company for this admin user.
+	// Get the company for this admin user
 	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
 	if err != nil {
 		return nil, fmt.Errorf("you need to register your company before inviting cleaners")
 	}
 
-	// Verify company is approved before allowing cleaner invitations.
+	// Verify company is approved before allowing cleaner invitations
 	if company.Status != db.CompanyStatusApproved {
 		return nil, fmt.Errorf("your company is not yet approved. only approved companies can invite cleaners")
 	}
 
-	// Generate unique random invite token (32 bytes = 64 hex chars).
+	// Step 1: Create User record with pending status
+	user, err := r.Queries.CreateCleanerUser(ctx, db.CreateCleanerUserParams{
+		Email:    input.Email,
+		FullName: input.FullName,
+		Phone:    stringToText(input.Phone),
+		Status:   db.UserStatusPending, // Pending until invitation accepted
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user for cleaner: %w", err)
+	}
+
+	// Step 2: Generate invite token
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return nil, fmt.Errorf("failed to generate invite token: %w", err)
 	}
 	inviteToken := "inv-" + hex.EncodeToString(tokenBytes)
 
-	cleaner, err := r.Queries.CreateCleaner(ctx, db.CreateCleanerParams{
+	// Step 3: Create Cleaner profile linked to user
+	cleaner, err := r.Queries.CreateCleanerProfile(ctx, db.CreateCleanerProfileParams{
+		UserID:         user.ID,
 		CompanyID:      company.ID,
-		FullName:       input.FullName,
-		Phone:          stringToText(input.Phone),
-		Email:          stringToTextVal(input.Email),
 		Status:         db.CleanerStatusInvited,
 		IsCompanyAdmin: pgtype.Bool{Bool: false, Valid: true},
 		InviteToken:    stringToTextVal(inviteToken),
@@ -60,10 +70,10 @@ func (r *mutationResolver) InviteCleaner(ctx context.Context, input model.Invite
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to invite cleaner: %w", err)
+		return nil, fmt.Errorf("failed to create cleaner profile: %w", err)
 	}
 
-	// Auto-assign all company service areas to the new cleaner.
+	// Auto-assign all company service areas to the new cleaner
 	r.copyCompanyAreasToCleanerHelper(ctx, company.ID, cleaner.ID)
 
 	return r.cleanerWithCompany(ctx, cleaner)
@@ -76,42 +86,37 @@ func (r *mutationResolver) InviteSelfAsCleaner(ctx context.Context) (*model.Clea
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	// Get the company for this admin user.
+	// Get the company for this admin user
 	company, err := r.Queries.GetCompanyByAdminUserID(ctx, stringToUUID(claims.UserID))
 	if err != nil {
 		return nil, fmt.Errorf("company not found for user: %w", err)
 	}
 
-	// Get user info to populate cleaner record.
-	user, err := r.Queries.GetUserByID(ctx, stringToUUID(claims.UserID))
-	if err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
-	}
+	userID := stringToUUID(claims.UserID)
 
-	cleaner, err := r.Queries.CreateCleaner(ctx, db.CreateCleanerParams{
+	// Create cleaner profile linked to current user (no need to create new user)
+	cleaner, err := r.Queries.CreateCleanerProfile(ctx, db.CreateCleanerProfileParams{
+		UserID:          userID,
 		CompanyID:       company.ID,
-		FullName:        user.FullName,
-		Phone:           user.Phone,
-		Email:           pgtype.Text{String: user.Email, Valid: true},
 		Status:          db.CleanerStatusActive,
 		IsCompanyAdmin:  pgtype.Bool{Bool: true, Valid: true},
-		InviteToken:     pgtype.Text{},
-		InviteExpiresAt: pgtype.Timestamptz{},
+		InviteToken:     pgtype.Text{},        // No token needed
+		InviteExpiresAt: pgtype.Timestamptz{}, // No expiration
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cleaner profile: %w", err)
 	}
 
-	// Link cleaner to the current user.
-	cleaner, err = r.Queries.LinkCleanerToUser(ctx, db.LinkCleanerToUserParams{
-		ID:     cleaner.ID,
-		UserID: stringToUUID(claims.UserID),
+	// Upgrade user role to cleaner
+	_, err = r.Queries.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   userID,
+		Role: db.UserRoleCleaner,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to link cleaner to user: %w", err)
+		return nil, fmt.Errorf("failed to upgrade user role: %w", err)
 	}
 
-	// Auto-assign all company service areas to the new cleaner.
+	// Auto-assign all company service areas to the new cleaner
 	r.copyCompanyAreasToCleanerHelper(ctx, company.ID, cleaner.ID)
 
 	return r.cleanerWithCompany(ctx, cleaner)
@@ -142,30 +147,60 @@ func (r *mutationResolver) AcceptInvitation(ctx context.Context, token string) (
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	// Look up cleaner by invite token.
+	// Look up cleaner by invite token
 	cleaner, err := r.Queries.GetCleanerByInviteToken(ctx, stringToTextVal(token))
 	if err != nil {
 		return nil, fmt.Errorf("invalid invitation token: %w", err)
 	}
 
-	// Link cleaner to the current user (also sets status to active).
-	cleaner, err = r.Queries.LinkCleanerToUser(ctx, db.LinkCleanerToUserParams{
-		ID:     cleaner.ID,
-		UserID: stringToUUID(claims.UserID),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to accept invitation: %w", err)
+	currentUserID := stringToUUID(claims.UserID)
+
+	// Case 1: Invited cleaner has their own pending user, accepting user is different
+	// Transfer the cleaner association to the current user and delete pending user
+	if cleaner.UserID.Valid && uuidToString(cleaner.UserID) != claims.UserID {
+		pendingUserID := cleaner.UserID
+
+		// Link cleaner to current user
+		cleaner, err = r.Queries.LinkCleanerToUser(ctx, db.LinkCleanerToUserParams{
+			ID:     cleaner.ID,
+			UserID: currentUserID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to link cleaner to user: %w", err)
+		}
+
+		// Delete the pending user (no longer needed)
+		if err := r.Queries.DeleteUser(ctx, pendingUserID); err != nil {
+			// Non-fatal - log but continue
+			fmt.Printf("Warning: failed to delete pending user %s: %v\n", uuidToString(pendingUserID), err)
+		}
 	}
 
-	// Upgrade the user's role to CLEANER regardless of what role they signed up with.
-	// This handles the case where someone signed in as CLIENT before accepting an invitation.
+	// Set cleaner status to pending_review (requires personality test, documents, and admin approval)
+	cleaner, err = r.Queries.UpdateCleanerStatus(ctx, db.UpdateCleanerStatusParams{
+		ID:     cleaner.ID,
+		Status: db.CleanerStatusPendingReview,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update cleaner status: %w", err)
+	}
+
+	// Upgrade user role
 	_, err = r.Queries.UpdateUserRole(ctx, db.UpdateUserRoleParams{
-		ID:   stringToUUID(claims.UserID),
+		ID:   currentUserID,
 		Role: db.UserRoleCleaner,
 	})
 	if err != nil {
-		// Non-fatal — the cleaner profile is linked; log but don't fail.
-		fmt.Printf("warning: failed to upgrade user role to cleaner after invitation: %v\n", err)
+		fmt.Printf("Warning: failed to upgrade user role: %v\n", err)
+	}
+
+	// Activate user status
+	_, err = r.Queries.UpdateUserStatus(ctx, db.UpdateUserStatusParams{
+		ID:     currentUserID,
+		Status: db.UserStatusActive,
+	})
+	if err != nil {
+		fmt.Printf("Warning: failed to activate user: %v\n", err)
 	}
 
 	return r.cleanerWithCompany(ctx, cleaner)
@@ -298,28 +333,18 @@ func (r *mutationResolver) UpdateCleanerProfile(ctx context.Context, input model
 		return nil, fmt.Errorf("cleaner profile not found: %w", err)
 	}
 
-	var phone, bio string
-	if input.Phone != nil {
-		phone = *input.Phone
-	} else {
-		phone = cleaner.Phone.String
-	}
+	// Update bio only (phone is now in users table, use updateProfile mutation instead)
 	if input.Bio != nil {
-		bio = *input.Bio
-	} else {
-		bio = cleaner.Bio.String
+		cleaner, err = r.Queries.UpdateCleanerBio(ctx, db.UpdateCleanerBioParams{
+			ID:  cleaner.ID,
+			Bio: stringToText(input.Bio),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to update bio: %w", err)
+		}
 	}
 
-	updated, err := r.Queries.UpdateCleanerOwnProfile(ctx, db.UpdateCleanerOwnProfileParams{
-		ID:       cleaner.ID,
-		NewPhone: phone,
-		NewBio:   bio,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to update cleaner profile: %w", err)
-	}
-
-	return r.cleanerWithCompany(ctx, updated)
+	return r.cleanerWithCompany(ctx, cleaner)
 }
 
 // UploadCleanerAvatar is the resolver for the uploadCleanerAvatar field.

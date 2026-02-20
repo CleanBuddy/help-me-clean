@@ -2196,7 +2196,10 @@ export const UPDATE_CLEANER_PROFILE = gql`
       phone
       email
       bio
-      avatarUrl
+      user {
+        id
+        avatarUrl
+      }
       status
       ratingAvg
       totalJobsCompleted
@@ -2312,7 +2315,10 @@ export const SUGGEST_CLEANERS = gql`
       cleaner {
         id
         fullName
-        avatarUrl
+        user {
+          id
+          avatarUrl
+        }
         ratingAvg
         totalJobsCompleted
       }

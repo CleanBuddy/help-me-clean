@@ -53,8 +53,9 @@ type Querier interface {
 	CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error)
 	CreateChatRoom(ctx context.Context, arg CreateChatRoomParams) (ChatRoom, error)
 	CreateCity(ctx context.Context, arg CreateCityParams) (EnabledCity, error)
-	CreateCleaner(ctx context.Context, arg CreateCleanerParams) (Cleaner, error)
 	CreateCleanerDocument(ctx context.Context, arg CreateCleanerDocumentParams) (CleanerDocument, error)
+	CreateCleanerProfile(ctx context.Context, arg CreateCleanerProfileParams) (Cleaner, error)
+	CreateCleanerUser(ctx context.Context, arg CreateCleanerUserParams) (User, error)
 	CreateCompany(ctx context.Context, arg CreateCompanyParams) (Company, error)
 	CreateCompanyDocument(ctx context.Context, arg CreateCompanyDocumentParams) (CompanyDocument, error)
 	// ============================================
@@ -112,6 +113,7 @@ type Querier interface {
 	// Delete personality insight (for regeneration)
 	DeletePersonalityInsight(ctx context.Context, assessmentID pgtype.UUID) error
 	DeleteReview(ctx context.Context, id pgtype.UUID) error
+	DeleteUser(ctx context.Context, id pgtype.UUID) error
 	DeselectAllBookingTimeSlots(ctx context.Context, bookingID pgtype.UUID) error
 	FindChatRoomByExactParticipants(ctx context.Context, arg FindChatRoomByExactParticipantsParams) (ChatRoom, error)
 	FindDirectChatRoom(ctx context.Context, arg FindDirectChatRoomParams) (ChatRoom, error)
@@ -214,7 +216,7 @@ type Querier interface {
 	ListActiveRecurringGroupsByClient(ctx context.Context, clientUserID pgtype.UUID) ([]RecurringBookingGroup, error)
 	ListActiveServices(ctx context.Context) ([]ServiceDefinition, error)
 	ListAddressesByUser(ctx context.Context, userID pgtype.UUID) ([]ClientAddress, error)
-	ListAllActiveCleaners(ctx context.Context) ([]Cleaner, error)
+	ListAllActiveCleaners(ctx context.Context) ([]ListAllActiveCleanersRow, error)
 	ListAllBookings(ctx context.Context, arg ListAllBookingsParams) ([]Booking, error)
 	ListAllChatRooms(ctx context.Context) ([]ChatRoom, error)
 	ListAllCompanies(ctx context.Context, arg ListAllCompaniesParams) ([]Company, error)
@@ -336,9 +338,10 @@ type Querier interface {
 	UpdateBookingSchedule(ctx context.Context, arg UpdateBookingScheduleParams) (Booking, error)
 	UpdateBookingStatus(ctx context.Context, arg UpdateBookingStatusParams) (Booking, error)
 	UpdateCityActive(ctx context.Context, arg UpdateCityActiveParams) (EnabledCity, error)
+	UpdateCleanerBio(ctx context.Context, arg UpdateCleanerBioParams) (Cleaner, error)
 	UpdateCleanerDocumentStatus(ctx context.Context, arg UpdateCleanerDocumentStatusParams) (CleanerDocument, error)
-	UpdateCleanerOwnProfile(ctx context.Context, arg UpdateCleanerOwnProfileParams) (Cleaner, error)
 	UpdateCleanerStatus(ctx context.Context, arg UpdateCleanerStatusParams) (Cleaner, error)
+	UpdateCleanerUserPhone(ctx context.Context, arg UpdateCleanerUserPhoneParams) error
 	UpdateCompanyDocumentStatus(ctx context.Context, arg UpdateCompanyDocumentStatusParams) (CompanyDocument, error)
 	UpdateCompanyLogo(ctx context.Context, arg UpdateCompanyLogoParams) (Company, error)
 	UpdateCompanyOwnProfile(ctx context.Context, arg UpdateCompanyOwnProfileParams) (Company, error)
