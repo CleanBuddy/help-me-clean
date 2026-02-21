@@ -411,7 +411,7 @@ export default function DocumentUploadPage() {
   const allDocsUploaded = REQUIRED_DOCS.every((doc) => uploadedDocTypes.includes(doc.type));
   const isComplete = hasAvatar && allDocsUploaded;
 
-  const uploadedCount = uploadedDocTypes.filter((type) =>
+  const uploadedCount = uploadedDocTypes.filter((type: string) =>
     REQUIRED_DOCS.some((doc) => doc.type === type),
   ).length;
 

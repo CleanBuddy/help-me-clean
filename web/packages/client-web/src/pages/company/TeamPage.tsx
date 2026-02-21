@@ -11,7 +11,6 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import FileUpload from '@/components/ui/FileUpload';
 import PersonalityScoreCard from '@/components/PersonalityScoreCard';
 import DocumentCard from '@/components/ui/DocumentCard';
 import {
@@ -137,6 +136,8 @@ function DocumentUploadSection({
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [docTypeModal, setDocTypeModal] = useState<File | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   const handleDocumentUpload = async (file: File) => {
     setDocTypeModal(file);
@@ -190,39 +191,36 @@ function DocumentUploadSection({
                 <CheckCircle className="h-3 w-3" />
                 Încărcată
               </p>
-              <FileUpload
+              <input
+                ref={avatarInputRef}
+                type="file"
                 accept="image/jpeg,image/png,image/webp"
-                maxSizeMB={10}
-                onUpload={handleAvatarUpload}
-                loading={uploadingAvatar}
-                className="mt-1"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) { handleAvatarUpload(file); e.target.value = ''; }
+                }}
+              />
+              <button
+                type="button"
+                className="text-xs text-primary hover:underline mt-1"
+                disabled={uploadingAvatar}
+                onClick={() => avatarInputRef.current?.click()}
               >
-                <button
-                  type="button"
-                  className="text-xs text-primary hover:underline"
-                  disabled={uploadingAvatar}
-                >
-                  Schimbă
-                </button>
-              </FileUpload>
+                Schimbă
+              </button>
             </div>
           </div>
         ) : (
-          <FileUpload
-            accept="image/jpeg,image/png,image/webp"
-            maxSizeMB={10}
-            onUpload={handleAvatarUpload}
-            loading={uploadingAvatar}
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-sm text-gray-600"
+            disabled={uploadingAvatar}
+            onClick={() => avatarInputRef.current?.click()}
           >
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-sm text-gray-600"
-              disabled={uploadingAvatar}
-            >
-              <User className="h-4 w-4" />
-              {uploadingAvatar ? 'Se încarcă...' : 'Încarcă fotografie'}
-            </button>
-          </FileUpload>
+            <User className="h-4 w-4" />
+            {uploadingAvatar ? 'Se încarcă...' : 'Încarcă fotografie'}
+          </button>
         )}
       </div>
 
@@ -256,22 +254,27 @@ function DocumentUploadSection({
         </div>
 
         {missingDocs.length > 0 && (
-          <FileUpload
-            accept=".pdf"
-            maxSizeMB={10}
-            onUpload={handleDocumentUpload}
-            loading={uploadingDoc !== null}
-            className="mt-2"
-          >
+          <>
+            <input
+              ref={docInputRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) { handleDocumentUpload(file); e.target.value = ''; }
+              }}
+            />
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-sm text-gray-600"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-sm text-gray-600 mt-2"
               disabled={uploadingDoc !== null}
+              onClick={() => docInputRef.current?.click()}
             >
               <UploadIcon className="h-4 w-4" />
               {uploadingDoc ? 'Se încarcă...' : `Încarcă document (${missingDocs.length} lipsă)`}
             </button>
-          </FileUpload>
+          </>
         )}
 
         {cleaner.documents?.length === 0 && (

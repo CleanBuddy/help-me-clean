@@ -588,7 +588,7 @@ export default function UserDetailPage() {
                         }
                         fileName={doc.fileName}
                         fileUrl={doc.fileUrl}
-                        status={doc.status}
+                        status={doc.status as 'PENDING' | 'APPROVED' | 'REJECTED'}
                         uploadedAt={doc.uploadedAt}
                         rejectionReason={doc.rejectionReason}
                       />

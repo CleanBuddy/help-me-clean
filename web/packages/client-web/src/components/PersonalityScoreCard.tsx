@@ -25,7 +25,7 @@ interface PersonalityInsights {
 
 interface PersonalityAssessment {
   id: string;
-  cleanerId: string;
+  cleanerId?: string;
   facetScores: PersonalityFacetScore[];
   integrityAvg: number;
   workQualityAvg: number;
