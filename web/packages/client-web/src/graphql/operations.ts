@@ -2340,6 +2340,7 @@ export const SUGGEST_CLEANERS = gql`
       suggestedStartTime
       suggestedEndTime
       suggestedSlotIndex
+      suggestedDate
       matchScore
     }
   }

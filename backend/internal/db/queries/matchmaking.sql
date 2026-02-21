@@ -17,3 +17,10 @@ WHERE cleaner_id = $1
   AND scheduled_date = $2
   AND status NOT IN ('cancelled_by_client', 'cancelled_by_company', 'cancelled_by_admin')
 ORDER BY scheduled_start_time;
+
+-- name: CountCleanerBookingsInDateRange :one
+SELECT COUNT(*) FROM bookings
+WHERE cleaner_id = $1
+  AND scheduled_date >= $2
+  AND scheduled_date <= $3
+  AND status NOT IN ('cancelled_by_client', 'cancelled_by_company', 'cancelled_by_admin');

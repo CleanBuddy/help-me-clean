@@ -30,6 +30,7 @@ type Querier interface {
 	CountAllBookings(ctx context.Context) (int64, error)
 	CountAllReviews(ctx context.Context) (int64, error)
 	CountBookingsByStatus(ctx context.Context, status BookingStatus) (int64, error)
+	CountCleanerBookingsInDateRange(ctx context.Context, arg CountCleanerBookingsInDateRangeParams) (int64, error)
 	CountCompaniesByStatus(ctx context.Context, status CompanyStatus) (int64, error)
 	CountCompletedJobsByCleaner(ctx context.Context, cleanerID pgtype.UUID) (int64, error)
 	CountInvoicesByClient(ctx context.Context, clientUserID pgtype.UUID) (int64, error)

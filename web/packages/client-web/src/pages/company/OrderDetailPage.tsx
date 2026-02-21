@@ -129,16 +129,26 @@ export default function OrderDetailPage() {
     return { cityId: matchedCity.id, areaId: firstArea.id };
   })();
 
+  // Build timeSlots from booking data for SUGGEST_CLEANERS query.
+  const suggestTimeSlots = (() => {
+    if (!booking?.scheduledDate || !booking?.scheduledStartTime) return [];
+    const durationHours = booking.estimatedDurationHours ?? 2;
+    const [h, m] = booking.scheduledStartTime.split(':').map(Number);
+    const endH = h + Math.floor(durationHours);
+    const endM = m + Math.round((durationHours % 1) * 60);
+    const endTime = `${String(endH + Math.floor(endM / 60)).padStart(2, '0')}:${String(endM % 60).padStart(2, '0')}`;
+    return [{ date: booking.scheduledDate, startTime: booking.scheduledStartTime, endTime }];
+  })();
+
   // Fetch cleaner suggestions when the assign modal is open and we can resolve a location
   const { data: suggestionsData, loading: loadingSuggestions } = useQuery(SUGGEST_CLEANERS, {
     variables: {
       cityId: resolvedLocation?.cityId ?? '',
       areaId: resolvedLocation?.areaId ?? '',
-      scheduledDate: booking?.scheduledDate ?? '',
-      scheduledStartTime: booking?.scheduledStartTime ?? '',
+      timeSlots: suggestTimeSlots,
       estimatedDurationHours: booking?.estimatedDurationHours ?? 2,
     },
-    skip: !assignModal || !resolvedLocation,
+    skip: !assignModal || !resolvedLocation || suggestTimeSlots.length === 0,
   });
 
   const suggestedCleaners: SuggestedCleaner[] = suggestionsData?.suggestCleaners ?? [];

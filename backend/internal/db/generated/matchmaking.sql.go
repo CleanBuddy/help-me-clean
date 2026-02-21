@@ -11,6 +11,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countCleanerBookingsInDateRange = `-- name: CountCleanerBookingsInDateRange :one
+SELECT COUNT(*) FROM bookings
+WHERE cleaner_id = $1
+  AND scheduled_date >= $2
+  AND scheduled_date <= $3
+  AND status NOT IN ('cancelled_by_client', 'cancelled_by_company', 'cancelled_by_admin')
+`
+
+type CountCleanerBookingsInDateRangeParams struct {
+	CleanerID       pgtype.UUID `json:"cleaner_id"`
+	ScheduledDate   pgtype.Date `json:"scheduled_date"`
+	ScheduledDate_2 pgtype.Date `json:"scheduled_date_2"`
+}
+
+func (q *Queries) CountCleanerBookingsInDateRange(ctx context.Context, arg CountCleanerBookingsInDateRangeParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCleanerBookingsInDateRange, arg.CleanerID, arg.ScheduledDate, arg.ScheduledDate_2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const findMatchingCleaners = `-- name: FindMatchingCleaners :many
 SELECT DISTINCT c.id, u.full_name, c.rating_avg, c.total_jobs_completed,
        co.company_name, co.id AS company_id

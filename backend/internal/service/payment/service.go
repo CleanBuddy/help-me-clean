@@ -310,7 +310,9 @@ func (s *Service) CreatePaymentIntentForBooking(ctx context.Context, booking db.
 
 // HandleWebhookEvent verifies and processes incoming Stripe webhook events.
 func (s *Service) HandleWebhookEvent(ctx context.Context, payload []byte, sigHeader string) error {
-	event, err := webhook.ConstructEvent(payload, sigHeader, s.webhookSecret)
+	event, err := webhook.ConstructEventWithOptions(payload, sigHeader, s.webhookSecret, webhook.ConstructEventOptions{
+		IgnoreAPIVersionMismatch: true,
+	})
 	if err != nil {
 		return fmt.Errorf("payment: webhook signature verification failed: %w", err)
 	}
@@ -385,7 +387,7 @@ func (s *Service) handlePaymentIntentFailed(ctx context.Context, event stripe.Ev
 		failureMessage = pi.LastPaymentError.Msg
 	}
 
-	_, err := s.queries.UpdatePaymentTransactionFailed(ctx, db.UpdatePaymentTransactionFailedParams{
+	txn, err := s.queries.UpdatePaymentTransactionFailed(ctx, db.UpdatePaymentTransactionFailedParams{
 		StripePaymentIntentID: pi.ID,
 		FailureReason: pgtype.Text{
 			String: failureMessage,
@@ -394,6 +396,19 @@ func (s *Service) handlePaymentIntentFailed(ctx context.Context, event stripe.Ev
 	})
 	if err != nil {
 		return fmt.Errorf("payment: failed to update transaction failure for PI %s: %w", pi.ID, err)
+	}
+
+	// Auto-cancel the booking since payment failed.
+	if txn.BookingID.Valid {
+		_, cancelErr := s.queries.UpdateBookingStatus(ctx, db.UpdateBookingStatusParams{
+			ID:     txn.BookingID,
+			Status: db.BookingStatusCancelledByAdmin,
+		})
+		if cancelErr != nil {
+			log.Printf("payment: warning: failed to cancel booking for failed PI %s: %v", pi.ID, cancelErr)
+		} else {
+			log.Printf("payment: auto-cancelled booking for failed PI %s", pi.ID)
+		}
 	}
 
 	log.Printf("payment: payment_intent.payment_failed processed for PI %s, reason: %s", pi.ID, failureMessage)

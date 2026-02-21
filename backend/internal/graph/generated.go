@@ -247,6 +247,7 @@ type ComplexityRoot struct {
 		Cleaner            func(childComplexity int) int
 		Company            func(childComplexity int) int
 		MatchScore         func(childComplexity int) int
+		SuggestedDate      func(childComplexity int) int
 		SuggestedEndTime   func(childComplexity int) int
 		SuggestedSlotIndex func(childComplexity int) int
 		SuggestedStartTime func(childComplexity int) int
@@ -2054,6 +2055,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CleanerSuggestion.MatchScore(childComplexity), true
+	case "CleanerSuggestion.suggestedDate":
+		if e.complexity.CleanerSuggestion.SuggestedDate == nil {
+			break
+		}
+
+		return e.complexity.CleanerSuggestion.SuggestedDate(childComplexity), true
 	case "CleanerSuggestion.suggestedEndTime":
 		if e.complexity.CleanerSuggestion.SuggestedEndTime == nil {
 			break
@@ -13333,6 +13340,35 @@ func (ec *executionContext) fieldContext_CleanerSuggestion_suggestedSlotIndex(_ 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CleanerSuggestion_suggestedDate(ctx context.Context, field graphql.CollectedField, obj *model.CleanerSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CleanerSuggestion_suggestedDate,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedDate, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CleanerSuggestion_suggestedDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CleanerSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -31213,6 +31249,8 @@ func (ec *executionContext) fieldContext_Query_suggestCleaners(ctx context.Conte
 				return ec.fieldContext_CleanerSuggestion_suggestedEndTime(ctx, field)
 			case "suggestedSlotIndex":
 				return ec.fieldContext_CleanerSuggestion_suggestedSlotIndex(ctx, field)
+			case "suggestedDate":
+				return ec.fieldContext_CleanerSuggestion_suggestedDate(ctx, field)
 			case "matchScore":
 				return ec.fieldContext_CleanerSuggestion_matchScore(ctx, field)
 			}
@@ -41060,6 +41098,8 @@ func (ec *executionContext) _CleanerSuggestion(ctx context.Context, sel ast.Sele
 			out.Values[i] = ec._CleanerSuggestion_suggestedEndTime(ctx, field, obj)
 		case "suggestedSlotIndex":
 			out.Values[i] = ec._CleanerSuggestion_suggestedSlotIndex(ctx, field, obj)
+		case "suggestedDate":
+			out.Values[i] = ec._CleanerSuggestion_suggestedDate(ctx, field, obj)
 		case "matchScore":
 			out.Values[i] = ec._CleanerSuggestion_matchScore(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

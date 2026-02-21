@@ -356,43 +356,66 @@ func (r *queryResolver) MyCleanerServiceAreas(ctx context.Context) ([]*model.Cit
 }
 
 // SuggestCleaners is the resolver for the suggestCleaners field.
+// It evaluates ALL provided time slots across multiple dates and finds the
+// best date+time+worker combination, considering company schedules, worker
+// availability, existing bookings, and workload balancing.
 func (r *queryResolver) SuggestCleaners(ctx context.Context, cityID string, areaID string, timeSlots []*model.TimeSlotInput, estimatedDurationHours float64) ([]*model.CleanerSuggestion, error) {
 	if len(timeSlots) == 0 {
 		return nil, fmt.Errorf("at least one time slot is required")
 	}
 
+	// Load admin-tunable matchmaking config.
+	config := loadMatchConfig(ctx, r.Queries)
+	bufferMicros := config.BufferMicros()
+
 	areaUUID := stringToUUID(areaID)
-
-	// Parse the date from the first time slot (MVP: all slots same date).
-	reqDate, err := time.Parse("2006-01-02", timeSlots[0].Date)
-	if err != nil {
-		return nil, fmt.Errorf("invalid date format in timeSlots (use YYYY-MM-DD): %w", err)
-	}
-	dayOfWeek := int32(reqDate.Weekday())
-
-	// Build matching.TimeSlot list from the GraphQL input.
-	clientSlots := make([]matching.TimeSlot, len(timeSlots))
-	for i, ts := range timeSlots {
-		clientSlots[i] = matching.TimeSlot{
-			StartMicros: matching.HHMMToMicros(ts.StartTime),
-			EndMicros:   matching.HHMMToMicros(ts.EndTime),
-		}
-	}
-
 	jobDurationMicros := int64(estimatedDurationHours * float64(matching.HourMicros))
 
-	dateFrom := pgtype.Date{Time: reqDate, Valid: true}
-	dateTo := pgtype.Date{Time: reqDate, Valid: true}
+	// Step 1: Parse ALL time slots with date context.
+	datedSlots := make([]matching.DatedTimeSlot, len(timeSlots))
+	uniqueDates := map[string]time.Time{} // date string -> parsed time
 
-	// Step 1: Find cleaners matching this area.
+	for i, ts := range timeSlots {
+		d, err := time.Parse("2006-01-02", ts.Date)
+		if err != nil {
+			return nil, fmt.Errorf("invalid date in timeSlots[%d] (use YYYY-MM-DD): %w", i, err)
+		}
+		datedSlots[i] = matching.DatedTimeSlot{
+			Date:        ts.Date,
+			DayOfWeek:   int(d.Weekday()),
+			StartMicros: matching.HHMMToMicros(ts.StartTime),
+			EndMicros:   matching.HHMMToMicros(ts.EndTime),
+			SlotIndex:   i,
+		}
+		uniqueDates[ts.Date] = d
+	}
+
+	// Compute the week range (Mon-Sun) spanning all requested dates for workload query.
+	var weekStart, weekEnd time.Time
+	for _, d := range uniqueDates {
+		if weekStart.IsZero() || d.Before(weekStart) {
+			weekStart = d
+		}
+		if weekEnd.IsZero() || d.After(weekEnd) {
+			weekEnd = d
+		}
+	}
+	// Extend to full Monday-Sunday week of the earliest date.
+	offset := (int(weekStart.Weekday()) + 6) % 7 // Monday = 0
+	weekStart = weekStart.AddDate(0, 0, -offset)
+	weekEnd = weekStart.AddDate(0, 0, 6)
+
+	weekStartPG := pgtype.Date{Time: weekStart, Valid: true}
+	weekEndPG := pgtype.Date{Time: weekEnd, Valid: true}
+
+	// Step 2: Find cleaners matching this area.
 	candidates, err := r.Queries.FindMatchingCleaners(ctx, areaUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find matching cleaners: %w", err)
 	}
 	if len(candidates) == 0 {
-		// Log for debugging to help operators understand why no results
-		log.Printf("[MATCHMAKING] No matching cleaners found for areaID=%s, date=%s. Check: 1) Active cleaners exist, 2) Companies approved, 3) Service areas configured, 4) Availability set",
-			areaID, reqDate.Format("2006-01-02"))
+		log.Printf("[MATCHMAKING] No matching cleaners found for areaID=%s. Check: 1) Active cleaners exist, 2) Companies approved, 3) Service areas configured",
+			areaID)
 		return []*model.CleanerSuggestion{}, nil
 	}
 
@@ -400,8 +423,10 @@ func (r *queryResolver) SuggestCleaners(ctx context.Context, cityID string, area
 		suggestion *model.CleanerSuggestion
 		score      float64
 	}
-	var suggestions []scoredSuggestion
+	var available []scoredSuggestion
+	var unavailable []scoredSuggestion
 
+	// Step 3: For each candidate, evaluate ALL dates.
 	for _, candidate := range candidates {
 		cleaner, err := r.Queries.GetCleanerByID(ctx, candidate.ID)
 		if err != nil {
@@ -412,147 +437,185 @@ func (r *queryResolver) SuggestCleaners(ctx context.Context, cityID string, area
 			continue
 		}
 
-		// --- 4-tier availability cascade ---
-
+		// Load company schedules once for this candidate.
 		companySchedules, err := r.Queries.ListCompanyWorkSchedule(ctx, candidate.CompanyID)
 		if err != nil {
 			continue
 		}
-		var companyDaySchedule *db.CompanyWorkSchedule
+		companyScheduleByDay := map[int32]*db.CompanyWorkSchedule{}
 		for i := range companySchedules {
-			if companySchedules[i].DayOfWeek == dayOfWeek {
-				companyDaySchedule = &companySchedules[i]
-				break
-			}
-		}
-		if companyDaySchedule != nil && !companyDaySchedule.IsWorkDay {
-			continue
+			companyScheduleByDay[companySchedules[i].DayOfWeek] = &companySchedules[i]
 		}
 
-		// Tier 1: date override.
-		overrides, err := r.Queries.ListCleanerDateOverrides(ctx, db.ListCleanerDateOverridesParams{
-			CleanerID:      candidate.ID,
-			OverrideDate:   dateFrom,
-			OverrideDate_2: dateTo,
-		})
+		// Load cleaner weekly availability once.
+		weeklySlots, err := r.Queries.ListCleanerAvailability(ctx, candidate.ID)
 		if err != nil {
 			continue
 		}
 
-		var availStart, availEnd int64
+		// Load cleaner date overrides for the full date range.
+		var overridesDateFrom, overridesDateTo pgtype.Date
+		for _, d := range uniqueDates {
+			pgd := pgtype.Date{Time: d, Valid: true}
+			if !overridesDateFrom.Valid || d.Before(overridesDateFrom.Time) {
+				overridesDateFrom = pgd
+			}
+			if !overridesDateTo.Valid || d.After(overridesDateTo.Time) {
+				overridesDateTo = pgd
+			}
+		}
+		overrides, err := r.Queries.ListCleanerDateOverrides(ctx, db.ListCleanerDateOverridesParams{
+			CleanerID:      candidate.ID,
+			OverrideDate:   overridesDateFrom,
+			OverrideDate_2: overridesDateTo,
+		})
+		if err != nil {
+			continue
+		}
+		overridesByDate := map[string]*db.CleanerDateOverride{}
+		for i := range overrides {
+			dateStr := overrides[i].OverrideDate.Time.Format("2006-01-02")
+			overridesByDate[dateStr] = &overrides[i]
+		}
 
-		if len(overrides) > 0 {
-			override := overrides[0]
-			if !override.IsAvailable {
+		// Build DateAvailability for each unique date.
+		var dateAvails []matching.DateAvailability
+
+		for dateStr, d := range uniqueDates {
+			dayOfWeek := int32(d.Weekday())
+
+			// Check company schedule for this day.
+			compDaySch := companyScheduleByDay[dayOfWeek]
+			if compDaySch != nil && !compDaySch.IsWorkDay {
+				continue // company doesn't work this day
+			}
+
+			// 4-tier availability cascade for this specific date.
+			var availStart, availEnd int64
+			skipDate := false
+
+			// Tier 1: date override.
+			if override, ok := overridesByDate[dateStr]; ok {
+				if !override.IsAvailable {
+					continue // cleaner explicitly unavailable on this date
+				}
+				availStart = override.StartTime.Microseconds
+				availEnd = override.EndTime.Microseconds
+			} else {
+				// Tier 2: weekly slots.
+				found := false
+				for _, slot := range weeklySlots {
+					if slot.DayOfWeek == dayOfWeek && boolVal(slot.IsAvailable) {
+						availStart = slot.StartTime.Microseconds
+						availEnd = slot.EndTime.Microseconds
+						found = true
+						break
+					}
+				}
+				if !found {
+					// Tier 3: company schedule.
+					if compDaySch != nil && compDaySch.IsWorkDay {
+						availStart = compDaySch.StartTime.Microseconds
+						availEnd = compDaySch.EndTime.Microseconds
+					} else if compDaySch == nil {
+						// Tier 4: default 08:00-17:00.
+						availStart = 8 * matching.HourMicros
+						availEnd = 17 * matching.HourMicros
+					} else {
+						skipDate = true
+					}
+				}
+			}
+			if skipDate {
 				continue
 			}
-			availStart = override.StartTime.Microseconds
-			availEnd = override.EndTime.Microseconds
-		} else {
-			// Tier 2: weekly slots.
-			weeklySlots, err := r.Queries.ListCleanerAvailability(ctx, candidate.ID)
+
+			// Load existing bookings for this date.
+			pgDate := pgtype.Date{Time: d, Valid: true}
+			existingBookings, err := r.Queries.ListCleanerBookingsForDate(ctx, db.ListCleanerBookingsForDateParams{
+				CleanerID:     candidate.ID,
+				ScheduledDate: pgDate,
+			})
 			if err != nil {
 				continue
 			}
-			var found bool
-			for _, slot := range weeklySlots {
-				if slot.DayOfWeek == dayOfWeek && boolVal(slot.IsAvailable) {
-					availStart = slot.StartTime.Microseconds
-					availEnd = slot.EndTime.Microseconds
-					found = true
+
+			bookingSlots := make([]matching.BookingSlot, len(existingBookings))
+			for i, eb := range existingBookings {
+				startMicros := eb.ScheduledStartTime.Microseconds
+				durationHours := numericToFloat(eb.EstimatedDurationHours)
+				endMicros := startMicros + int64(durationHours*float64(matching.HourMicros))
+				bookingSlots[i] = matching.BookingSlot{
+					StartMicros: startMicros,
+					EndMicros:   endMicros,
+				}
+			}
+
+			freeIntervals := matching.ComputeFreeIntervals(availStart, availEnd, bookingSlots, bufferMicros)
+
+			dateAvails = append(dateAvails, matching.DateAvailability{
+				Date:          dateStr,
+				AvailStart:    availStart,
+				AvailEnd:      availEnd,
+				FreeIntervals: freeIntervals,
+				BookingCount:  len(existingBookings),
+			})
+		}
+
+		// Find the best date+time placement across all dates.
+		placement := matching.FindBestPlacementAcrossDates(dateAvails, datedSlots, jobDurationMicros, config)
+
+		// Load weekly workload for scoring.
+		weekBookingCount, _ := r.Queries.CountCleanerBookingsInDateRange(ctx, db.CountCleanerBookingsInDateRangeParams{
+			CleanerID:       candidate.ID,
+			ScheduledDate:   weekStartPG,
+			ScheduledDate_2: weekEndPG,
+		})
+
+		// Determine day booking count for the matched date.
+		dayBookingCount := 0
+		if placement.Found {
+			for _, da := range dateAvails {
+				if da.Date == placement.Date {
+					dayBookingCount = da.BookingCount
 					break
 				}
 			}
-			if !found {
-				// Tier 3: company schedule.
-				if companyDaySchedule != nil && companyDaySchedule.IsWorkDay {
-					availStart = companyDaySchedule.StartTime.Microseconds
-					availEnd = companyDaySchedule.EndTime.Microseconds
-				} else if companyDaySchedule == nil {
-					// Tier 4: default 08:00-17:00.
-					availStart = 8 * matching.HourMicros
-					availEnd = 17 * matching.HourMicros
-				} else {
-					continue
-				}
-			}
 		}
 
-		// --- Smart scheduling: compute free intervals and optimal placement ---
-
-		existingBookings, err := r.Queries.ListCleanerBookingsForDate(ctx, db.ListCleanerBookingsForDateParams{
-			CleanerID:     candidate.ID,
-			ScheduledDate: dateFrom,
-		})
-		if err != nil {
-			continue
-		}
-
-		bookingSlots := make([]matching.BookingSlot, len(existingBookings))
-		for i, eb := range existingBookings {
-			startMicros := eb.ScheduledStartTime.Microseconds
-			durationHours := numericToFloat(eb.EstimatedDurationHours)
-			endMicros := startMicros + int64(durationHours*float64(matching.HourMicros))
-			bookingSlots[i] = matching.BookingSlot{
-				StartMicros: startMicros,
-				EndMicros:   endMicros,
-			}
-		}
-
-		freeIntervals := matching.ComputeFreeIntervals(availStart, availEnd, bookingSlots, matching.BufferMicros)
-		placement := matching.FindOptimalPlacement(freeIntervals, clientSlots, jobDurationMicros)
-
-		availStatus := "available"
-		if !placement.Found {
-			availStatus = "unavailable"
-		}
-
-		// --- Calculate match score ---
-
+		// Calculate match score with workload balancing.
 		rating := numericToFloat(candidate.RatingAvg)
 		jobs := 0
 		if candidate.TotalJobsCompleted.Valid {
 			jobs = int(candidate.TotalJobsCompleted.Int32)
 		}
 
-		score := 50.0
-		score += rating * 5.0
-		jobsBonus := float64(jobs) / 100.0 * 15.0
-		if jobsBonus > 15.0 {
-			jobsBonus = 15.0
-		}
-		score += jobsBonus
-		score += 10.0 // area match
+		score := matching.ComputeMatchScore(matching.ScoreInput{
+			RatingAvg:        rating,
+			TotalJobsDone:    jobs,
+			IsAreaMatch:      true,
+			PlacementFound:   placement.Found,
+			GapScoreH:        placement.GapScoreH,
+			DayBookingCount:  dayBookingCount,
+			WeekBookingCount: int(weekBookingCount),
+			Config:           config,
+		})
 
-		if placement.Found {
-			if placement.GapScoreH == 0 {
-				score += 5.0 // perfect adjacent packing bonus
-			}
-		} else {
-			score -= 40.0 // no valid placement penalty
-		}
-
-		if score < 0 {
-			score = 0
-		}
-		if score > 100 {
-			score = 100
-		}
-
+		// Build suggestion.
 		profile, err := r.cleanerWithCompany(ctx, cleaner)
 		if err != nil {
 			continue
 		}
 
-		availFromStr := microsecondsToHHMM(availStart)
-		availToStr := microsecondsToHHMM(availEnd)
+		availStatus := "available"
+		if !placement.Found {
+			availStatus = "unavailable"
+		}
 
 		suggestion := &model.CleanerSuggestion{
 			Cleaner:            profile,
 			Company:            dbCompanyToGQL(company),
 			AvailabilityStatus: availStatus,
-			AvailableFrom:      &availFromStr,
-			AvailableTo:        &availToStr,
 			MatchScore:         score,
 		}
 
@@ -560,35 +623,68 @@ func (r *queryResolver) SuggestCleaners(ctx context.Context, cityID string, area
 			startStr := matching.MicrosToHHMM(placement.StartMicros)
 			endStr := matching.MicrosToHHMM(placement.EndMicros)
 			slotIdx := placement.SlotIndex
+			dateStr := placement.Date
 			suggestion.SuggestedStartTime = &startStr
 			suggestion.SuggestedEndTime = &endStr
 			suggestion.SuggestedSlotIndex = &slotIdx
+			suggestion.SuggestedDate = &dateStr
+
+			// Set availableFrom/To from the matched date's availability.
+			for _, da := range dateAvails {
+				if da.Date == placement.Date {
+					availFromStr := microsecondsToHHMM(da.AvailStart)
+					availToStr := microsecondsToHHMM(da.AvailEnd)
+					suggestion.AvailableFrom = &availFromStr
+					suggestion.AvailableTo = &availToStr
+					break
+				}
+			}
 		}
 
-		suggestions = append(suggestions, scoredSuggestion{
-			suggestion: suggestion,
-			score:      score,
-		})
+		scored := scoredSuggestion{suggestion: suggestion, score: score}
+		if placement.Found {
+			available = append(available, scored)
+		} else {
+			unavailable = append(unavailable, scored)
+		}
 	}
 
-	// Sort by score DESC.
-	for i := 0; i < len(suggestions); i++ {
-		for j := i + 1; j < len(suggestions); j++ {
-			if suggestions[j].score > suggestions[i].score {
-				suggestions[i], suggestions[j] = suggestions[j], suggestions[i]
+	// Sort each group by score DESC.
+	sortSuggestions := func(s []scoredSuggestion) {
+		for i := 0; i < len(s); i++ {
+			for j := i + 1; j < len(s); j++ {
+				if s[j].score > s[i].score {
+					s[i], s[j] = s[j], s[i]
+				}
 			}
 		}
 	}
+	sortSuggestions(available)
+	sortSuggestions(unavailable)
 
-	// Return top 5.
-	limit := 5
-	if len(suggestions) < limit {
-		limit = len(suggestions)
+	// Build final result: available first, backfill with unavailable only if needed.
+	var result []*model.CleanerSuggestion
+	limit := config.MaxResults
+
+	for _, s := range available {
+		if len(result) >= limit {
+			break
+		}
+		result = append(result, s.suggestion)
 	}
-	result := make([]*model.CleanerSuggestion, limit)
-	for i := 0; i < limit; i++ {
-		result[i] = suggestions[i].suggestion
+
+	// Only show unavailable workers if fewer than MinAvailableCount available.
+	if len(result) < config.MinAvailableCount {
+		for _, s := range unavailable {
+			if len(result) >= limit {
+				break
+			}
+			result = append(result, s.suggestion)
+		}
 	}
+
+	log.Printf("[MATCHMAKING] areaID=%s: %d candidates, %d available, %d unavailable, returning %d",
+		areaID, len(candidates), len(available), len(unavailable), len(result))
 
 	return result, nil
 }

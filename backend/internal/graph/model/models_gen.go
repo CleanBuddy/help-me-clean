@@ -252,6 +252,7 @@ type CleanerSuggestion struct {
 	SuggestedStartTime *string         `json:"suggestedStartTime,omitempty"`
 	SuggestedEndTime   *string         `json:"suggestedEndTime,omitempty"`
 	SuggestedSlotIndex *int            `json:"suggestedSlotIndex,omitempty"`
+	SuggestedDate      *string         `json:"suggestedDate,omitempty"`
 	MatchScore         float64         `json:"matchScore"`
 }
 

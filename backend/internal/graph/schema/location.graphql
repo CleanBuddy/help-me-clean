@@ -22,6 +22,7 @@ type CleanerSuggestion {
   suggestedStartTime: String
   suggestedEndTime: String
   suggestedSlotIndex: Int
+  suggestedDate: String
   matchScore: Float!
 }
 

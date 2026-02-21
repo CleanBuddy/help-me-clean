@@ -166,6 +166,7 @@ interface CleanerSuggestion {
   suggestedStartTime: string | null;
   suggestedEndTime: string | null;
   suggestedSlotIndex: number | null;
+  suggestedDate: string | null;
   matchScore: number;
 }
 
@@ -2799,7 +2800,7 @@ function StepCleaner({
       ) : topSuggestions.length > 0 ? (
         <div className="flex gap-4 overflow-x-auto p-1">
           {topSuggestions.slice(0, 2).map((suggestion) => {
-            const { cleaner, availabilityStatus, availableFrom, availableTo, suggestedStartTime, suggestedEndTime } = suggestion;
+            const { cleaner, availabilityStatus, availableFrom, availableTo, suggestedStartTime, suggestedEndTime, suggestedDate } = suggestion;
             const isSelected = form.preferredCleanerId === cleaner.id;
             const badge = getAvailabilityBadge(availabilityStatus);
             const initial = cleaner.fullName.charAt(0).toUpperCase();
@@ -2882,11 +2883,15 @@ function StepCleaner({
                       </p>
                     )}
 
-                    {/* System-decided optimal time */}
+                    {/* System-decided optimal date + time */}
                     {suggestedStartTime && suggestedEndTime && availabilityStatus !== 'unavailable' && (
                       <p className="text-xs mt-2 flex items-center justify-center gap-1 text-blue-600 font-medium">
                         <Clock className="h-3 w-3 shrink-0" />
-                        <span>{suggestedStartTime} - {suggestedEndTime}</span>
+                        <span>
+                          {suggestedDate && new Date(suggestedDate + 'T00:00:00').toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          {suggestedDate && ' '}
+                          {suggestedStartTime} - {suggestedEndTime}
+                        </span>
                       </p>
                     )}
 
@@ -3076,28 +3081,25 @@ function StepSummary({
           )}
         </Card>
 
-        {/* Time Slots summary */}
+        {/* Date & Time summary */}
         <Card>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Intervale orare
+            Data și ora
           </h3>
-          {form.timeSlots.length > 0 ? (
-            <div className="space-y-2">
-              {form.timeSlots.map((slot, idx) => (
-                <div key={idx} className="flex items-center gap-3 text-sm">
-                  <Calendar className="h-4 w-4 text-blue-600 shrink-0" />
-                  <span className="font-medium text-gray-900">
-                    {formatDateRo(slot.date)}
-                  </span>
-                  <span className="text-blue-600 font-semibold">
-                    {slot.startTime} - {slot.endTime}
-                  </span>
-                </div>
-              ))}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <Calendar className="h-6 w-6 text-blue-600" />
             </div>
-          ) : (
-            <p className="text-sm text-gray-400">Niciun interval selectat.</p>
-          )}
+            <div>
+              <div className="text-lg font-semibold text-gray-900">
+                {formatDateRo(selectedCleaner?.suggestedDate || firstSlot?.date || '')}
+              </div>
+              <div className="flex items-center gap-1.5 text-blue-600 font-semibold text-base mt-0.5">
+                <Clock className="h-4 w-4" />
+                {selectedCleaner?.suggestedStartTime || firstSlot?.startTime} - {selectedCleaner?.suggestedEndTime || firstSlot?.endTime}
+              </div>
+            </div>
+          </div>
         </Card>
 
         {/* Recurrence summary */}
@@ -3160,27 +3162,39 @@ function StepSummary({
             Curățător preferat
           </h3>
           {selectedCleaner ? (
-            <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  'w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0',
-                  getInitialColor(selectedCleaner.cleaner.fullName),
-                )}
-              >
-                {selectedCleaner.cleaner.fullName.charAt(0).toUpperCase()}
-              </div>
+            <div className="flex items-center gap-4">
+              {selectedCleaner.cleaner.user.avatarUrl ? (
+                <img
+                  src={selectedCleaner.cleaner.user.avatarUrl}
+                  alt={selectedCleaner.cleaner.fullName}
+                  className="w-16 h-16 rounded-xl object-cover shrink-0"
+                />
+              ) : (
+                <div
+                  className={cn(
+                    'w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-xl shrink-0',
+                    getInitialColor(selectedCleaner.cleaner.fullName),
+                  )}
+                >
+                  {selectedCleaner.cleaner.fullName.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-base font-semibold text-gray-900">
                   {selectedCleaner.cleaner.fullName}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="flex items-center gap-1 mt-1">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <span className="text-sm font-semibold text-gray-900">
+                    {selectedCleaner.cleaner.ratingAvg.toFixed(1)}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-1">
+                    ({selectedCleaner.cleaner.totalJobsCompleted} lucrări)
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500 mt-0.5">
                   {selectedCleaner.company.companyName}
                 </div>
-                {selectedCleaner.suggestedStartTime && selectedCleaner.suggestedEndTime && (
-                  <div className="text-xs text-blue-600 font-medium mt-0.5">
-                    {selectedCleaner.suggestedStartTime} - {selectedCleaner.suggestedEndTime} (optimizat)
-                  </div>
-                )}
               </div>
             </div>
           ) : (

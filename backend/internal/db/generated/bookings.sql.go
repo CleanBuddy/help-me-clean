@@ -1363,7 +1363,7 @@ func (q *Queries) SetBookingFinalTotal(ctx context.Context, arg SetBookingFinalT
 }
 
 const setBookingPreferredCleaner = `-- name: SetBookingPreferredCleaner :one
-UPDATE bookings SET company_id = $2, cleaner_id = $3, updated_at = NOW()
+UPDATE bookings SET company_id = $2, cleaner_id = $3, status = 'confirmed', updated_at = NOW()
 WHERE id = $1 RETURNING id, reference_code, client_user_id, company_id, cleaner_id, address_id, service_type, scheduled_date, scheduled_start_time, estimated_duration_hours, property_type, num_rooms, num_bathrooms, area_sqm, has_pets, special_instructions, hourly_rate, estimated_total, final_total, platform_commission_pct, platform_commission_amount, status, started_at, completed_at, cancelled_at, cancellation_reason, stripe_payment_intent_id, payment_status, paid_at, created_at, updated_at, recurring_group_id, occurrence_number
 `
 

@@ -353,6 +353,282 @@ func TestHHMMToMicros(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// FindBestPlacementAcrossDates
+// ---------------------------------------------------------------------------
+
+func TestFindBestPlacementAcrossDates_SingleDate(t *testing.T) {
+	// Backward compatibility: single date should work exactly like FindOptimalPlacement.
+	dateAvails := []DateAvailability{
+		{Date: "2026-03-02", AvailStart: h(8), AvailEnd: h(17), FreeIntervals: []FreeInterval{{Start: h(8), End: h(17)}}, BookingCount: 0},
+	}
+	datedSlots := []DatedTimeSlot{
+		{Date: "2026-03-02", DayOfWeek: 1, StartMicros: h(8), EndMicros: h(14), SlotIndex: 0},
+	}
+
+	result := FindBestPlacementAcrossDates(dateAvails, datedSlots, h(4), DefaultMatchConfig())
+
+	if !result.Found {
+		t.Fatal("expected placement to be found")
+	}
+	if result.Date != "2026-03-02" {
+		t.Errorf("Date = %s, want 2026-03-02", result.Date)
+	}
+	if result.StartMicros != h(8) {
+		t.Errorf("Start = %s, want 08:00", MicrosToHHMM(result.StartMicros))
+	}
+	if result.EndMicros != h(12) {
+		t.Errorf("End = %s, want 12:00", MicrosToHHMM(result.EndMicros))
+	}
+	if result.SlotIndex != 0 {
+		t.Errorf("SlotIndex = %d, want 0", result.SlotIndex)
+	}
+}
+
+func TestFindBestPlacementAcrossDates_MultiDate(t *testing.T) {
+	// Worker unavailable on day 1 (Saturday - no free intervals), available on day 2 (Monday).
+	dateAvails := []DateAvailability{
+		{Date: "2026-02-28", AvailStart: h(8), AvailEnd: h(14), FreeIntervals: nil, BookingCount: 0}, // Saturday - no availability
+		{Date: "2026-03-02", AvailStart: h(8), AvailEnd: h(20), FreeIntervals: []FreeInterval{{Start: h(8), End: h(20)}}, BookingCount: 0}, // Monday - fully free
+	}
+	datedSlots := []DatedTimeSlot{
+		{Date: "2026-02-28", DayOfWeek: 6, StartMicros: h(8), EndMicros: h(14), SlotIndex: 0},
+		{Date: "2026-03-02", DayOfWeek: 1, StartMicros: h(8), EndMicros: h(20), SlotIndex: 1},
+	}
+
+	result := FindBestPlacementAcrossDates(dateAvails, datedSlots, h(4), DefaultMatchConfig())
+
+	if !result.Found {
+		t.Fatal("expected placement to be found")
+	}
+	if result.Date != "2026-03-02" {
+		t.Errorf("Date = %s, want 2026-03-02 (Monday)", result.Date)
+	}
+	if result.SlotIndex != 1 {
+		t.Errorf("SlotIndex = %d, want 1 (Monday slot)", result.SlotIndex)
+	}
+}
+
+func TestFindBestPlacementAcrossDates_MaxJobsExceeded(t *testing.T) {
+	// All dates at max capacity.
+	config := DefaultMatchConfig()
+	config.MaxJobsPerDay = 3
+
+	dateAvails := []DateAvailability{
+		{Date: "2026-02-28", AvailStart: h(8), AvailEnd: h(17), FreeIntervals: []FreeInterval{{Start: h(14), End: h(17)}}, BookingCount: 3},
+		{Date: "2026-03-01", AvailStart: h(8), AvailEnd: h(17), FreeIntervals: []FreeInterval{{Start: h(14), End: h(17)}}, BookingCount: 4},
+	}
+	datedSlots := []DatedTimeSlot{
+		{Date: "2026-02-28", DayOfWeek: 6, StartMicros: h(14), EndMicros: h(17), SlotIndex: 0},
+		{Date: "2026-03-01", DayOfWeek: 0, StartMicros: h(14), EndMicros: h(17), SlotIndex: 1},
+	}
+
+	result := FindBestPlacementAcrossDates(dateAvails, datedSlots, h(2), config)
+
+	if result.Found {
+		t.Error("expected no placement when all dates at max jobs")
+	}
+}
+
+func TestFindBestPlacementAcrossDates_PrefersBetterPacking(t *testing.T) {
+	// Two dates both have free intervals. Day 1 has tighter gap (exact fit).
+	dateAvails := []DateAvailability{
+		{Date: "2026-03-02", AvailStart: h(8), AvailEnd: h(17), FreeIntervals: []FreeInterval{{Start: h(8), End: h(12)}}, BookingCount: 0}, // exact fit for 4h job
+		{Date: "2026-03-03", AvailStart: h(8), AvailEnd: h(17), FreeIntervals: []FreeInterval{{Start: h(8), End: h(17)}}, BookingCount: 0}, // 9h free (loose)
+	}
+	datedSlots := []DatedTimeSlot{
+		{Date: "2026-03-02", DayOfWeek: 1, StartMicros: h(8), EndMicros: h(12), SlotIndex: 0},
+		{Date: "2026-03-03", DayOfWeek: 2, StartMicros: h(8), EndMicros: h(17), SlotIndex: 1},
+	}
+
+	result := FindBestPlacementAcrossDates(dateAvails, datedSlots, h(4), DefaultMatchConfig())
+
+	if !result.Found {
+		t.Fatal("expected placement to be found")
+	}
+	if result.Date != "2026-03-02" {
+		t.Errorf("Date = %s, want 2026-03-02 (tighter packing)", result.Date)
+	}
+}
+
+func TestFindBestPlacementAcrossDates_PrefersLowerLoadDate(t *testing.T) {
+	// Two dates with identical free intervals, but day 2 has fewer bookings.
+	dateAvails := []DateAvailability{
+		{Date: "2026-03-02", AvailStart: h(14), AvailEnd: h(18), FreeIntervals: []FreeInterval{{Start: h(14), End: h(18)}}, BookingCount: 3},
+		{Date: "2026-03-03", AvailStart: h(14), AvailEnd: h(18), FreeIntervals: []FreeInterval{{Start: h(14), End: h(18)}}, BookingCount: 0},
+	}
+	datedSlots := []DatedTimeSlot{
+		{Date: "2026-03-02", DayOfWeek: 1, StartMicros: h(14), EndMicros: h(18), SlotIndex: 0},
+		{Date: "2026-03-03", DayOfWeek: 2, StartMicros: h(14), EndMicros: h(18), SlotIndex: 1},
+	}
+
+	result := FindBestPlacementAcrossDates(dateAvails, datedSlots, h(4), DefaultMatchConfig())
+
+	if !result.Found {
+		t.Fatal("expected placement to be found")
+	}
+	if result.Date != "2026-03-03" {
+		t.Errorf("Date = %s, want 2026-03-03 (lower load)", result.Date)
+	}
+}
+
+func TestFindBestPlacementAcrossDates_NoMatchingSlots(t *testing.T) {
+	// Date availability exists but no matching dated slots for that date.
+	dateAvails := []DateAvailability{
+		{Date: "2026-03-02", AvailStart: h(8), AvailEnd: h(17), FreeIntervals: []FreeInterval{{Start: h(8), End: h(17)}}, BookingCount: 0},
+	}
+	datedSlots := []DatedTimeSlot{
+		{Date: "2026-03-03", DayOfWeek: 2, StartMicros: h(8), EndMicros: h(14), SlotIndex: 0}, // Different date
+	}
+
+	result := FindBestPlacementAcrossDates(dateAvails, datedSlots, h(4), DefaultMatchConfig())
+
+	if result.Found {
+		t.Error("expected no placement when no slots match available dates")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ComputeMatchScore
+// ---------------------------------------------------------------------------
+
+func TestComputeMatchScore_BaseCase(t *testing.T) {
+	score := ComputeMatchScore(ScoreInput{
+		RatingAvg:     4.5,
+		TotalJobsDone: 50,
+		IsAreaMatch:   true,
+		PlacementFound: true,
+		GapScoreH:     0,
+		Config:        DefaultMatchConfig(),
+	})
+	// 50 + (4.5*5=22.5) + (50/100*15=7.5) + 10 + 5 = 95
+	expected := 95.0
+	if score != expected {
+		t.Errorf("score = %.1f, want %.1f", score, expected)
+	}
+}
+
+func TestComputeMatchScore_WorkloadPenalty(t *testing.T) {
+	config := DefaultMatchConfig() // LoadBalanceWeight = 10
+
+	// Worker with 3 daily bookings and 10 weekly.
+	score := ComputeMatchScore(ScoreInput{
+		RatingAvg:        4.0,
+		TotalJobsDone:    20,
+		IsAreaMatch:      true,
+		PlacementFound:   true,
+		GapScoreH:        1.0,
+		DayBookingCount:  3,
+		WeekBookingCount: 10,
+		Config:           config,
+	})
+	// 50 + 20 + 3 + 10 + 0 - 0 - (3*5=15) - (10*1=10) = 58
+	expected := 58.0
+	if score != expected {
+		t.Errorf("score = %.1f, want %.1f", score, expected)
+	}
+}
+
+func TestComputeMatchScore_ZeroLoadBalanceWeight(t *testing.T) {
+	config := DefaultMatchConfig()
+	config.LoadBalanceWeight = 0
+
+	// Even with high load, no workload penalty.
+	score := ComputeMatchScore(ScoreInput{
+		RatingAvg:        4.0,
+		TotalJobsDone:    20,
+		IsAreaMatch:      true,
+		PlacementFound:   true,
+		GapScoreH:        0,
+		DayBookingCount:  5,
+		WeekBookingCount: 20,
+		Config:           config,
+	})
+	// 50 + 20 + 3 + 10 + 5 = 88 (no workload penalty)
+	expected := 88.0
+	if score != expected {
+		t.Errorf("score = %.1f, want %.1f", score, expected)
+	}
+}
+
+func TestComputeMatchScore_Clamping(t *testing.T) {
+	config := DefaultMatchConfig()
+
+	// Score would go below 0 without clamping.
+	score := ComputeMatchScore(ScoreInput{
+		RatingAvg:        0,
+		TotalJobsDone:    0,
+		IsAreaMatch:      false,
+		PlacementFound:   false,
+		DayBookingCount:  5,
+		WeekBookingCount: 20,
+		Config:           config,
+	})
+	if score != 0 {
+		t.Errorf("score = %.1f, want 0 (clamped)", score)
+	}
+
+	// Score would go above 100 without clamping (not really possible with current formula,
+	// but verify the clamp exists).
+	score2 := ComputeMatchScore(ScoreInput{
+		RatingAvg:      5.0,
+		TotalJobsDone:  200,
+		IsAreaMatch:    true,
+		PlacementFound: true,
+		GapScoreH:      0,
+		Config:         config,
+	})
+	if score2 > 100 {
+		t.Errorf("score = %.1f, should be clamped to 100", score2)
+	}
+}
+
+func TestComputeMatchScore_UnavailablePenalty(t *testing.T) {
+	score := ComputeMatchScore(ScoreInput{
+		RatingAvg:      3.0,
+		TotalJobsDone:  10,
+		IsAreaMatch:    true,
+		PlacementFound: false,
+		Config:         DefaultMatchConfig(),
+	})
+	// 50 + 15 + 1.5 + 10 - 40 = 36.5
+	expected := 36.5
+	if score != expected {
+		t.Errorf("score = %.1f, want %.1f", score, expected)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// MatchConfig
+// ---------------------------------------------------------------------------
+
+func TestDefaultMatchConfig(t *testing.T) {
+	c := DefaultMatchConfig()
+	if c.BufferMinutes != 15 {
+		t.Errorf("BufferMinutes = %d, want 15", c.BufferMinutes)
+	}
+	if c.MaxJobsPerDay != 6 {
+		t.Errorf("MaxJobsPerDay = %d, want 6", c.MaxJobsPerDay)
+	}
+	if c.LoadBalanceWeight != 10.0 {
+		t.Errorf("LoadBalanceWeight = %.1f, want 10.0", c.LoadBalanceWeight)
+	}
+	if c.MaxResults != 5 {
+		t.Errorf("MaxResults = %d, want 5", c.MaxResults)
+	}
+	if c.MinAvailableCount != 5 {
+		t.Errorf("MinAvailableCount = %d, want 5", c.MinAvailableCount)
+	}
+}
+
+func TestMatchConfig_BufferMicros(t *testing.T) {
+	c := MatchConfig{BufferMinutes: 30}
+	want := int64(30) * MinuteMicros
+	if c.BufferMicros() != want {
+		t.Errorf("BufferMicros() = %d, want %d", c.BufferMicros(), want)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

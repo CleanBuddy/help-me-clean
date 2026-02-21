@@ -124,7 +124,7 @@ SELECT COUNT(*) FROM bookings WHERE
     AND (@date_to::date = '0001-01-01' OR scheduled_date <= @date_to::date);
 
 -- name: SetBookingPreferredCleaner :one
-UPDATE bookings SET company_id = $2, cleaner_id = $3, updated_at = NOW()
+UPDATE bookings SET company_id = $2, cleaner_id = $3, status = 'confirmed', updated_at = NOW()
 WHERE id = $1 RETURNING *;
 
 -- name: SearchCleanerBookings :many
