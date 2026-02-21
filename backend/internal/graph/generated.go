@@ -899,6 +899,7 @@ type ComplexityRoot struct {
 	}
 
 	ServiceExtra struct {
+		AllowMultiple   func(childComplexity int) int
 		DurationMinutes func(childComplexity int) int
 		ID              func(childComplexity int) int
 		Icon            func(childComplexity int) int
@@ -906,6 +907,7 @@ type ComplexityRoot struct {
 		NameEn          func(childComplexity int) int
 		NameRo          func(childComplexity int) int
 		Price           func(childComplexity int) int
+		UnitLabel       func(childComplexity int) int
 	}
 
 	ServiceRevenue struct {
@@ -5846,6 +5848,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ServiceDefinition.ServiceType(childComplexity), true
 
+	case "ServiceExtra.allowMultiple":
+		if e.complexity.ServiceExtra.AllowMultiple == nil {
+			break
+		}
+
+		return e.complexity.ServiceExtra.AllowMultiple(childComplexity), true
 	case "ServiceExtra.durationMinutes":
 		if e.complexity.ServiceExtra.DurationMinutes == nil {
 			break
@@ -5888,6 +5896,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ServiceExtra.Price(childComplexity), true
+	case "ServiceExtra.unitLabel":
+		if e.complexity.ServiceExtra.UnitLabel == nil {
+			break
+		}
+
+		return e.complexity.ServiceExtra.UnitLabel(childComplexity), true
 
 	case "ServiceRevenue.bookingCount":
 		if e.complexity.ServiceRevenue.BookingCount == nil {
@@ -10566,6 +10580,10 @@ func (ec *executionContext) fieldContext_BookingExtra_extra(_ context.Context, f
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceExtra_isActive(ctx, field)
+			case "allowMultiple":
+				return ec.fieldContext_ServiceExtra_allowMultiple(ctx, field)
+			case "unitLabel":
+				return ec.fieldContext_ServiceExtra_unitLabel(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceExtra", field.Name)
 		},
@@ -16219,6 +16237,10 @@ func (ec *executionContext) fieldContext_ExtraLineItem_extra(_ context.Context, 
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceExtra_isActive(ctx, field)
+			case "allowMultiple":
+				return ec.fieldContext_ServiceExtra_allowMultiple(ctx, field)
+			case "unitLabel":
+				return ec.fieldContext_ServiceExtra_unitLabel(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceExtra", field.Name)
 		},
@@ -23663,6 +23685,10 @@ func (ec *executionContext) fieldContext_Mutation_updateServiceExtra(ctx context
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceExtra_isActive(ctx, field)
+			case "allowMultiple":
+				return ec.fieldContext_ServiceExtra_allowMultiple(ctx, field)
+			case "unitLabel":
+				return ec.fieldContext_ServiceExtra_unitLabel(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceExtra", field.Name)
 		},
@@ -23720,6 +23746,10 @@ func (ec *executionContext) fieldContext_Mutation_createServiceExtra(ctx context
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceExtra_isActive(ctx, field)
+			case "allowMultiple":
+				return ec.fieldContext_ServiceExtra_allowMultiple(ctx, field)
+			case "unitLabel":
+				return ec.fieldContext_ServiceExtra_unitLabel(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceExtra", field.Name)
 		},
@@ -32336,6 +32366,10 @@ func (ec *executionContext) fieldContext_Query_availableExtras(_ context.Context
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceExtra_isActive(ctx, field)
+			case "allowMultiple":
+				return ec.fieldContext_ServiceExtra_allowMultiple(ctx, field)
+			case "unitLabel":
+				return ec.fieldContext_ServiceExtra_unitLabel(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceExtra", field.Name)
 		},
@@ -32501,6 +32535,10 @@ func (ec *executionContext) fieldContext_Query_allExtras(_ context.Context, fiel
 				return ec.fieldContext_ServiceExtra_icon(ctx, field)
 			case "isActive":
 				return ec.fieldContext_ServiceExtra_isActive(ctx, field)
+			case "allowMultiple":
+				return ec.fieldContext_ServiceExtra_allowMultiple(ctx, field)
+			case "unitLabel":
+				return ec.fieldContext_ServiceExtra_unitLabel(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceExtra", field.Name)
 		},
@@ -35555,6 +35593,64 @@ func (ec *executionContext) fieldContext_ServiceExtra_isActive(_ context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceExtra_allowMultiple(ctx context.Context, field graphql.CollectedField, obj *model.ServiceExtra) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceExtra_allowMultiple,
+		func(ctx context.Context) (any, error) {
+			return obj.AllowMultiple, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceExtra_allowMultiple(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceExtra",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceExtra_unitLabel(ctx context.Context, field graphql.CollectedField, obj *model.ServiceExtra) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ServiceExtra_unitLabel,
+		func(ctx context.Context) (any, error) {
+			return obj.UnitLabel, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ServiceExtra_unitLabel(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceExtra",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -38846,7 +38942,7 @@ func (ec *executionContext) unmarshalInputCreateServiceExtraInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"nameRo", "nameEn", "price", "durationMinutes", "isActive"}
+	fieldsInOrder := [...]string{"nameRo", "nameEn", "price", "durationMinutes", "isActive", "allowMultiple", "unitLabel"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -38888,6 +38984,20 @@ func (ec *executionContext) unmarshalInputCreateServiceExtraInput(ctx context.Co
 				return it, err
 			}
 			it.IsActive = data
+		case "allowMultiple":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowMultiple"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowMultiple = data
+		case "unitLabel":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("unitLabel"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UnitLabel = data
 		}
 	}
 
@@ -39595,7 +39705,7 @@ func (ec *executionContext) unmarshalInputUpdateServiceExtraInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "price", "durationMinutes", "isActive"}
+	fieldsInOrder := [...]string{"id", "nameRo", "nameEn", "price", "durationMinutes", "isActive", "allowMultiple", "unitLabel"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -39644,6 +39754,20 @@ func (ec *executionContext) unmarshalInputUpdateServiceExtraInput(ctx context.Co
 				return it, err
 			}
 			it.IsActive = data
+		case "allowMultiple":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowMultiple"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowMultiple = data
+		case "unitLabel":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("unitLabel"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UnitLabel = data
 		}
 	}
 
@@ -46788,6 +46912,13 @@ func (ec *executionContext) _ServiceExtra(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "allowMultiple":
+			out.Values[i] = ec._ServiceExtra_allowMultiple(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "unitLabel":
+			out.Values[i] = ec._ServiceExtra_unitLabel(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

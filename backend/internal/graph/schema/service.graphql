@@ -25,6 +25,8 @@ type ServiceExtra {
   durationMinutes: Int!
   icon: String
   isActive: Boolean!
+  allowMultiple: Boolean!
+  unitLabel: String
 }
 
 type PriceEstimate {
@@ -108,6 +110,8 @@ input UpdateServiceExtraInput {
   price: Float!
   durationMinutes: Int!
   isActive: Boolean!
+  allowMultiple: Boolean!
+  unitLabel: String
 }
 
 input CreateServiceExtraInput {
@@ -116,4 +120,6 @@ input CreateServiceExtraInput {
   price: Float!
   durationMinutes: Int!
   isActive: Boolean!
+  allowMultiple: Boolean!
+  unitLabel: String
 }

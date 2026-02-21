@@ -71,8 +71,8 @@ func (q *Queries) CreateServiceDefinition(ctx context.Context, arg CreateService
 }
 
 const createServiceExtra = `-- name: CreateServiceExtra :one
-INSERT INTO service_extras (name_ro, name_en, price, duration_minutes, is_active)
-VALUES ($1, $2, $3, $4, $5) RETURNING id, name_ro, name_en, price, icon, is_active, duration_minutes
+INSERT INTO service_extras (name_ro, name_en, price, duration_minutes, is_active, allow_multiple, unit_label)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name_ro, name_en, price, icon, is_active, duration_minutes, allow_multiple, unit_label
 `
 
 type CreateServiceExtraParams struct {
@@ -81,6 +81,8 @@ type CreateServiceExtraParams struct {
 	Price           pgtype.Numeric `json:"price"`
 	DurationMinutes int32          `json:"duration_minutes"`
 	IsActive        pgtype.Bool    `json:"is_active"`
+	AllowMultiple   bool           `json:"allow_multiple"`
+	UnitLabel       pgtype.Text    `json:"unit_label"`
 }
 
 func (q *Queries) CreateServiceExtra(ctx context.Context, arg CreateServiceExtraParams) (ServiceExtra, error) {
@@ -90,6 +92,8 @@ func (q *Queries) CreateServiceExtra(ctx context.Context, arg CreateServiceExtra
 		arg.Price,
 		arg.DurationMinutes,
 		arg.IsActive,
+		arg.AllowMultiple,
+		arg.UnitLabel,
 	)
 	var i ServiceExtra
 	err := row.Scan(
@@ -100,12 +104,14 @@ func (q *Queries) CreateServiceExtra(ctx context.Context, arg CreateServiceExtra
 		&i.Icon,
 		&i.IsActive,
 		&i.DurationMinutes,
+		&i.AllowMultiple,
+		&i.UnitLabel,
 	)
 	return i, err
 }
 
 const getExtraByID = `-- name: GetExtraByID :one
-SELECT id, name_ro, name_en, price, icon, is_active, duration_minutes FROM service_extras WHERE id = $1
+SELECT id, name_ro, name_en, price, icon, is_active, duration_minutes, allow_multiple, unit_label FROM service_extras WHERE id = $1
 `
 
 func (q *Queries) GetExtraByID(ctx context.Context, id pgtype.UUID) (ServiceExtra, error) {
@@ -119,6 +125,8 @@ func (q *Queries) GetExtraByID(ctx context.Context, id pgtype.UUID) (ServiceExtr
 		&i.Icon,
 		&i.IsActive,
 		&i.DurationMinutes,
+		&i.AllowMultiple,
+		&i.UnitLabel,
 	)
 	return i, err
 }
@@ -153,7 +161,7 @@ func (q *Queries) GetServiceByType(ctx context.Context, serviceType ServiceType)
 }
 
 const listActiveExtras = `-- name: ListActiveExtras :many
-SELECT id, name_ro, name_en, price, icon, is_active, duration_minutes FROM service_extras WHERE is_active = TRUE ORDER BY name_en
+SELECT id, name_ro, name_en, price, icon, is_active, duration_minutes, allow_multiple, unit_label FROM service_extras WHERE is_active = TRUE ORDER BY name_en
 `
 
 func (q *Queries) ListActiveExtras(ctx context.Context) ([]ServiceExtra, error) {
@@ -173,6 +181,8 @@ func (q *Queries) ListActiveExtras(ctx context.Context) ([]ServiceExtra, error) 
 			&i.Icon,
 			&i.IsActive,
 			&i.DurationMinutes,
+			&i.AllowMultiple,
+			&i.UnitLabel,
 		); err != nil {
 			return nil, err
 		}
@@ -227,7 +237,7 @@ func (q *Queries) ListActiveServices(ctx context.Context) ([]ServiceDefinition, 
 }
 
 const listAllExtras = `-- name: ListAllExtras :many
-SELECT id, name_ro, name_en, price, icon, is_active, duration_minutes FROM service_extras ORDER BY name_ro
+SELECT id, name_ro, name_en, price, icon, is_active, duration_minutes, allow_multiple, unit_label FROM service_extras ORDER BY name_ro
 `
 
 func (q *Queries) ListAllExtras(ctx context.Context) ([]ServiceExtra, error) {
@@ -247,6 +257,8 @@ func (q *Queries) ListAllExtras(ctx context.Context) ([]ServiceExtra, error) {
 			&i.Icon,
 			&i.IsActive,
 			&i.DurationMinutes,
+			&i.AllowMultiple,
+			&i.UnitLabel,
 		); err != nil {
 			return nil, err
 		}
@@ -361,8 +373,9 @@ func (q *Queries) UpdateServiceDefinition(ctx context.Context, arg UpdateService
 }
 
 const updateServiceExtra = `-- name: UpdateServiceExtra :one
-UPDATE service_extras SET name_ro = $2, name_en = $3, price = $4, duration_minutes = $5, is_active = $6
-WHERE id = $1 RETURNING id, name_ro, name_en, price, icon, is_active, duration_minutes
+UPDATE service_extras SET name_ro = $2, name_en = $3, price = $4, duration_minutes = $5,
+    is_active = $6, allow_multiple = $7, unit_label = $8
+WHERE id = $1 RETURNING id, name_ro, name_en, price, icon, is_active, duration_minutes, allow_multiple, unit_label
 `
 
 type UpdateServiceExtraParams struct {
@@ -372,6 +385,8 @@ type UpdateServiceExtraParams struct {
 	Price           pgtype.Numeric `json:"price"`
 	DurationMinutes int32          `json:"duration_minutes"`
 	IsActive        pgtype.Bool    `json:"is_active"`
+	AllowMultiple   bool           `json:"allow_multiple"`
+	UnitLabel       pgtype.Text    `json:"unit_label"`
 }
 
 func (q *Queries) UpdateServiceExtra(ctx context.Context, arg UpdateServiceExtraParams) (ServiceExtra, error) {
@@ -382,6 +397,8 @@ func (q *Queries) UpdateServiceExtra(ctx context.Context, arg UpdateServiceExtra
 		arg.Price,
 		arg.DurationMinutes,
 		arg.IsActive,
+		arg.AllowMultiple,
+		arg.UnitLabel,
 	)
 	var i ServiceExtra
 	err := row.Scan(
@@ -392,6 +409,8 @@ func (q *Queries) UpdateServiceExtra(ctx context.Context, arg UpdateServiceExtra
 		&i.Icon,
 		&i.IsActive,
 		&i.DurationMinutes,
+		&i.AllowMultiple,
+		&i.UnitLabel,
 	)
 	return i, err
 }

@@ -37,6 +37,7 @@ import {
   Loader2,
   Repeat,
   Mail,
+  Info,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@helpmeclean/shared';
@@ -86,6 +87,8 @@ interface ExtraDefinition {
   price: number;
   icon: string;
   isActive?: boolean;
+  allowMultiple: boolean;
+  unitLabel?: string | null;
 }
 
 interface SavedAddress {
@@ -486,9 +489,17 @@ export default function BookingPage() {
   }, [currentStep]);
 
   const handleToggleExtra = useCallback(
-    (extraId: string, delta: number) => {
+    (extraId: string, delta: number, allowMultiple: boolean) => {
       setForm((prev) => {
         const existing = prev.extras.find((e) => e.extraId === extraId);
+        if (!allowMultiple) {
+          // Toggle: active → remove, inactive → add with qty 1
+          if (existing && existing.quantity > 0) {
+            return { ...prev, extras: prev.extras.filter((e) => e.extraId !== extraId) };
+          }
+          return { ...prev, extras: [...prev.extras, { extraId, quantity: 1 }] };
+        }
+        // Quantity-based logic
         if (existing) {
           const newQty = Math.max(0, existing.quantity + delta);
           if (newQty === 0) {
@@ -1300,7 +1311,7 @@ function StepDetails({
   updateForm: (updates: Partial<BookingFormState>) => void;
   extras: ExtraDefinition[];
   selectedExtras: SelectedExtra[];
-  onToggleExtra: (extraId: string, delta: number) => void;
+  onToggleExtra: (extraId: string, delta: number, allowMultiple: boolean) => void;
   selectedService?: ServiceDefinition;
   estimatedHours?: number;
 }) {
@@ -1468,6 +1479,60 @@ function StepDetails({
               const qty = sel?.quantity ?? 0;
               const ExtraIcon = getExtraIcon(extra.icon);
 
+              if (!extra.allowMultiple) {
+                // ── Toggle extra (single activation) ──────────────────────
+                return (
+                  <Card
+                    key={extra.id}
+                    className={cn(
+                      'transition-all cursor-pointer',
+                      qty > 0
+                        ? 'ring-2 ring-blue-600/30 border-blue-600/40 shadow-sm shadow-blue-600/5'
+                        : 'hover:border-gray-300',
+                    )}
+                    onClick={() => onToggleExtra(extra.id, 1, false)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={cn(
+                            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                            qty > 0 ? 'bg-blue-50' : 'bg-gray-50',
+                          )}
+                        >
+                          <ExtraIcon
+                            className={cn(
+                              'h-5 w-5',
+                              qty > 0 ? 'text-blue-600' : 'text-gray-400',
+                            )}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {extra.nameRo}
+                          </div>
+                          <div className="text-sm text-blue-600 font-semibold">
+                            +{extra.price} lei
+                          </div>
+                        </div>
+                      </div>
+                      {/* Checkbox circle */}
+                      <div
+                        className={cn(
+                          'w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0',
+                          qty > 0
+                            ? 'bg-blue-600 border-blue-600'
+                            : 'border-gray-300',
+                        )}
+                      >
+                        {qty > 0 && <Check className="h-3.5 w-3.5 text-white" />}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              }
+
+              // ── Quantity extra (multiple units) ───────────────────────────
               return (
                 <Card
                   key={extra.id}
@@ -1495,8 +1560,10 @@ function StepDetails({
                         <div className="text-sm font-medium text-gray-900 truncate">
                           {extra.nameRo}
                         </div>
-                        <div className="text-sm text-blue-600 font-semibold">
-                          +{extra.price} lei
+                        <div className="text-xs text-gray-500">
+                          {extra.unitLabel
+                            ? `${extra.price} lei / ${extra.unitLabel}`
+                            : `+${extra.price} lei`}
                         </div>
                       </div>
                     </div>
@@ -1505,7 +1572,7 @@ function StepDetails({
                         <>
                           <button
                             type="button"
-                            onClick={() => onToggleExtra(extra.id, -1)}
+                            onClick={() => onToggleExtra(extra.id, -1, true)}
                             className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition cursor-pointer"
                           >
                             <Minus className="h-3 w-3" />
@@ -1517,7 +1584,7 @@ function StepDetails({
                       )}
                       <button
                         type="button"
-                        onClick={() => onToggleExtra(extra.id, 1)}
+                        onClick={() => onToggleExtra(extra.id, 1, true)}
                         className={cn(
                           'w-8 h-8 rounded-lg border flex items-center justify-center transition cursor-pointer',
                           qty > 0
@@ -1529,6 +1596,11 @@ function StepDetails({
                       </button>
                     </div>
                   </div>
+                  {qty > 0 && extra.unitLabel && (
+                    <p className="text-xs text-blue-600 font-medium mt-2">
+                      {qty} {extra.unitLabel}{qty > 1 ? 'uri' : ''}
+                    </p>
+                  )}
                 </Card>
               );
             })}
@@ -3212,6 +3284,7 @@ function PriceSidebar({
   estimateLoading: boolean;
 }) {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [showServiceInfo, setShowServiceInfo] = useState(false);
   return (
     <div className="sticky top-8 space-y-4">
       <Card>
@@ -3237,6 +3310,13 @@ function PriceSidebar({
                 <span className="font-medium text-gray-900">
                   {selectedService.nameRo}
                 </span>
+                <button
+                  onClick={() => setShowServiceInfo(true)}
+                  className="p-0.5 rounded-full text-gray-400 hover:text-blue-600 transition-colors"
+                  title="Detalii serviciu"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
               </div>
               <span className="font-semibold text-gray-900">
                 {selectedService.basePricePerHour} lei/ora
@@ -3301,7 +3381,8 @@ function PriceSidebar({
                     return (
                       <div key={e.extraId} className="flex justify-between mt-1">
                         <span className="text-gray-600">
-                          {extra?.nameRo} x{e.quantity}
+                          {extra?.nameRo}
+                          {extra?.allowMultiple ? ` x${e.quantity}` : ''}
                         </span>
                         <span className="font-medium text-gray-900">
                           +{(extra?.price ?? 0) * e.quantity} lei
@@ -3376,6 +3457,59 @@ function PriceSidebar({
           ))}
         </div>
       </Card>
+
+      {/* Service info modal */}
+      {showServiceInfo && selectedService && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowServiceInfo(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">
+                  {SERVICE_ICONS[form.serviceType] || '\uD83E\uDDF9'}
+                </span>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {selectedService.nameRo}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowServiceInfo(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {selectedService.descriptionRo && (
+              <p className="text-sm text-gray-500 mb-4">
+                {selectedService.descriptionRo}
+              </p>
+            )}
+            {selectedService.includedItems.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Inclus în serviciu
+                </p>
+                <ul className="space-y-2">
+                  {selectedService.includedItems.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-center gap-2 text-sm text-gray-700"
+                    >
+                      <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3396,6 +3530,7 @@ function MobilePriceFooter({
   extras: ExtraDefinition[];
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showServiceInfo, setShowServiceInfo] = useState(false);
 
   if (!selectedService) return null;
 
@@ -3406,11 +3541,20 @@ function MobilePriceFooter({
         <div className="max-h-[50vh] overflow-y-auto px-4 pt-4 pb-2 border-b border-gray-100">
           <div className="max-w-5xl mx-auto space-y-2 text-sm">
             {/* Service */}
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-gray-500">Serviciu</span>
-              <span className="font-medium text-gray-900">
-                {selectedService.nameRo}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium text-gray-900">
+                  {selectedService.nameRo}
+                </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowServiceInfo(true); }}
+                  className="p-0.5 rounded-full text-gray-400 hover:text-blue-600 transition-colors"
+                  title="Detalii serviciu"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Pret/ora</span>
@@ -3464,7 +3608,10 @@ function MobilePriceFooter({
                 const extra = extras.find((x) => x.id === e.extraId);
                 return (
                   <div key={e.extraId} className="flex justify-between">
-                    <span className="text-gray-600">{extra?.nameRo} x{e.quantity}</span>
+                    <span className="text-gray-600">
+                      {extra?.nameRo}
+                      {extra?.allowMultiple ? ` x${e.quantity}` : ''}
+                    </span>
                     <span>+{(extra?.price ?? 0) * e.quantity} lei</span>
                   </div>
                 );
@@ -3516,6 +3663,59 @@ function MobilePriceFooter({
           </div>
         </div>
       </button>
+
+      {/* Service info modal */}
+      {showServiceInfo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowServiceInfo(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">
+                  {SERVICE_ICONS[form.serviceType] || '\uD83E\uDDF9'}
+                </span>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {selectedService.nameRo}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowServiceInfo(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {selectedService.descriptionRo && (
+              <p className="text-sm text-gray-500 mb-4">
+                {selectedService.descriptionRo}
+              </p>
+            )}
+            {selectedService.includedItems.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Inclus în serviciu
+                </p>
+                <ul className="space-y-2">
+                  {selectedService.includedItems.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-center gap-2 text-sm text-gray-700"
+                    >
+                      <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

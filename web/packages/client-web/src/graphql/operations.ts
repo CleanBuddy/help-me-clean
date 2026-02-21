@@ -133,6 +133,8 @@ export const AVAILABLE_EXTRAS = gql`
       nameEn
       price
       icon
+      allowMultiple
+      unitLabel
     }
   }
 `;
@@ -1384,6 +1386,8 @@ export const ALL_EXTRAS = gql`
       durationMinutes
       icon
       isActive
+      allowMultiple
+      unitLabel
     }
   }
 `;
@@ -1436,6 +1440,8 @@ export const UPDATE_SERVICE_EXTRA = gql`
       price
       durationMinutes
       isActive
+      allowMultiple
+      unitLabel
     }
   }
 `;
@@ -1449,6 +1455,8 @@ export const CREATE_SERVICE_EXTRA = gql`
       price
       durationMinutes
       isActive
+      allowMultiple
+      unitLabel
     }
   }
 `;

@@ -64,6 +64,8 @@ interface ExtraDef {
   durationMinutes: number;
   icon?: string;
   isActive: boolean;
+  allowMultiple: boolean;
+  unitLabel?: string | null;
 }
 
 interface CityArea {
@@ -670,33 +672,33 @@ function ExtrasTab() {
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0 });
+  const [editFields, setEditFields] = useState({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0, allowMultiple: false, unitLabel: '' });
   const [showModal, setShowModal] = useState(false);
-  const [newExtra, setNewExtra] = useState({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0, isActive: true });
+  const [newExtra, setNewExtra] = useState({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0, isActive: true, allowMultiple: false, unitLabel: '' });
   const [creating, setCreating] = useState(false);
 
   const extras = data?.allExtras ?? [];
 
   const startEdit = (e: ExtraDef) => {
     setEditingId(e.id);
-    setEditFields({ nameRo: e.nameRo, nameEn: e.nameEn, price: e.price, durationMinutes: e.durationMinutes });
+    setEditFields({ nameRo: e.nameRo, nameEn: e.nameEn, price: e.price, durationMinutes: e.durationMinutes, allowMultiple: e.allowMultiple, unitLabel: e.unitLabel ?? '' });
   };
 
   const saveEdit = async (ex: ExtraDef) => {
-    await updateExtra({ variables: { input: { id: ex.id, ...editFields, isActive: ex.isActive } } });
+    await updateExtra({ variables: { input: { id: ex.id, ...editFields, unitLabel: editFields.unitLabel || null, isActive: ex.isActive } } });
     setEditingId(null);
   };
 
   const toggleActive = async (e: ExtraDef) => {
-    await updateExtra({ variables: { input: { id: e.id, nameRo: e.nameRo, nameEn: e.nameEn, price: e.price, durationMinutes: e.durationMinutes, isActive: !e.isActive } } });
+    await updateExtra({ variables: { input: { id: e.id, nameRo: e.nameRo, nameEn: e.nameEn, price: e.price, durationMinutes: e.durationMinutes, isActive: !e.isActive, allowMultiple: e.allowMultiple, unitLabel: e.unitLabel ?? null } } });
   };
 
   const handleCreate = async () => {
     setCreating(true);
     try {
-      await createExtra({ variables: { input: newExtra } });
+      await createExtra({ variables: { input: { ...newExtra, unitLabel: newExtra.unitLabel || null } } });
       setShowModal(false);
-      setNewExtra({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0, isActive: true });
+      setNewExtra({ nameRo: '', nameEn: '', price: 0, durationMinutes: 0, isActive: true, allowMultiple: false, unitLabel: '' });
     } finally {
       setCreating(false);
     }
@@ -726,6 +728,7 @@ function ExtrasTab() {
                   <th className="text-left font-medium text-gray-500 px-4 py-3">Nume EN</th>
                   <th className="text-right font-medium text-gray-500 px-4 py-3">Pret (RON)</th>
                   <th className="text-right font-medium text-gray-500 px-4 py-3" title="Durata adaugata (minute)">Durata(min)</th>
+                  <th className="text-center font-medium text-gray-500 px-4 py-3">Tip</th>
                   <th className="text-center font-medium text-gray-500 px-4 py-3">Activ</th>
                   <th className="px-4 py-3 w-10" />
                 </tr>
@@ -787,6 +790,39 @@ function ExtrasTab() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
+                        {isEditing ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editFields.allowMultiple}
+                                onChange={(e) => setEditFields((f) => ({ ...f, allowMultiple: e.target.checked, unitLabel: e.target.checked ? f.unitLabel : '' }))}
+                                className="h-3.5 w-3.5 rounded border-gray-300 text-primary"
+                              />
+                              <span className="text-xs text-gray-600">Multiple</span>
+                            </label>
+                            {editFields.allowMultiple && (
+                              <input
+                                value={editFields.unitLabel}
+                                onChange={(e) => setEditFields((f) => ({ ...f, unitLabel: e.target.value }))}
+                                placeholder="ex: dulap"
+                                className="w-20 rounded border border-gray-300 px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          ex.allowMultiple ? (
+                            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                              ×{ex.unitLabel ?? '?'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                              Toggle
+                            </span>
+                          )
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
                         <Toggle checked={ex.isActive} onChange={() => toggleActive(ex)} />
                       </td>
                       <td className="px-4 py-3">
@@ -839,6 +875,25 @@ function ExtrasTab() {
               value={newExtra.durationMinutes}
               onChange={(e) => setNewExtra((s) => ({ ...s, durationMinutes: Number(e.target.value) }))}
             />
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newExtra.allowMultiple}
+                onChange={(e) => setNewExtra((s) => ({ ...s, allowMultiple: e.target.checked, unitLabel: e.target.checked ? s.unitLabel : '' }))}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
+              />
+              <span className="text-sm text-gray-700">Permite cantitate multiplă</span>
+            </label>
+            {newExtra.allowMultiple && (
+              <Input
+                label="Unitate (ex: dulap, geam)"
+                value={newExtra.unitLabel}
+                onChange={(e) => setNewExtra((s) => ({ ...s, unitLabel: e.target.value }))}
+                placeholder="ex: dulap"
+              />
+            )}
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input

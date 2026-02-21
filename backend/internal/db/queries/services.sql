@@ -23,7 +23,8 @@ WHERE id = $1 RETURNING *;
 SELECT * FROM service_extras ORDER BY name_ro;
 
 -- name: UpdateServiceExtra :one
-UPDATE service_extras SET name_ro = $2, name_en = $3, price = $4, duration_minutes = $5, is_active = $6
+UPDATE service_extras SET name_ro = $2, name_en = $3, price = $4, duration_minutes = $5,
+    is_active = $6, allow_multiple = $7, unit_label = $8
 WHERE id = $1 RETURNING *;
 
 -- name: CreateServiceDefinition :one
@@ -32,5 +33,5 @@ INSERT INTO service_definitions (service_type, name_ro, name_en, base_price_per_
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *;
 
 -- name: CreateServiceExtra :one
-INSERT INTO service_extras (name_ro, name_en, price, duration_minutes, is_active)
-VALUES ($1, $2, $3, $4, $5) RETURNING *;
+INSERT INTO service_extras (name_ro, name_en, price, duration_minutes, is_active, allow_multiple, unit_label)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;

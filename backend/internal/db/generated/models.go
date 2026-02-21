@@ -1235,6 +1235,8 @@ type ServiceExtra struct {
 	Icon            pgtype.Text    `json:"icon"`
 	IsActive        pgtype.Bool    `json:"is_active"`
 	DurationMinutes int32          `json:"duration_minutes"`
+	AllowMultiple   bool           `json:"allow_multiple"`
+	UnitLabel       pgtype.Text    `json:"unit_label"`
 }
 
 type User struct {

@@ -94,6 +94,8 @@ func (r *mutationResolver) UpdateServiceExtra(ctx context.Context, input model.U
 		Price:           float64ToNumeric(input.Price),
 		DurationMinutes: int32(input.DurationMinutes),
 		IsActive:        pgtype.Bool{Bool: input.IsActive, Valid: true},
+		AllowMultiple:   input.AllowMultiple,
+		UnitLabel:       stringToText(input.UnitLabel),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update service extra: %w", err)
@@ -115,6 +117,8 @@ func (r *mutationResolver) CreateServiceExtra(ctx context.Context, input model.C
 		Price:           float64ToNumeric(input.Price),
 		DurationMinutes: int32(input.DurationMinutes),
 		IsActive:        pgtype.Bool{Bool: input.IsActive, Valid: true},
+		AllowMultiple:   input.AllowMultiple,
+		UnitLabel:       stringToText(input.UnitLabel),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service extra: %w", err)

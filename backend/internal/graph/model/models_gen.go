@@ -426,6 +426,8 @@ type CreateServiceExtraInput struct {
 	Price           float64 `json:"price"`
 	DurationMinutes int     `json:"durationMinutes"`
 	IsActive        bool    `json:"isActive"`
+	AllowMultiple   bool    `json:"allowMultiple"`
+	UnitLabel       *string `json:"unitLabel,omitempty"`
 }
 
 type DailyRevenue struct {
@@ -819,6 +821,8 @@ type ServiceExtra struct {
 	DurationMinutes int     `json:"durationMinutes"`
 	Icon            *string `json:"icon,omitempty"`
 	IsActive        bool    `json:"isActive"`
+	AllowMultiple   bool    `json:"allowMultiple"`
+	UnitLabel       *string `json:"unitLabel,omitempty"`
 }
 
 type ServiceRevenue struct {
@@ -913,6 +917,8 @@ type UpdateServiceExtraInput struct {
 	Price           float64 `json:"price"`
 	DurationMinutes int     `json:"durationMinutes"`
 	IsActive        bool    `json:"isActive"`
+	AllowMultiple   bool    `json:"allowMultiple"`
+	UnitLabel       *string `json:"unitLabel,omitempty"`
 }
 
 type UploadResult struct {

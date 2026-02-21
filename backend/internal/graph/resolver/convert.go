@@ -305,6 +305,8 @@ func dbServiceExtraToGQL(e db.ServiceExtra) *model.ServiceExtra {
 		DurationMinutes: int(e.DurationMinutes),
 		Icon:            textPtr(e.Icon),
 		IsActive:        boolVal(e.IsActive),
+		AllowMultiple:   e.AllowMultiple,
+		UnitLabel:       textPtr(e.UnitLabel),
 	}
 }
 
