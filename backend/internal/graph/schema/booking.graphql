@@ -27,6 +27,7 @@ type Booking {
   address: Address
   serviceType: ServiceType!
   serviceName: String!
+  includedItems: [String!]!
   scheduledDate: String!
   scheduledStartTime: String!
   estimatedDurationHours: Float!

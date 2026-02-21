@@ -189,8 +189,10 @@ func (r *Resolver) enrichBooking(ctx context.Context, dbB db.Booking, gqlB *mode
 	}
 	if svc, err := r.Queries.GetServiceByType(ctx, dbB.ServiceType); err == nil {
 		gqlB.ServiceName = svc.NameRo
+		gqlB.IncludedItems = svc.IncludedItems
 	} else {
 		gqlB.ServiceName = string(dbB.ServiceType)
+		gqlB.IncludedItems = []string{}
 	}
 	if dbB.CompanyID.Valid {
 		if company, err := r.Queries.GetCompanyByID(ctx, dbB.CompanyID); err == nil {
@@ -219,6 +221,26 @@ func (r *Resolver) enrichBooking(ctx context.Context, dbB db.Booking, gqlB *mode
 	// Load review if one exists for this booking.
 	if review, err := r.Queries.GetReviewByBookingID(ctx, dbB.ID); err == nil {
 		gqlB.Review = dbReviewToGQL(review)
+	}
+	// Load booking extras with service extra details.
+	if extras, err := r.Queries.ListBookingExtras(ctx, dbB.ID); err == nil {
+		for _, e := range extras {
+			gqlB.Extras = append(gqlB.Extras, &model.BookingExtra{
+				Extra: &model.ServiceExtra{
+					ID:              uuidToString(e.ExtraID),
+					NameRo:          e.NameRo,
+					NameEn:          e.NameEn,
+					Price:           numericToFloat(e.ExtraPrice),
+					DurationMinutes: int(e.DurationMinutes),
+					Icon:            textPtr(e.Icon),
+					IsActive:        true,
+					AllowMultiple:   e.AllowMultiple,
+					UnitLabel:       textPtr(e.UnitLabel),
+				},
+				Price:    numericToFloat(e.Price),
+				Quantity: int4Val(e.Quantity),
+			})
+		}
 	}
 }
 

@@ -20,6 +20,7 @@ import {
   Star,
   Check,
   Repeat,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
@@ -75,6 +76,7 @@ interface BookingData {
   serviceName: string;
   scheduledDate: string;
   scheduledStartTime: string;
+  estimatedDurationHours: number;
   estimatedTotal: number;
   finalTotal?: number;
   status: string;
@@ -91,6 +93,21 @@ interface BookingData {
   address: BookingAddress;
   company?: BookingCompany;
   cleaner?: BookingCleaner;
+  includedItems: string[];
+  extras: {
+    extra: {
+      id: string;
+      nameRo: string;
+      nameEn: string;
+      price: number;
+      durationMinutes: number;
+      icon?: string;
+      allowMultiple: boolean;
+      unitLabel?: string;
+    };
+    price: number;
+    quantity: number;
+  }[];
   timeSlots?: BookingTimeSlot[];
   review?: BookingReview;
 }
@@ -364,6 +381,60 @@ export default function BookingDetailPage() {
                 )}
               </div>
             </Card>
+
+            {/* Included service items */}
+            {booking.includedItems && booking.includedItems.length > 0 && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Ce include serviciul
+                </h2>
+                <ul className="space-y-2.5">
+                  {booking.includedItems.map((item, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-gray-700">
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      </div>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+
+            {/* Extras */}
+            {booking.extras && booking.extras.length > 0 && (
+              <Card>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Servicii suplimentare
+                </h2>
+                <div className="space-y-3">
+                  {booking.extras.map((be, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          {be.extra.icon ? (
+                            <span className="text-lg">{be.extra.icon}</span>
+                          ) : (
+                            <Sparkles className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {be.extra.nameRo}
+                          </div>
+                          {be.quantity > 1 && (
+                            <div className="text-xs text-gray-500">x{be.quantity}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {be.price * be.quantity} lei
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Time Slots */}
             {booking.timeSlots && booking.timeSlots.length > 0 && (

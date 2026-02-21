@@ -233,6 +233,7 @@ type Querier interface {
 	ListAllServices(ctx context.Context) ([]ServiceDefinition, error)
 	ListAllUsers(ctx context.Context) ([]User, error)
 	ListAreasByCity(ctx context.Context, cityID pgtype.UUID) ([]ListAreasByCityRow, error)
+	ListBookingExtras(ctx context.Context, bookingID pgtype.UUID) ([]ListBookingExtrasRow, error)
 	ListBookingTimeSlots(ctx context.Context, bookingID pgtype.UUID) ([]BookingTimeSlot, error)
 	ListBookingsByCleaner(ctx context.Context, cleanerID pgtype.UUID) ([]Booking, error)
 	ListBookingsByCleanerAndDateRange(ctx context.Context, arg ListBookingsByCleanerAndDateRangeParams) ([]Booking, error)

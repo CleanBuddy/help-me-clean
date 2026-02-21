@@ -487,6 +487,62 @@ func (q *Queries) InsertBookingExtra(ctx context.Context, arg InsertBookingExtra
 	return err
 }
 
+const listBookingExtras = `-- name: ListBookingExtras :many
+SELECT be.id, be.booking_id, be.extra_id, be.price, be.quantity,
+       se.name_ro, se.name_en, se.price AS extra_price, se.duration_minutes, se.icon, se.allow_multiple, se.unit_label
+FROM booking_extras be
+JOIN service_extras se ON se.id = be.extra_id
+WHERE be.booking_id = $1
+`
+
+type ListBookingExtrasRow struct {
+	ID              pgtype.UUID    `json:"id"`
+	BookingID       pgtype.UUID    `json:"booking_id"`
+	ExtraID         pgtype.UUID    `json:"extra_id"`
+	Price           pgtype.Numeric `json:"price"`
+	Quantity        pgtype.Int4    `json:"quantity"`
+	NameRo          string         `json:"name_ro"`
+	NameEn          string         `json:"name_en"`
+	ExtraPrice      pgtype.Numeric `json:"extra_price"`
+	DurationMinutes int32          `json:"duration_minutes"`
+	Icon            pgtype.Text    `json:"icon"`
+	AllowMultiple   bool           `json:"allow_multiple"`
+	UnitLabel       pgtype.Text    `json:"unit_label"`
+}
+
+func (q *Queries) ListBookingExtras(ctx context.Context, bookingID pgtype.UUID) ([]ListBookingExtrasRow, error) {
+	rows, err := q.db.Query(ctx, listBookingExtras, bookingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListBookingExtrasRow
+	for rows.Next() {
+		var i ListBookingExtrasRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.BookingID,
+			&i.ExtraID,
+			&i.Price,
+			&i.Quantity,
+			&i.NameRo,
+			&i.NameEn,
+			&i.ExtraPrice,
+			&i.DurationMinutes,
+			&i.Icon,
+			&i.AllowMultiple,
+			&i.UnitLabel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBookingsByCleaner = `-- name: ListBookingsByCleaner :many
 SELECT id, reference_code, client_user_id, company_id, cleaner_id, address_id, service_type, scheduled_date, scheduled_start_time, estimated_duration_hours, property_type, num_rooms, num_bathrooms, area_sqm, has_pets, special_instructions, hourly_rate, estimated_total, final_total, platform_commission_pct, platform_commission_amount, status, started_at, completed_at, cancelled_at, cancellation_reason, stripe_payment_intent_id, payment_status, paid_at, created_at, updated_at, recurring_group_id, occurrence_number FROM bookings WHERE cleaner_id = $1 ORDER BY scheduled_date DESC
 `

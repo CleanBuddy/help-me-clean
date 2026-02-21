@@ -206,6 +206,7 @@ export const CLIENT_BOOKING_DETAIL = gql`
       referenceCode
       serviceType
       serviceName
+      includedItems
       scheduledDate
       scheduledStartTime
       estimatedDurationHours
@@ -252,6 +253,20 @@ export const CLIENT_BOOKING_DETAIL = gql`
         startTime
         endTime
         isSelected
+      }
+      extras {
+        extra {
+          id
+          nameRo
+          nameEn
+          price
+          durationMinutes
+          icon
+          allowMultiple
+          unitLabel
+        }
+        price
+        quantity
       }
       review {
         id

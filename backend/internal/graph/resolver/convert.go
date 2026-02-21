@@ -352,6 +352,8 @@ func dbBookingToGQL(b db.Booking) *model.Booking {
 		CancelledAt:           timestamptzToTimePtr(b.CancelledAt),
 		CancellationReason:    textPtr(b.CancellationReason),
 		TimeSlots:             []*model.BookingTimeSlot{},
+		Extras:                []*model.BookingExtra{},
+		IncludedItems:         []string{},
 		PaymentStatus:         paymentStatus,
 		PaidAt:                timestamptzToTimePtr(b.PaidAt),
 		CreatedAt:             timestamptzToTime(b.CreatedAt),

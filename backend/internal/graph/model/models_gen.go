@@ -91,6 +91,7 @@ type Booking struct {
 	Address                *Address           `json:"address,omitempty"`
 	ServiceType            ServiceType        `json:"serviceType"`
 	ServiceName            string             `json:"serviceName"`
+	IncludedItems          []string           `json:"includedItems"`
 	ScheduledDate          string             `json:"scheduledDate"`
 	ScheduledStartTime     string             `json:"scheduledStartTime"`
 	EstimatedDurationHours float64            `json:"estimatedDurationHours"`

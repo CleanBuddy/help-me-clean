@@ -97,6 +97,7 @@ type ComplexityRoot struct {
 		HasPets                func(childComplexity int) int
 		HourlyRate             func(childComplexity int) int
 		ID                     func(childComplexity int) int
+		IncludedItems          func(childComplexity int) int
 		NumBathrooms           func(childComplexity int) int
 		NumRooms               func(childComplexity int) int
 		OccurrenceNumber       func(childComplexity int) int
@@ -1422,6 +1423,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.ID(childComplexity), true
+	case "Booking.includedItems":
+		if e.complexity.Booking.IncludedItems == nil {
+			break
+		}
+
+		return e.complexity.Booking.IncludedItems(childComplexity), true
 	case "Booking.numBathrooms":
 		if e.complexity.Booking.NumBathrooms == nil {
 			break
@@ -9549,6 +9556,35 @@ func (ec *executionContext) fieldContext_Booking_serviceName(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Booking_includedItems(ctx context.Context, field graphql.CollectedField, obj *model.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_includedItems,
+		func(ctx context.Context) (any, error) {
+			return obj.IncludedItems, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_includedItems(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Booking_scheduledDate(ctx context.Context, field graphql.CollectedField, obj *model.Booking) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10424,6 +10460,8 @@ func (ec *executionContext) fieldContext_BookingConnection_edges(_ context.Conte
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -11282,6 +11320,8 @@ func (ec *executionContext) fieldContext_ChatRoom_booking(_ context.Context, fie
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -16759,6 +16799,8 @@ func (ec *executionContext) fieldContext_Invoice_booking(_ context.Context, fiel
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -17892,6 +17934,8 @@ func (ec *executionContext) fieldContext_Mutation_adminCancelBooking(ctx context
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -18641,6 +18685,8 @@ func (ec *executionContext) fieldContext_Mutation_createBookingRequest(ctx conte
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -18754,6 +18800,8 @@ func (ec *executionContext) fieldContext_Mutation_cancelBooking(ctx context.Cont
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -18867,6 +18915,8 @@ func (ec *executionContext) fieldContext_Mutation_assignCleanerToBooking(ctx con
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -18980,6 +19030,8 @@ func (ec *executionContext) fieldContext_Mutation_confirmBooking(ctx context.Con
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -19093,6 +19145,8 @@ func (ec *executionContext) fieldContext_Mutation_startJob(ctx context.Context, 
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -19206,6 +19260,8 @@ func (ec *executionContext) fieldContext_Mutation_completeJob(ctx context.Contex
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -19319,6 +19375,8 @@ func (ec *executionContext) fieldContext_Mutation_selectBookingTimeSlot(ctx cont
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -22939,6 +22997,8 @@ func (ec *executionContext) fieldContext_Mutation_markBookingPaid(ctx context.Co
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -24718,6 +24778,8 @@ func (ec *executionContext) fieldContext_PaymentHistoryEntry_booking(_ context.C
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -25341,6 +25403,8 @@ func (ec *executionContext) fieldContext_PaymentTransaction_booking(_ context.Co
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -25732,6 +25796,8 @@ func (ec *executionContext) fieldContext_PayoutLineItem_booking(_ context.Contex
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -28658,6 +28724,8 @@ func (ec *executionContext) fieldContext_Query_booking(ctx context.Context, fiel
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -28820,6 +28888,8 @@ func (ec *executionContext) fieldContext_Query_myAssignedJobs(ctx context.Contex
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -28932,6 +29002,8 @@ func (ec *executionContext) fieldContext_Query_todaysJobs(_ context.Context, fie
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -29083,6 +29155,8 @@ func (ec *executionContext) fieldContext_Query_companyBookingsByDateRange(ctx co
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -29616,6 +29690,8 @@ func (ec *executionContext) fieldContext_Query_myCleanerBookingsByDateRange(ctx 
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -33798,6 +33874,8 @@ func (ec *executionContext) fieldContext_RecurringBookingGroup_occurrences(_ con
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -33899,6 +33977,8 @@ func (ec *executionContext) fieldContext_RecurringBookingGroup_upcomingOccurrenc
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -34116,6 +34196,8 @@ func (ec *executionContext) fieldContext_RefundRequest_booking(_ context.Context
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -34667,6 +34749,8 @@ func (ec *executionContext) fieldContext_Review_booking(_ context.Context, field
 				return ec.fieldContext_Booking_serviceType(ctx, field)
 			case "serviceName":
 				return ec.fieldContext_Booking_serviceName(ctx, field)
+			case "includedItems":
+				return ec.fieldContext_Booking_includedItems(ctx, field)
 			case "scheduledDate":
 				return ec.fieldContext_Booking_scheduledDate(ctx, field)
 			case "scheduledStartTime":
@@ -40085,6 +40169,11 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "serviceName":
 			out.Values[i] = ec._Booking_serviceName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "includedItems":
+			out.Values[i] = ec._Booking_includedItems(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

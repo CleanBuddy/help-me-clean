@@ -151,3 +151,10 @@ WHERE id = $1 RETURNING *;
 -- name: InsertBookingExtra :exec
 INSERT INTO booking_extras (booking_id, extra_id, price, quantity)
 VALUES ($1, $2, $3, $4);
+
+-- name: ListBookingExtras :many
+SELECT be.id, be.booking_id, be.extra_id, be.price, be.quantity,
+       se.name_ro, se.name_en, se.price AS extra_price, se.duration_minutes, se.icon, se.allow_multiple, se.unit_label
+FROM booking_extras be
+JOIN service_extras se ON se.id = be.extra_id
+WHERE be.booking_id = $1;
